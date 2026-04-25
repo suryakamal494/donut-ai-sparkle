@@ -42,6 +42,12 @@ function isContextualFollowUp(text: string): boolean {
   return CONTEXTUAL_FOLLOW_UP_RE.test(text.trim());
 }
 
+const EXPLICIT_NEW_INTENT_RE = /^(?:new chat|start fresh|start over|create a new|make a new|switch to|show my progress|prepare me for|give me\s+\d+\s+(?:mcqs?|questions)|\d+\s+(?:mcqs?|questions)\s+on)\b/i;
+
+function isExplicitNewIntent(text: string): boolean {
+  return EXPLICIT_NEW_INTENT_RE.test(text.trim());
+}
+
 function isDefaultEmptyThread(thread: StudentThread, messageCount: number): boolean {
   return messageCount === 0 && thread.routine_key === DEFAULT_ROUTINE_KEY;
 }
