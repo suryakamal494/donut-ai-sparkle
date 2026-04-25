@@ -16,6 +16,10 @@ function normalizeMathDelimiters(text: string): string {
   // Convert \[...\] → $$...$$ and \(...\) → $...$
   let result = text.replace(/\\\[([\s\S]*?)\\\]/g, "$$$$1$$");
   result = result.replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$");
+  result = result.replace(/\\\$/g, "$ ");
+  result = result.replace(/\$\s+/g, "$");
+  result = result.replace(/\\pu\{/g, "\\pu{");
+  result = result.replace(/(?<!\$)(\\pu\{[^}]+\})(?!\$)/g, "$$$1$");
   return result;
 }
 
