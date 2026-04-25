@@ -220,6 +220,52 @@ const StudentCopilotPage: React.FC = () => {
     [routines, subjectFilter]
   );
 
+  const sendInCurrentThread = useCallback(
+    async (text: string, images: string[] | undefined, activeThread: StudentThread, isNewThread = false) => {
+      forceNewRef.current = false;
+      setLastDecision(null);
+
+      if (!threads.some((t) => t.id === activeThread.id)) {
+        const ths = await fetchThreads(STUDENT_ID);
+        setThreads(ths);
+      }
+
+      const routedRoutine =
+        routines.find((r) => r.key === activeThread.routine_key) ?? currentRoutine;
+
+      const tempUserMsg: StudentMessage = {
+        id: `temp-${Date.now()}`,
+        thread_id: activeThread.id,
+        role: "user",
+        content: text,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, tempUserMsg]);
+
+      const baseMessages = isNewThread
+        ? []
+        : (await fetchMessages(activeThread.id)).filter((m) => m.id !== tempUserMsg.id);
+
+      const result = await send({
+        text,
+        images,
+        thread: activeThread,
+        routine: routedRoutine ?? null,
+        studentId: STUDENT_ID,
+        existingMessages: baseMessages,
+        extraSystem: studentContext,
+      });
+
+      const msgs = await fetchMessages(activeThread.id);
+      setMessages(msgs);
+
+      if (result.artifacts.length > 0) {
+        setArtifacts((prev) => [...result.artifacts, ...prev]);
+      }
+    },
+    [currentRoutine, routines, send, studentContext, threads]
+  );
+
   const handleSend = useCallback(
     async (text: string, images?: string[]) => {
       let activeThread: StudentThread | null = null;
