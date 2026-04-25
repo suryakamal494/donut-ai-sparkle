@@ -53,7 +53,7 @@ export async function createThread(
 
 export async function updateThread(
   threadId: string,
-  updates: { title?: string; subject?: string; last_message_at?: string }
+  updates: { title?: string; subject?: string; last_message_at?: string; last_activity_at?: string }
 ): Promise<void> {
   await supabase
     .from("student_copilot_threads" as any)

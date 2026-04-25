@@ -39,6 +39,11 @@ export function useStudentChat(): UseStudentChatReturn {
     // Persist user message
     const storedContent = embedImages(text, images);
     await insertMessage(thread.id, "user", storedContent);
+    const userActivityAt = new Date().toISOString();
+    await updateThread(thread.id, {
+      last_message_at: userActivityAt,
+      last_activity_at: userActivityAt,
+    });
 
     // Auto-title and auto-detect subject on first message
     let detectedSubject: string | null = null;
@@ -49,7 +54,8 @@ export function useStudentChat(): UseStudentChatReturn {
       await updateThread(thread.id, {
         title,
         ...(detectedSubject ? { subject: detectedSubject } : {}),
-        last_message_at: new Date().toISOString(),
+        last_message_at: userActivityAt,
+        last_activity_at: userActivityAt,
       });
     }
 
@@ -179,7 +185,11 @@ export function useStudentChat(): UseStudentChatReturn {
     }
 
     // Update thread timestamp
-    await updateThread(thread.id, { last_message_at: new Date().toISOString() });
+    const assistantActivityAt = new Date().toISOString();
+    await updateThread(thread.id, {
+      last_message_at: assistantActivityAt,
+      last_activity_at: assistantActivityAt,
+    });
 
     setStreaming(false);
     setStreamedText("");
