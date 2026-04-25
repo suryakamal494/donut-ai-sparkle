@@ -52,6 +52,13 @@ function isDefaultEmptyThread(thread: StudentThread, messageCount: number): bool
   return messageCount === 0 && thread.routine_key === DEFAULT_ROUTINE_KEY;
 }
 
+function getTaskText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return String(value ?? "");
+  const task = value as Record<string, any>;
+  return String(task.task ?? task.description ?? task.title ?? task.label ?? task.name ?? "").trim();
+}
+
 const StudentCopilotPage: React.FC = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -372,7 +379,9 @@ const StudentCopilotPage: React.FC = () => {
   );
 
   const handleStartTask = useCallback(
-    async (artifact: StudentArtifact, taskDescription: string, _dayIndex: number, _itemIndex: number) => {
+    async (artifact: StudentArtifact, taskDescription: unknown, _dayIndex: number, _itemIndex: number) => {
+      const taskText = getTaskText(taskDescription);
+      if (!taskText) return;
       const artifactThread = artifact.thread_id
         ? threads.find((t) => t.id === artifact.thread_id) ?? null
         : null;
@@ -384,7 +393,7 @@ const StudentCopilotPage: React.FC = () => {
         setMessages(await fetchMessages(activeThread.id));
       }
 
-      await sendInCurrentThread(`Teach me about: ${taskDescription}`, undefined, activeThread, false);
+      await sendInCurrentThread(`Teach me about: ${taskText}`, undefined, activeThread, false);
     },
     [currentThread, currentThreadId, sendInCurrentThread, threads]
   );
