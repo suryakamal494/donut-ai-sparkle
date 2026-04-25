@@ -221,9 +221,9 @@ const StudentCopilotPage: React.FC = () => {
   );
 
   const sendInCurrentThread = useCallback(
-    async (text: string, images: string[] | undefined, activeThread: StudentThread, isNewThread = false) => {
+    async (text: string, images: string[] | undefined, activeThread: StudentThread, isNewThread = false, clearDecision = true) => {
       forceNewRef.current = false;
-      setLastDecision(null);
+      if (clearDecision) setLastDecision(null);
 
       if (!threads.some((t) => t.id === activeThread.id)) {
         const ths = await fetchThreads(STUDENT_ID);
@@ -290,7 +290,7 @@ const StudentCopilotPage: React.FC = () => {
       setLastDecision(decision.isNew ? null : decision);
       if (!activeThread) return;
 
-      await sendInCurrentThread(text, images, activeThread, decision.isNew);
+      await sendInCurrentThread(text, images, activeThread, decision.isNew, false);
     },
     [currentThread, sendInCurrentThread, subjectFilter]
   );
