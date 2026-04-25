@@ -221,7 +221,7 @@ const StudentCopilotPage: React.FC = () => {
       const shouldRoute =
         forceNewRef.current ||
         !currentThread ||
-        isDefaultEmptyThread(currentThread, messagesRef.current.length);
+        (isDefaultEmptyThread(currentThread, messagesRef.current.length) && !isContextualFollowUp(text));
 
       if (shouldRoute) {
         const decision = await routeMessage(text, {
