@@ -36,6 +36,16 @@ import ContinuationBanner from "./ContinuationBanner";
 
 const STUDENT_ID = studentProfile.id;
 
+const CONTEXTUAL_FOLLOW_UP_RE = /^(?:[a-d]|option\s*[a-d]|answer\s*[a-d]|next|continue|yes|no|ok(?:ay)?|explain(?:\s+this)?|why|how|start\s+day\s+\d+|teach\s+this(?:\s+topic)?|i\s+(?:do\s+not|don't)\s+understand)\b/i;
+
+function isContextualFollowUp(text: string): boolean {
+  return CONTEXTUAL_FOLLOW_UP_RE.test(text.trim());
+}
+
+function isDefaultEmptyThread(thread: StudentThread, messageCount: number): boolean {
+  return messageCount === 0 && thread.routine_key === DEFAULT_ROUTINE_KEY;
+}
+
 const StudentCopilotPage: React.FC = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
