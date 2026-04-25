@@ -187,19 +187,25 @@ const ChatMessageList: React.FC<Props> = ({
                         />
                       );
                     }
-                    const q = ps.questions[ps.currentIndex];
-                    if (!q) return null;
+                    const visibleQuestions = ps.questions.slice(0, Math.max(1, ps.visibleCount));
                     return (
-                      <InlinePracticeCard
-                        question={q}
-                        index={ps.currentIndex}
-                        total={ps.questions.length}
-                        answered={ps.results.length > ps.currentIndex}
-                        onAnswer={(given, correct) =>
-                          onPracticeAnswer(practiceArtifact.id, given, correct)
-                        }
-                        onNext={() => onPracticeNext(practiceArtifact.id)}
-                      />
+                      <div className="space-y-3">
+                        {visibleQuestions.map((q, qIndex) => (
+                          <InlinePracticeCard
+                            key={`${practiceArtifact.id}-${qIndex}`}
+                            question={q}
+                            index={qIndex}
+                            total={ps.questions.length}
+                            result={ps.results[qIndex]}
+                            answered={Boolean(ps.results[qIndex])}
+                            isActive={qIndex === visibleQuestions.length - 1 && !ps.results[qIndex]}
+                            onAnswer={(given, correct) =>
+                              onPracticeAnswer(practiceArtifact.id, given, correct)
+                            }
+                            onNext={() => onPracticeNext(practiceArtifact.id)}
+                          />
+                        ))}
+                      </div>
                     );
                   })()}
                 </div>
