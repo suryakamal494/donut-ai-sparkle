@@ -17,7 +17,7 @@ interface Props {
   completedTasks?: Set<string>;
   onToggleTask?: (dayIndex: number, itemIndex: number) => void;
   onPracticeTopic?: (subject: string, topic: string) => void;
-  onStartTask?: (taskDescription: string, dayIndex: number, itemIndex: number) => void;
+  onStartTask?: (artifact: StudentArtifact, taskDescription: string, dayIndex: number, itemIndex: number) => void;
 }
 
 function timeGroup(dateStr: string): string {
