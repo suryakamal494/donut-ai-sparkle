@@ -74,7 +74,17 @@ const studentTools = [
                     type: { type: "string", enum: ["mcq", "short", "assertion_reason", "multi_step"] },
                     topic: { type: "string" },
                     prompt: { type: "string" },
-                    options: { type: "array", items: { type: "string" } },
+                    options: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          label: { type: "string", enum: ["A", "B", "C", "D", "E", "F"] },
+                          text: { type: "string" },
+                        },
+                        required: ["label", "text"],
+                      },
+                    },
                     answer: { type: "string" },
                     explanation: { type: "string" },
                   },
