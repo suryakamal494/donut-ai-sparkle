@@ -12,40 +12,34 @@ export function normalizePracticeSession(content: any): any {
     ...content,
     title: content.title ?? "Practice Session",
     questions: content.questions.map((q: any, i: number) => {
+      const labels = ["A", "B", "C", "D", "E", "F"];
+      const options = Array.isArray(q.options)
+        ? q.options.map((opt: any, j: number) =>
+            typeof opt === "string"
+              ? { label: labels[j] ?? String(j + 1), text: opt }
+              : {
+                  label: String(opt?.label ?? labels[j] ?? j + 1),
+                  text: String(opt?.text ?? ""),
+                }
+          )
+        : undefined;
+      const rawCorrectAnswer = String(q.correct_answer ?? q.answer ?? "").trim();
+      const matchedOption = options?.find(
+        (opt) =>
+          opt.label.toLowerCase() === rawCorrectAnswer.toLowerCase() ||
+          opt.text.trim().toLowerCase() === rawCorrectAnswer.toLowerCase()
+      );
       const normalized: any = {
         id: q.id ?? `q-${i + 1}`,
         type: q.type ?? "mcq",
         question: q.question ?? q.prompt ?? "",
-        correct_answer: q.correct_answer ?? q.answer ?? "",
+        correct_answer: matchedOption?.label ?? rawCorrectAnswer,
         explanation: q.explanation ?? q.hint ?? undefined,
         topic: q.topic,
         subject: q.subject,
         difficulty: q.difficulty,
+        options,
       };
-      // Normalize options
-      if (q.options) {
-        if (Array.isArray(q.options) && q.options.length > 0) {
-          if (typeof q.options[0] === "string") {
-            // AI format: string[] → {label, text}[]
-            const labels = ["A", "B", "C", "D", "E", "F"];
-            normalized.options = q.options.map((opt: string, j: number) => ({
-              label: labels[j] ?? String(j + 1),
-              text: opt,
-            }));
-            // Also fix correct_answer to be label if it matches an option text
-            const correctText = normalized.correct_answer;
-            const matchIdx = q.options.findIndex(
-              (o: string) => o.toLowerCase().trim() === correctText?.toLowerCase()?.trim()
-            );
-            if (matchIdx >= 0) {
-              normalized.correct_answer = labels[matchIdx];
-            }
-          } else {
-            // Already in {label, text} format
-            normalized.options = q.options;
-          }
-        }
-      }
       return normalized;
     }),
   };
