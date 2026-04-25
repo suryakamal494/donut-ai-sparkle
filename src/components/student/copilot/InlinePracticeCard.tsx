@@ -9,7 +9,7 @@ import MathMarkdown from "./MathMarkdown";
 export interface PracticeQuestion {
   question: string;
   type: "mcq" | "short" | "true_false";
-  options?: string[];
+  options?: Array<{ label: string; text: string }>;
   answer: string;
   explanation?: string;
   topic?: string;
@@ -70,18 +70,18 @@ const InlinePracticeCard: React.FC<Props> = ({
         question.options && (
           <div className="grid gap-2">
             {question.options.map((opt, i) => {
-              const letter = String.fromCharCode(65 + i);
-              const isSelected = selected === opt;
+              const letter = opt.label || String.fromCharCode(65 + i);
+              const isSelected = selected === opt.label;
               const isAnswer =
                 answered &&
-                opt.trim().toLowerCase() ===
+                opt.label.trim().toLowerCase() ===
                   question.answer.trim().toLowerCase();
 
               return (
                 <button
                   key={i}
                   disabled={answered}
-                  onClick={() => handleSubmit(opt)}
+                  onClick={() => handleSubmit(opt.label)}
                   className={cn(
                     "flex items-start gap-2.5 p-2.5 rounded-lg border text-left text-sm transition-colors min-h-[44px]",
                     !answered && "hover:bg-muted/50 active:bg-muted",
@@ -108,7 +108,7 @@ const InlinePracticeCard: React.FC<Props> = ({
                     )}
                   </span>
                   <span className="pt-0.5 flex-1">
-                    <MathMarkdown compact>{opt}</MathMarkdown>
+                    <MathMarkdown compact>{opt.text}</MathMarkdown>
                   </span>
                 </button>
               );
