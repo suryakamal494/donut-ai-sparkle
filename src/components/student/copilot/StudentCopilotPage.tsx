@@ -36,6 +36,16 @@ import ContinuationBanner from "./ContinuationBanner";
 
 const STUDENT_ID = studentProfile.id;
 
+const CONTEXTUAL_FOLLOW_UP_RE = /^(?:[a-d]|option\s*[a-d]|answer\s*[a-d]|next|continue|yes|no|ok(?:ay)?|explain(?:\s+this)?|why|how|start\s+day\s+\d+|teach\s+this(?:\s+topic)?|i\s+(?:do\s+not|don't)\s+understand)\b/i;
+
+function isContextualFollowUp(text: string): boolean {
+  return CONTEXTUAL_FOLLOW_UP_RE.test(text.trim());
+}
+
+function isDefaultEmptyThread(thread: StudentThread, messageCount: number): boolean {
+  return messageCount === 0 && thread.routine_key === DEFAULT_ROUTINE_KEY;
+}
+
 const StudentCopilotPage: React.FC = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -206,33 +216,45 @@ const StudentCopilotPage: React.FC = () => {
 
   const handleSend = useCallback(
     async (text: string, images?: string[]) => {
-      // ── ROUTER PATH ─────────────────────────────────────────────────────
-      // Every send goes through the router. It decides resume-vs-new.
-      // The student never picks a thread.
-      const decision = await routeMessage(text, {
-        studentId: STUDENT_ID,
-        fallbackSubject: subjectFilter,
-        forceNew: forceNewRef.current,
-      });
-      forceNewRef.current = false;
-
-      // If the decision picked a different (or new) thread, switch to it and
-      // load its existing messages (if any).
       let activeThread: StudentThread | null = null;
-      if (decision.threadId !== currentThread?.id) {
-        // Fetch the canonical thread row (esp. if it was just created).
-        const ths = await fetchThreads(STUDENT_ID);
-        setThreads(ths);
-        activeThread = ths.find((t) => t.id === decision.threadId) ?? null;
-        setCurrentThreadId(decision.threadId);
-        const existingMsgs = decision.isNew ? [] : await fetchMessages(decision.threadId);
-        setMessages(existingMsgs);
+      let isNewThread = false;
+      const shouldRoute =
+        forceNewRef.current ||
+        !currentThread ||
+        (isDefaultEmptyThread(currentThread, messagesRef.current.length) && !isContextualFollowUp(text));
+
+      if (shouldRoute) {
+        const decision = await routeMessage(text, {
+          studentId: STUDENT_ID,
+          fallbackSubject: subjectFilter,
+          forceNew: forceNewRef.current,
+        });
+        forceNewRef.current = false;
+        isNewThread = decision.isNew;
+
+        if (decision.threadId !== currentThread?.id) {
+          const ths = await fetchThreads(STUDENT_ID);
+          setThreads(ths);
+          activeThread = ths.find((t) => t.id === decision.threadId) ?? null;
+          setCurrentThreadId(decision.threadId);
+          const existingMsgs = decision.isNew ? [] : await fetchMessages(decision.threadId);
+          setMessages(existingMsgs);
+        } else {
+          activeThread = currentThread;
+        }
+        setLastDecision(decision.isNew ? null : decision);
       } else {
+        forceNewRef.current = false;
         activeThread = currentThread;
+        setLastDecision(null);
       }
-      setLastDecision(decision.isNew ? null : decision);
 
       if (!activeThread) return;
+
+      if (!threads.some((t) => t.id === activeThread.id)) {
+        const ths = await fetchThreads(STUDENT_ID);
+        setThreads(ths);
+      }
 
       // Pick the routine for the chat hook based on the routed tool.
       const routedRoutine =
@@ -249,7 +271,7 @@ const StudentCopilotPage: React.FC = () => {
       setMessages((prev) => [...prev, tempUserMsg]);
 
       // Prepare existing messages context for the model (when resuming).
-      const baseMessages = decision.isNew
+      const baseMessages = isNewThread
         ? []
         : (await fetchMessages(activeThread.id)).filter((m) => m.id !== tempUserMsg.id);
 
@@ -270,7 +292,7 @@ const StudentCopilotPage: React.FC = () => {
         setArtifacts((prev) => [...result.artifacts, ...prev]);
       }
     },
-    [currentThread, currentRoutine, routines, subjectFilter, send, studentContext]
+    [currentThread, currentRoutine, routines, subjectFilter, send, studentContext, threads]
   );
 
   // Escape hatch — the "Start fresh" link in the continuation banner.
