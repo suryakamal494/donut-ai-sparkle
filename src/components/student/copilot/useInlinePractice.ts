@@ -14,7 +14,7 @@ export interface PracticeResult {
 export interface PracticeState {
   artifactId: string;
   questions: PracticeQuestion[];
-  currentIndex: number;
+  visibleCount: number;
   results: PracticeResult[];
   finished: boolean;
 }
@@ -46,7 +46,7 @@ export function useInlinePractice(studentId: string) {
       [artifact.id]: {
         artifactId: artifact.id,
         questions,
-        currentIndex: 0,
+        visibleCount: 1,
         results: [],
         finished: false,
       },
@@ -58,13 +58,18 @@ export function useInlinePractice(studentId: string) {
       setPracticeStates((prev) => {
         const state = prev[artifactId];
         if (!state) return prev;
-        const q = state.questions[state.currentIndex];
+        const answerIndex = Math.min(state.visibleCount - 1, state.questions.length - 1);
+        if (state.results[answerIndex]) return prev;
+        const q = state.questions[answerIndex];
         const result: PracticeResult = { given, correct, topic: q?.topic };
+        const results = [...state.results];
+        results[answerIndex] = result;
         return {
           ...prev,
           [artifactId]: {
             ...state,
-            results: [...state.results, result],
+            results,
+            finished: answerIndex >= state.questions.length - 1,
           },
         };
       });
@@ -72,7 +77,8 @@ export function useInlinePractice(studentId: string) {
       // Record attempt — use ref for fresh state
       const state = statesRef.current[artifactId];
       if (state) {
-        const q = state.questions[state.currentIndex];
+        const answerIndex = Math.min(state.visibleCount - 1, state.questions.length - 1);
+        const q = state.questions[answerIndex];
         const attempt: StudentAttempt = {
           student_id: studentId,
           artifact_id: artifactId,
@@ -95,14 +101,13 @@ export function useInlinePractice(studentId: string) {
     setPracticeStates((prev) => {
       const state = prev[artifactId];
       if (!state) return prev;
-      const nextIdx = state.currentIndex + 1;
-      const finished = nextIdx >= state.questions.length;
+      const nextVisibleCount = Math.min(state.visibleCount + 1, state.questions.length);
       return {
         ...prev,
         [artifactId]: {
           ...state,
-          currentIndex: finished ? state.currentIndex : nextIdx,
-          finished,
+          visibleCount: nextVisibleCount,
+          finished: state.results.length >= state.questions.length,
         },
       };
     });
@@ -116,7 +121,7 @@ export function useInlinePractice(studentId: string) {
         ...prev,
         [artifactId]: {
           ...state,
-          currentIndex: 0,
+          visibleCount: 1,
           results: [],
           finished: false,
         },
