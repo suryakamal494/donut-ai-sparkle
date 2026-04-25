@@ -372,10 +372,21 @@ const StudentCopilotPage: React.FC = () => {
   );
 
   const handleStartTask = useCallback(
-    (taskDescription: string, _dayIndex: number, _itemIndex: number) => {
-      handleSend(`Teach me about: ${taskDescription}`);
+    async (artifact: StudentArtifact, taskDescription: string, _dayIndex: number, _itemIndex: number) => {
+      const artifactThread = artifact.thread_id
+        ? threads.find((t) => t.id === artifact.thread_id) ?? null
+        : null;
+      const activeThread = artifactThread ?? currentThread;
+      if (!activeThread) return;
+
+      if (currentThreadId !== activeThread.id) {
+        setCurrentThreadId(activeThread.id);
+        setMessages(await fetchMessages(activeThread.id));
+      }
+
+      await sendInCurrentThread(`Teach me about: ${taskDescription}`, undefined, activeThread, false);
     },
-    [handleSend]
+    [currentThread, currentThreadId, sendInCurrentThread, threads]
   );
 
   const handleDismissNotification = useCallback(async (notifId: string) => {
