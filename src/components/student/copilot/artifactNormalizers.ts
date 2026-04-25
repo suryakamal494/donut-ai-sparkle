@@ -167,6 +167,11 @@ export function normalizeTestDebrief(content: any): any {
  */
 export function normalizeStudyPlan(content: any): any {
   if (!content?.days) return content;
+  const toText = (value: any): string => {
+    if (typeof value === "string") return value;
+    if (value == null) return "Task";
+    return String(value.task ?? value.description ?? value.title ?? value.label ?? value.name ?? JSON.stringify(value));
+  };
   return {
     ...content,
     title: content.title ?? content.exam ?? "Study Plan",
@@ -176,7 +181,7 @@ export function normalizeStudyPlan(content: any): any {
       label: d.label ?? d.focus ?? undefined,
       date: d.date,
       items: (d.items ?? []).map((item: any) => ({
-        task: item.task ?? item.description ?? "Task",
+        task: toText(item.task ?? item.description ?? item),
         duration: item.duration ?? (item.minutes ? `${item.minutes} min` : undefined),
         resource: item.resource ?? item.type,
       })),
