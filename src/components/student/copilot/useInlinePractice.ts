@@ -5,6 +5,8 @@ import type { StudentArtifact, StudentAttempt } from "./types";
 import type { PracticeQuestion } from "./InlinePracticeCard";
 import { normalizePracticeSession } from "./artifactNormalizers";
 
+const LABELS = ["A", "B", "C", "D", "E", "F"];
+
 export interface PracticeResult {
   given: string;
   correct: boolean;
@@ -28,19 +30,28 @@ export function useInlinePractice(studentId: string) {
   const startPractice = useCallback((artifact: StudentArtifact) => {
     const content = normalizePracticeSession(artifact.content as any);
     // Map normalized questions to InlinePracticeCard format
-    const questions: PracticeQuestion[] = (content?.questions ?? []).map((q: any) => ({
-      question: q.question ?? q.prompt ?? "",
-      type: q.type ?? "mcq",
-      options: q.options
-        ? Array.isArray(q.options) && q.options.length > 0 && typeof q.options[0] === "object"
-          ? q.options.map((o: any) => o.text) // {label,text}[] → string[]
-          : q.options
-        : undefined,
-      answer: q.correct_answer ?? q.answer ?? "",
-      explanation: q.explanation,
-      topic: q.topic,
-      subject: q.subject,
-    }));
+    const questions: PracticeQuestion[] = (content?.questions ?? []).map((q: any) => {
+      const options = Array.isArray(q.options)
+        ? q.options.map((o: any, index: number) =>
+            typeof o === "object"
+              ? { label: String(o.label ?? LABELS[index] ?? index + 1), text: String(o.text ?? "") }
+              : { label: LABELS[index] ?? String(index + 1), text: String(o) }
+          )
+        : undefined;
+      const answer = String(q.correct_answer ?? q.answer ?? "").trim();
+      const answerOption = options?.find(
+        (o) => o.label.toLowerCase() === answer.toLowerCase() || o.text.trim().toLowerCase() === answer.toLowerCase()
+      );
+      return {
+        question: q.question ?? q.prompt ?? "",
+        type: q.type ?? "mcq",
+        options,
+        answer: answerOption?.label ?? answer,
+        explanation: q.explanation,
+        topic: q.topic,
+        subject: q.subject ?? content?.subject,
+      };
+    });
     if (questions.length === 0) return;
 
     setPracticeStates((prev) => ({
