@@ -266,85 +266,47 @@ const StudentCopilotPage: React.FC = () => {
     [currentRoutine, routines, send, studentContext, threads]
   );
 
+  const sendWithRouter = useCallback(
+    async (text: string, images?: string[]) => {
+      const decision = await routeMessage(text, {
+        studentId: STUDENT_ID,
+        fallbackSubject: subjectFilter,
+        forceNew: forceNewRef.current,
+      });
+      forceNewRef.current = false;
+
+      let activeThread: StudentThread | null = null;
+      if (decision.threadId !== currentThread?.id) {
+        const ths = await fetchThreads(STUDENT_ID);
+        setThreads(ths);
+        activeThread = ths.find((t) => t.id === decision.threadId) ?? null;
+        setCurrentThreadId(decision.threadId);
+        const existingMsgs = decision.isNew ? [] : await fetchMessages(decision.threadId);
+        setMessages(existingMsgs);
+      } else {
+        activeThread = currentThread;
+      }
+
+      setLastDecision(decision.isNew ? null : decision);
+      if (!activeThread) return;
+
+      await sendInCurrentThread(text, images, activeThread, decision.isNew);
+    },
+    [currentThread, sendInCurrentThread, subjectFilter]
+  );
+
   const handleSend = useCallback(
     async (text: string, images?: string[]) => {
-      let activeThread: StudentThread | null = null;
-      let isNewThread = false;
       const shouldRoute =
         forceNewRef.current ||
         !currentThread ||
+        isExplicitNewIntent(text) ||
         (isDefaultEmptyThread(currentThread, messagesRef.current.length) && !isContextualFollowUp(text));
 
-      if (shouldRoute) {
-        const decision = await routeMessage(text, {
-          studentId: STUDENT_ID,
-          fallbackSubject: subjectFilter,
-          forceNew: forceNewRef.current,
-        });
-        forceNewRef.current = false;
-        isNewThread = decision.isNew;
-
-        if (decision.threadId !== currentThread?.id) {
-          const ths = await fetchThreads(STUDENT_ID);
-          setThreads(ths);
-          activeThread = ths.find((t) => t.id === decision.threadId) ?? null;
-          setCurrentThreadId(decision.threadId);
-          const existingMsgs = decision.isNew ? [] : await fetchMessages(decision.threadId);
-          setMessages(existingMsgs);
-        } else {
-          activeThread = currentThread;
-        }
-        setLastDecision(decision.isNew ? null : decision);
-      } else {
-        forceNewRef.current = false;
-        activeThread = currentThread;
-        setLastDecision(null);
-      }
-
-      if (!activeThread) return;
-
-      if (!threads.some((t) => t.id === activeThread.id)) {
-        const ths = await fetchThreads(STUDENT_ID);
-        setThreads(ths);
-      }
-
-      // Pick the routine for the chat hook based on the routed tool.
-      const routedRoutine =
-        routines.find((r) => r.key === activeThread.routine_key) ?? currentRoutine;
-
-      // Optimistic user message.
-      const tempUserMsg: StudentMessage = {
-        id: `temp-${Date.now()}`,
-        thread_id: activeThread.id,
-        role: "user",
-        content: text,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, tempUserMsg]);
-
-      // Prepare existing messages context for the model (when resuming).
-      const baseMessages = isNewThread
-        ? []
-        : (await fetchMessages(activeThread.id)).filter((m) => m.id !== tempUserMsg.id);
-
-      const result = await send({
-        text,
-        images,
-        thread: activeThread,
-        routine: routedRoutine ?? null,
-        studentId: STUDENT_ID,
-        existingMessages: baseMessages,
-        extraSystem: studentContext,
-      });
-
-      const msgs = await fetchMessages(activeThread.id);
-      setMessages(msgs);
-
-      if (result.artifacts.length > 0) {
-        setArtifacts((prev) => [...result.artifacts, ...prev]);
-      }
+      if (shouldRoute) return sendWithRouter(text, images);
+      return sendInCurrentThread(text, images, currentThread);
     },
-    [currentThread, currentRoutine, routines, subjectFilter, send, studentContext, threads]
+    [currentThread, sendInCurrentThread, sendWithRouter]
   );
 
   // Escape hatch — the "Start fresh" link in the continuation banner.
