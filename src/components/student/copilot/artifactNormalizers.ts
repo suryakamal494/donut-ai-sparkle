@@ -13,6 +13,7 @@ export function normalizePracticeSession(content: any): any {
     title: content.title ?? "Practice Session",
     questions: content.questions.map((q: any, i: number) => {
       const labels = ["A", "B", "C", "D", "E", "F"];
+      const rawType = String(q.type ?? "mcq").toLowerCase();
       const options = Array.isArray(q.options)
         ? q.options.map((opt: any, j: number) =>
             typeof opt === "string"
@@ -31,7 +32,7 @@ export function normalizePracticeSession(content: any): any {
       );
       const normalized: any = {
         id: q.id ?? `q-${i + 1}`,
-        type: q.type ?? "mcq",
+        type: options?.length ? rawType : rawType === "integer" || rawType === "numerical" ? "integer" : "short",
         question: q.question ?? q.prompt ?? "",
         correct_answer: matchedOption?.label ?? rawCorrectAnswer,
         explanation: q.explanation ?? q.hint ?? undefined,
