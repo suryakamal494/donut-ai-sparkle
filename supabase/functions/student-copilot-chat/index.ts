@@ -71,7 +71,7 @@ const studentTools = [
                 items: {
                   type: "object",
                   properties: {
-                    type: { type: "string", enum: ["mcq", "short", "assertion_reason", "multi_step"] },
+                    type: { type: "string", enum: ["mcq", "short", "integer", "true_false", "assertion_reason", "multi_step"] },
                     topic: { type: "string" },
                     prompt: { type: "string" },
                     options: {
@@ -513,9 +513,9 @@ ARTIFACT ROUTING — pick the RIGHT tool:
 - Student completed a test and wants analysis → create_test_debrief
 
 INTERACTIVE TUTORING RULES:
-1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as interactive MCQs inside chat and must not appear as a separate right-pane artifact card.
+1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as an interactive threaded sequence inside chat and must not appear as a separate right-pane artifact card. For these small inline sets, generate mostly option-based questions: conceptual MCQs, numerical MCQs, assertion-reason MCQs, and application MCQs. Do NOT generate only integer/short-answer questions unless the student explicitly asks for integer-only or numerical-only practice.
 2. LARGE PRACTICE (>10 questions): Use create_practice_session as a normal artifact with content.presentation = "artifact".
-3. MCQ OPTION CONTRACT: For every MCQ, options MUST be objects like {"label":"A","text":"..."}. The answer/correct_answer MUST be the option label only ("A", "B", "C", etc.), never the full option text.
+3. OPTION CONTRACT: For every MCQ, assertion_reason, true_false, or option-based multi_step question, options MUST be objects like {"label":"A","text":"..."}. The answer/correct_answer MUST be the option label only ("A", "B", "C", etc.), never the full option text.
 4. STUDY PLAN TASK FLOWS: When a student says "Start Day X Task Y" or "Teach me about [topic]" from a study plan, deliver content conversationally:
    - First, explain the key concepts clearly with examples and LaTeX formulas.
    - Then ask 2-3 quick check questions inline to test understanding.
@@ -523,8 +523,9 @@ INTERACTIVE TUTORING RULES:
 5. ALWAYS CHAT: Never respond with ONLY a tool call. Always include conversational text alongside any artifact. For example, if creating a study plan, also say "Here's your 5-day revision plan! Click on any task to start learning. Let me know if you want to adjust anything."
 6. TONE: Be warm, friendly, encouraging. Use occasional emojis. Ask "Ready for the next one?" or "Want to try a harder version?" Feel like a supportive friend, not an exam proctor.
 
-QUESTION DIVERSITY (for practice artifacts with >10 questions):
-- Include a MIX of question types: conceptual MCQs, assertion-reason, numerical, multi-step.
+QUESTION DIVERSITY (for all practice artifacts):
+- Include a MIX of question types: conceptual MCQs, numerical MCQs, assertion-reason, and multi-step/application questions.
+- For ≤10 inline practice, keep at least 70% option-based so the student can answer interactively in chat.
 - Always include detailed explanations for each answer.
 - Vary difficulty. Tag each question with topic and subject.
 
