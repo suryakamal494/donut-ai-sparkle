@@ -16,7 +16,7 @@ interface Props {
   completedTasks?: Set<string>;
   onToggleTask?: (dayIndex: number, itemIndex: number) => void;
   onPracticeTopic?: (subject: string, topic: string) => void;
-  onStartTask?: (taskDescription: string, dayIndex: number, itemIndex: number) => void;
+  onStartTask?: (artifact: StudentArtifact, taskDescription: string, dayIndex: number, itemIndex: number) => void;
 }
 
 export default function StudentArtifactView({ artifact, completedTasks, onToggleTask, onPracticeTopic, onStartTask }: Props) {
@@ -32,7 +32,16 @@ export default function StudentArtifactView({ artifact, completedTasks, onToggle
     case "practice_session":
       return <PracticeSessionView content={content} />;
     case "study_plan":
-      return <StudyPlanView content={content} completedTasks={completedTasks} onToggleTask={onToggleTask} onStartTask={onStartTask} />;
+      return (
+        <StudyPlanView
+          content={content}
+          completedTasks={completedTasks}
+          onToggleTask={onToggleTask}
+          onStartTask={(taskDescription, dayIndex, itemIndex) =>
+            onStartTask?.(artifact, taskDescription, dayIndex, itemIndex)
+          }
+        />
+      );
     case "target_tracker":
       return <TargetTrackerView content={content} />;
     case "mastery_map":
