@@ -51,6 +51,20 @@ export function normalizePracticeSession(content: any): any {
   };
 }
 
+export function getPracticeQuestionCount(content: any): number {
+  return Array.isArray(content?.questions) ? content.questions.length : 0;
+}
+
+export function isInlinePracticeArtifact(artifact: { type: string; content: any }): boolean {
+  if (artifact.type !== "practice_session") return false;
+  const content = artifact.content ?? {};
+  return (
+    content.presentation === "inline" ||
+    content.show_in_artifact_pane === false ||
+    getPracticeQuestionCount(content) <= 10
+  );
+}
+
 /**
  * Normalize concept_explainer content.
  * Handles both: { summary, steps } and { intro, body, try_yourself }

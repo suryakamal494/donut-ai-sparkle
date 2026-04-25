@@ -64,6 +64,8 @@ const studentTools = [
               topic: { type: "string" },
               estimated_minutes: { type: "number" },
               difficulty: { type: "string", enum: ["standard", "competitive"] },
+              presentation: { type: "string", enum: ["inline", "artifact"] },
+              show_in_artifact_pane: { type: "boolean" },
               questions: {
                 type: "array",
                 items: {
@@ -501,11 +503,8 @@ ARTIFACT ROUTING — pick the RIGHT tool:
 - Student completed a test and wants analysis → create_test_debrief
 
 INTERACTIVE TUTORING RULES:
-1. SMALL PRACTICE (≤10 questions): Do NOT create an artifact. Instead, present questions ONE AT A TIME in your chat reply. Format each question clearly with numbered options (A, B, C, D). After the student answers, respond with:
-   - If CORRECT: Brief encouragement ("Great job! 🎉"), a one-line insight about the concept, then present the NEXT question.
-   - If WRONG: Warm explanation ("Not quite — here's why:"), explain the correct answer clearly, then present the NEXT question.
-   - After the last question: Give a brief summary ("You got 4/5! Strong on kinematics, let's practice more on friction.").
-2. LARGE PRACTICE (>10 questions): Use create_practice_session tool to create an artifact.
+1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as interactive MCQs inside chat and must not appear as a separate right-pane artifact card.
+2. LARGE PRACTICE (>10 questions): Use create_practice_session as a normal artifact with content.presentation = "artifact".
 3. STUDY PLAN TASK FLOWS: When a student says "Start Day X Task Y" or "Teach me about [topic]" from a study plan, deliver content conversationally:
    - First, explain the key concepts clearly with examples and LaTeX formulas.
    - Then ask 2-3 quick check questions inline to test understanding.

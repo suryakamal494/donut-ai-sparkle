@@ -7,6 +7,7 @@ import InlinePracticeCard from "./InlinePracticeCard";
 import PracticeSummaryCard from "./PracticeSummaryCard";
 import ClarificationCard from "./ClarificationCard";
 import { splitStoredContent } from "./chatHelpers";
+import { isInlinePracticeArtifact } from "./artifactNormalizers";
 import type { StudentMessage, StudentArtifact, StudentRoutine, ClarificationContent } from "./types";
 import type { PracticeState } from "./useInlinePractice";
 
@@ -46,7 +47,7 @@ const ChatMessageList: React.FC<Props> = ({
   // Pre-build lookup maps for practice and clarification artifacts to avoid O(n²) per render
   const practiceArtifactMap = useMemo(() => {
     const map = new Map<string, StudentArtifact>();
-    const practiceArts = artifacts.filter((a) => a.type === "practice_session");
+    const practiceArts = artifacts.filter(isInlinePracticeArtifact);
     // Build a simple thread-based lookup
     for (const a of practiceArts) {
       if (a.thread_id) {
@@ -83,7 +84,7 @@ const ChatMessageList: React.FC<Props> = ({
     // Fallback for multiple practice artifacts in same thread
     return artifacts.find(
         (a) =>
-          a.type === "practice_session" &&
+          isInlinePracticeArtifact(a) &&
           a.thread_id === msg.thread_id &&
           Math.abs(new Date(a.created_at).getTime() - new Date(msg.created_at).getTime()) < 120000
     ) ?? null;
