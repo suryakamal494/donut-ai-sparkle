@@ -48,18 +48,19 @@ const ChatMessageList: React.FC<Props> = ({
   const practiceArtifactMap = useMemo(() => {
     const map = new Map<string, StudentArtifact>();
     const practiceArts = artifacts.filter(isInlinePracticeArtifact);
-    // Build a simple thread-based lookup
     for (const a of practiceArts) {
-      if (a.thread_id) {
-        // Use thread_id as key — works for single practice per thread
-        const existing = map.get(a.thread_id);
-        if (!existing || new Date(a.created_at) > new Date(existing.created_at)) {
-          map.set(a.thread_id, a);
-        }
-      }
+      const candidates = messages.filter((m) => m.role === "assistant" && m.thread_id === a.thread_id);
+      const nearest = candidates.reduce<StudentMessage | null>((best, msg) => {
+        const diff = Math.abs(new Date(a.created_at).getTime() - new Date(msg.created_at).getTime());
+        if (diff > 120000) return best;
+        if (!best) return msg;
+        const bestDiff = Math.abs(new Date(a.created_at).getTime() - new Date(best.created_at).getTime());
+        return diff < bestDiff ? msg : best;
+      }, null);
+      if (nearest) map.set(nearest.id, a);
     }
     return map;
-  }, [artifacts]);
+  }, [artifacts, messages]);
 
   const clarificationArtifactMap = useMemo(() => {
     const map = new Map<string, StudentArtifact>();
@@ -77,17 +78,7 @@ const ChatMessageList: React.FC<Props> = ({
 
   const findPracticeArtifact = (msg: StudentMessage): StudentArtifact | null => {
     if (msg.role !== "assistant") return null;
-    const candidate = practiceArtifactMap.get(msg.thread_id);
-    if (candidate && Math.abs(new Date(candidate.created_at).getTime() - new Date(msg.created_at).getTime()) < 120000) {
-      return candidate;
-    }
-    // Fallback for multiple practice artifacts in same thread
-    return artifacts.find(
-        (a) =>
-          isInlinePracticeArtifact(a) &&
-          a.thread_id === msg.thread_id &&
-          Math.abs(new Date(a.created_at).getTime() - new Date(msg.created_at).getTime()) < 120000
-    ) ?? null;
+    return practiceArtifactMap.get(msg.id) ?? null;
   };
 
   const findClarificationArtifact = (msg: StudentMessage): StudentArtifact | null => {
@@ -177,16 +168,6 @@ const ChatMessageList: React.FC<Props> = ({
                 <div className="max-w-[90%] md:max-w-[80%]">
                   {(() => {
                     const ps = practiceStates[practiceArtifact.id];
-                    if (ps.finished) {
-                      return (
-                        <PracticeSummaryCard
-                          results={ps.results}
-                          subject={(practiceArtifact.content as any)?.subject}
-                          onRetry={() => onPracticeRetry(practiceArtifact.id)}
-                          onPracticeWeak={onPracticeWeak}
-                        />
-                      );
-                    }
                     const visibleQuestions = ps.questions.slice(0, Math.max(1, ps.visibleCount));
                     return (
                       <div className="space-y-3">
@@ -205,6 +186,14 @@ const ChatMessageList: React.FC<Props> = ({
                             onNext={() => onPracticeNext(practiceArtifact.id)}
                           />
                         ))}
+                        {ps.finished && (
+                          <PracticeSummaryCard
+                            results={ps.results}
+                            subject={(practiceArtifact.content as any)?.subject}
+                            onRetry={() => onPracticeRetry(practiceArtifact.id)}
+                            onPracticeWeak={onPracticeWeak}
+                          />
+                        )}
                       </div>
                     );
                   })()}
