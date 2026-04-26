@@ -437,6 +437,18 @@ const StudentCopilotPage: React.FC = () => {
     setMessages(await fetchMessages(id));
   }, []);
 
+  const handleOpenResource = useCallback((resource: CopilotResource) => {
+    setSelectedResource(resource);
+    setResourceViewerOpen(true);
+  }, []);
+
+  const handleOpenLibraryArtifact = useCallback((artifact: StudentArtifact) => {
+    setLibraryArtifactId(artifact.id);
+    setLibraryOpen(false);
+    if (artifact.thread_id) setCurrentThreadId(artifact.thread_id);
+    setRightVisible(true);
+  }, []);
+
   const toggleLeft = useCallback(() => {
     if (isMobile) {
       setLeftSheetOpen((v) => !v);
@@ -487,6 +499,8 @@ const StudentCopilotPage: React.FC = () => {
           streamedText={streamedText}
           pendingArtifact={pendingArtifact}
           artifacts={artifacts}
+          resources={copilotResources}
+          onOpenResource={handleOpenResource}
           onSend={handleSend}
           onToggleLeft={toggleLeft}
           onToggleRight={toggleRight}
@@ -520,16 +534,34 @@ const StudentCopilotPage: React.FC = () => {
         <div className="hidden lg:flex w-[360px] flex-shrink-0 bg-card/40 flex-col">
           <StudentArtifactPane
             artifacts={artifacts}
+            resources={copilotResources}
             threads={threads}
             thread={currentThread}
             routineKey={currentRoutine?.key}
             subjectFilter={subjectFilter}
+            onViewAll={() => setLibraryOpen(true)}
+            onOpenResource={handleOpenResource}
             onClose={toggleRight}
             onStartTask={handleStartTask}
             onOpenThread={handleOpenThread}
           />
         </div>
       )}
+      <CopilotLibraryDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        artifacts={artifacts}
+        resources={copilotResources}
+        threads={threads}
+        subjectFilter={subjectFilter}
+        onOpenArtifact={handleOpenLibraryArtifact}
+        onOpenResource={handleOpenResource}
+      />
+      <CopilotResourceViewer
+        resource={selectedResource}
+        open={resourceViewerOpen}
+        onOpenChange={setResourceViewerOpen}
+      />
     </div>
   );
 };
