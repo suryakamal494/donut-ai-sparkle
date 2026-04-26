@@ -8,8 +8,9 @@ import PracticeSummaryCard from "./PracticeSummaryCard";
 import ClarificationCard from "./ClarificationCard";
 import { splitStoredContent } from "./chatHelpers";
 import { isInlinePracticeArtifact } from "./artifactNormalizers";
-import type { StudentMessage, StudentArtifact, StudentRoutine, ClarificationContent } from "./types";
+import type { CopilotResource, StudentMessage, StudentArtifact, StudentRoutine, ClarificationContent } from "./types";
 import type { PracticeState } from "./useInlinePractice";
+import CopilotResourceCard from "./CopilotResourceCard";
 
 interface Props {
   messages: StudentMessage[];
@@ -17,6 +18,7 @@ interface Props {
   streamedText: string;
   pendingArtifact: boolean;
   artifacts: StudentArtifact[];
+  resources?: CopilotResource[];
   routine: StudentRoutine | null;
   quickStartChips?: string[];
   practiceStates: Record<string, PracticeState>;
@@ -26,6 +28,7 @@ interface Props {
   onPracticeRetry: (artifactId: string) => void;
   onClarificationSubmit: (artifactId: string, answers: Record<string, string | string[]>) => void;
   onPracticeWeak?: (topic: string) => void;
+  onOpenResource?: (resource: CopilotResource) => void;
 }
 
 const ChatMessageList: React.FC<Props> = ({
@@ -34,6 +37,7 @@ const ChatMessageList: React.FC<Props> = ({
   streamedText,
   pendingArtifact,
   artifacts,
+  resources = [],
   routine,
   quickStartChips,
   practiceStates,
@@ -43,6 +47,7 @@ const ChatMessageList: React.FC<Props> = ({
   onPracticeRetry,
   onClarificationSubmit,
   onPracticeWeak,
+  onOpenResource,
 }) => {
   // Pre-build lookup maps for practice and clarification artifacts to avoid O(n²) per render
   const practiceArtifactMap = useMemo(() => {
@@ -95,6 +100,20 @@ const ChatMessageList: React.FC<Props> = ({
     ) ?? null;
   };
 
+  const findRecommendedResources = (msg: StudentMessage): CopilotResource[] => {
+    if (msg.role !== "assistant" || !resources.length) return [];
+    const text = msg.content.toLowerCase();
+    return resources
+      .filter((resource) => {
+        if (resource.thread_id && resource.thread_id === msg.thread_id) return true;
+        const terms = [resource.topic, resource.chapter, resource.subject, ...resource.title.split(/\s+/).filter((part) => part.length > 5)]
+          .filter(Boolean)
+          .map((part) => String(part).toLowerCase());
+        return terms.some((term) => text.includes(term));
+      })
+      .slice(0, 2);
+  };
+
   return (
     <>
       {/* Empty thread — quick start chips */}
@@ -133,6 +152,7 @@ const ChatMessageList: React.FC<Props> = ({
         const isUser = msg.role === "user";
         const practiceArtifact = findPracticeArtifact(msg);
         const clarificationArtifact = findClarificationArtifact(msg);
+        const recommendedResources = findRecommendedResources(msg);
 
         return (
           <React.Fragment key={msg.id}>
@@ -212,6 +232,17 @@ const ChatMessageList: React.FC<Props> = ({
                     }
                     disabled={(clarificationArtifact.content as ClarificationContent)?.answered}
                   />
+                </div>
+              </div>
+            )}
+
+            {recommendedResources.length > 0 && onOpenResource && (
+              <div className="flex justify-start">
+                <div className="w-full max-w-[90%] space-y-1.5 md:max-w-[80%]">
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Recommended resource</p>
+                  {recommendedResources.map((resource) => (
+                    <CopilotResourceCard key={`${msg.id}-${resource.id}`} resource={resource} compact onOpen={onOpenResource} />
+                  ))}
                 </div>
               </div>
             )}
