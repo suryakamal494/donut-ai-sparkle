@@ -1,60 +1,77 @@
-## Why the library disappeared
+## Recommended solution
 
-The last change made the right pane strictly depend on `artifact.thread_id === currentThread.id`. That is correct for a thread-specific pane, but it exposed two gaps:
+The issue is real: the current Library dialog uses three full-width filter rows under the search bar, so the filter area consumes too much vertical space. The best fix is not to remove filters, but to change their layout based on screen size.
 
-1. Some existing/mock artifacts/resources are not linked to the currently selected thread, so the right pane becomes empty.
-2. `View all` was also changed to thread-only, but your intended behavior is different: it should show the full library/all charts, not just the current thread.
-3. Quick tools may create/select a new empty thread, but because no artifact exists yet in that thread, the right pane shows zero until the student sends a message and the Copilot creates an output.
-
-## Proposed behavior
+## Proposed UX
 
 ```text
-Left rail
-- Shows latest/recent threads so the student can access created sessions.
-- Quick tools create/open the correct tool thread and make it visibly active.
+Desktop / tablet wide
++--------------------------------------------------+
+| Header: Copilot Library                     X    |
++----------------------+---------------------------+
+| Filters sidebar      | Search + content grid     |
+| - Subject            | 23 items                  |
+| - Type               | TODAY                     |
+| - Time               | [cards][cards][cards]     |
+|                      | THIS WEEK                 |
+|                      | [cards][cards][cards]     |
++----------------------+---------------------------+
 
-Right pane
-- Thread workspace only.
-- Shows artifacts/resources linked to the currently opened chat thread.
-- If no artifact exists in that thread yet, show a helpful empty state with guidance, not a broken zero-state.
-
-View all
-- Global library browser.
-- Shows all artifacts/resources/charts across threads, with filters.
-- Clicking an item opens/selects its linked thread, then opens the artifact/resource.
+Mobile / narrow tablet
++--------------------------------------------------+
+| Header: Copilot Library                     X    |
+| Search                                           |
+| Filter button + active filter chips              |
++--------------------------------------------------+
+| Content cards                                    |
++--------------------------------------------------+
+| Bottom sheet filters only when user taps Filter  |
++--------------------------------------------------+
 ```
 
-## Implementation plan
+## What will change
 
-1. **Restore `View all` as global library**
-   - Remove the `currentThreadId` restriction from `CopilotLibraryDialog`.
-   - Keep subject/type/time/search filters.
-   - The dialog count should represent all matching library items, not only current-thread items.
+1. **Move filters out of the top stack on desktop/tablet**
+   - Add a compact left filter rail inside the Library dialog.
+   - Keep filters visible, but vertical on the side so content gets much more height.
+   - Search stays at the top of the content area because it is frequently used.
 
-2. **Keep the right pane thread-scoped, but make it understandable**
-   - Keep `StudentArtifactPane` filtered to the current thread.
-   - Change the header/subtext to say something like `Thread library` / `Outputs from this chat`.
-   - Empty state should explain: `No outputs in this thread yet. Ask Copilot to create practice, a target, or a study plan.`
-   - If no thread is selected, show `Select a thread to view its outputs`.
+2. **Use a mobile-first filter drawer on small screens**
+   - Replace the three chip rows with a single compact row:
+     - `Filters` button
+     - active filter summary chips, e.g. `Physics`, `PPT`, `This Week`
+   - Tapping `Filters` opens a bottom sheet/drawer with Subject, Type, and Time filters.
 
-3. **Fix resource linking fallback without polluting the thread pane**
-   - The right pane will show only resources with `resource.thread_id === currentThread.id` or resources linked to an artifact in that thread via `resource.artifact_id`.
-   - The full Library dialog remains global, so unlinked/general resources are still accessible through `View all`.
+3. **Make the content area the priority**
+   - The card grid/list becomes the main scroll region.
+   - Filters should not scroll with the content on desktop.
+   - Header/search remain compact and fixed enough to keep context without eating space.
 
-4. **Make latest thread access clearer**
-   - Ensure the left rail always exposes latest threads under Recent/Active.
-   - If a subject filter hides everything, show a clearer filtered empty state and allow `All` to bring everything back.
-   - Keep Quick Tools at the bottom, but when clicked, the newly created thread should become active immediately.
+4. **Improve filter density**
+   - Use smaller section labels: `Subject`, `Type`, `Date`.
+   - Use tighter pill spacing and wrap inside the sidebar, not across the full page.
+   - Add a clear `Reset filters` action only when filters are active.
 
-5. **Clarify Quick Tools UX**
-   - Quick Tools should not be expected to instantly show artifacts unless a generated output exists.
-   - After clicking Practice/Exam Target/etc., the chat should open a focused empty thread with starter chips/prompts, and the right pane should say outputs will appear after Copilot creates them.
+5. **Keep behavior unchanged**
+   - `View all` remains global.
+   - Search, subject, type, and time filters continue working exactly as they do now.
+   - Clicking an artifact still opens its linked thread/artifact.
+   - Clicking resources still opens the resource viewer.
 
-6. **Verification**
-   - Build the app.
-   - Check that:
-     - selecting a thread changes the right pane to that thread’s outputs only;
-     - `View all` shows all charts/artifacts/resources;
-     - clicking an artifact in `View all` opens its owning thread;
-     - Quick Tools create/select a thread and do not look unresponsive;
-     - subject filters still behave consistently.
+## Technical changes
+
+- Update `src/components/student/copilot/CopilotLibraryDialog.tsx`.
+- Add responsive layout using semantic Tailwind tokens only.
+- Use existing UI primitives where possible:
+  - `Dialog` for the full Library browser.
+  - `Sheet` or an in-dialog collapsible panel for mobile filters.
+  - Existing `FilterChip`, `ArtifactCard`, and `CopilotResourceCard` patterns.
+- Preserve current filtering logic; only restructure the presentation.
+
+## Result
+
+The Library will feel like a real browser:
+
+- Desktop/tablet: filters are always accessible on the side, content gets most of the vertical space.
+- Mobile: filters are hidden behind a clear button, content gets the full screen.
+- The student can browse many artifacts without the filter UI dominating the page.
