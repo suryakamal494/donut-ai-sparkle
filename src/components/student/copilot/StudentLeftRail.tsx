@@ -222,7 +222,7 @@ const StudentLeftRail: React.FC<Props> = ({
           );
         })}
         <p className="text-[10px] text-muted-foreground/80 px-2 pt-1.5 leading-snug">
-          Skip the router and start a tool directly.
+          Start focused work. Useful outputs are saved to Library.
         </p>
       </div>
     </div>
