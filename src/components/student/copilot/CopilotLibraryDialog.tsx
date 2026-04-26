@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { SlidersHorizontal, Search, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { CopilotResource, StudentArtifact, StudentThread } from "./types";
 import { SUBJECTS } from "./types";
@@ -55,6 +56,13 @@ export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, re
   const [subject, setSubject] = useState<string | null>(subjectFilter ?? null);
   const [type, setType] = useState<string>("All");
   const [time, setTime] = useState<string>("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const hasActiveFilters = Boolean(subject) || type !== "All" || time !== "All";
+  const resetFilters = () => {
+    setSubject(null);
+    setType("All");
+    setTime("All");
+  };
 
   React.useEffect(() => {
     if (open) setSubject(subjectFilter ?? null);
@@ -121,26 +129,37 @@ export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, re
           </div>
         </DialogHeader>
 
-        <div className="border-b p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search library by title, topic, chapter…" className="pl-9" />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <FilterChip label="All subjects" active={!subject} onClick={() => setSubject(null)} />
-            {SUBJECTS.map((s) => <FilterChip key={s} label={s} active={subject === s} onClick={() => setSubject(subject === s ? null : s)} />)}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {TYPE_FILTERS.map((item) => <FilterChip key={item} label={item} active={type === item} onClick={() => setType(item)} />)}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {TIME_FILTERS.map((item) => <FilterChip key={item} label={item} active={time === item} onClick={() => setTime(item)} />)}
-          </div>
-        </div>
+        <div className="flex min-h-0 flex-1">
+          <aside className="hidden w-56 shrink-0 border-r bg-muted/20 p-3 md:block">
+            <FilterPanel subject={subject} type={type} time={time} hasActiveFilters={hasActiveFilters} setSubject={setSubject} setType={setType} setTime={setTime} resetFilters={resetFilters} />
+          </aside>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="p-3 sm:p-4">
-            <div className="mb-3 text-xs font-medium text-muted-foreground">{filtered.length} items</div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="shrink-0 border-b p-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search library by title, topic, chapter…" className="pl-9" />
+              </div>
+              <div className="mt-2 flex items-center gap-1.5 md:hidden">
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={() => setFiltersOpen(true)}>
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Filters
+                </Button>
+                <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+                  {(subject || type !== "All" || time !== "All") ? (
+                    <>
+                      {subject && <ActiveChip label={subject} />}
+                      {type !== "All" && <ActiveChip label={type} />}
+                      {time !== "All" && <ActiveChip label={time} />}
+                    </>
+                  ) : <span className="text-xs text-muted-foreground">All subjects · all types · all dates</span>}
+                </div>
+              </div>
+            </div>
+
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="p-3 sm:p-4">
+                <div className="mb-3 text-xs font-medium text-muted-foreground">{filtered.length} items</div>
             {filtered.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No matching library items</div>
             ) : (
@@ -159,11 +178,51 @@ export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, re
                 ))}
               </div>
             )}
+              </div>
+            </ScrollArea>
           </div>
-        </ScrollArea>
+        </div>
+
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <SheetContent side="bottom" className="max-h-[82dvh] overflow-y-auto p-4">
+            <SheetHeader className="mb-4 text-left">
+              <SheetTitle>Filters</SheetTitle>
+            </SheetHeader>
+            <FilterPanel subject={subject} type={type} time={time} hasActiveFilters={hasActiveFilters} setSubject={setSubject} setType={setType} setTime={setTime} resetFilters={resetFilters} />
+          </SheetContent>
+        </Sheet>
       </DialogContent>
     </Dialog>
   );
+}
+
+function FilterPanel({ subject, type, time, hasActiveFilters, setSubject, setType, setTime, resetFilters }: { subject: string | null; type: string; time: string; hasActiveFilters: boolean; setSubject: (value: string | null) => void; setType: (value: string) => void; setTime: (value: string) => void; resetFilters: () => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filter library</p>
+        {hasActiveFilters && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={resetFilters}>Reset</Button>}
+      </div>
+      <FilterGroup title="Subject">
+        <FilterChip label="All subjects" active={!subject} onClick={() => setSubject(null)} />
+        {SUBJECTS.map((s) => <FilterChip key={s} label={s} active={subject === s} onClick={() => setSubject(subject === s ? null : s)} />)}
+      </FilterGroup>
+      <FilterGroup title="Type">
+        {TYPE_FILTERS.map((item) => <FilterChip key={item} label={item} active={type === item} onClick={() => setType(item)} />)}
+      </FilterGroup>
+      <FilterGroup title="Date">
+        {TIME_FILTERS.map((item) => <FilterChip key={item} label={item} active={time === item} onClick={() => setTime(item)} />)}
+      </FilterGroup>
+    </div>
+  );
+}
+
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div><p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p><div className="flex flex-wrap gap-1.5">{children}</div></div>;
+}
+
+function ActiveChip({ label }: { label: string }) {
+  return <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{label}</span>;
 }
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
