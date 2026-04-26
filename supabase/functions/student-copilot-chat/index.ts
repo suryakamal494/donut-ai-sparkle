@@ -103,6 +103,50 @@ const studentTools = [
   {
     type: "function",
     function: {
+      name: "recommend_learning_resource",
+      description: "Recommend one or more existing learning resources such as PowerPoints, videos, PDFs, or animations inline in chat.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          content: {
+            type: "object",
+            properties: {
+              reason: { type: "string" },
+              presentation: { type: "string", enum: ["inline", "artifact"] },
+              show_in_artifact_pane: { type: "boolean" },
+              resources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    title: { type: "string" },
+                    type: { type: "string", enum: ["ppt", "video", "pdf", "animation", "image", "iframe"] },
+                    subject: { type: "string" },
+                    chapter: { type: "string" },
+                    topic: { type: "string" },
+                    description: { type: "string" },
+                    url: { type: "string" },
+                    embedUrl: { type: "string" },
+                    thumbnailUrl: { type: "string" },
+                    source: { type: "string" },
+                  },
+                  required: ["id", "title", "type"],
+                },
+              },
+            },
+            required: ["resources"],
+          },
+        },
+        required: ["title", "content"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_study_plan",
       description: "Build a multi-day study plan broken by chapter and time.",
       parameters: {
@@ -469,6 +513,7 @@ const studentTools = [
 const TOOL_TO_ARTIFACT_TYPE: Record<string, string> = {
   solve_doubt: "concept_explainer",
   create_practice_session: "practice_session",
+  recommend_learning_resource: "resource_recommendation",
   create_study_plan: "study_plan",
   create_target_tracker: "target_tracker",
   create_worked_solution: "worked_solution",
