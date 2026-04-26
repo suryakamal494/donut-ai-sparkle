@@ -55,6 +55,33 @@ export type StudentArtifactType =
   | "test_debrief"
   | "clarifications";
 
+export type CopilotResourceType = "ppt" | "video" | "animation" | "pdf" | "image" | "audio";
+
+export interface CopilotPptSlide {
+  title: string;
+  subtitle?: string;
+  bullets?: string[];
+  visual?: string;
+}
+
+export interface CopilotResource {
+  id: string;
+  title: string;
+  type: CopilotResourceType;
+  subject: string;
+  chapter?: string;
+  topic?: string;
+  description: string;
+  duration?: string;
+  created_at: string;
+  thread_id?: string | null;
+  artifact_id?: string | null;
+  source: "platform" | "teacher" | "copilot";
+  slides?: CopilotPptSlide[];
+  objectives?: string[];
+  url?: string;
+}
+
 // ---------- DB Row types ----------
 
 export interface StudentThread {

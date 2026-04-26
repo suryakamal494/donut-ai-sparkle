@@ -3,11 +3,12 @@ import { X, ChevronLeft, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { StudentArtifact, StudentThread } from "./types";
-import { ROUTINE_ARTIFACT_TYPES, SUBJECTS } from "./types";
+import type { CopilotResource, StudentArtifact, StudentThread } from "./types";
 import { isInlinePracticeArtifact } from "./artifactNormalizers";
 import ArtifactCard from "./artifacts/ArtifactCard";
 import StudentArtifactView from "./artifacts/ArtifactView";
+import CopilotResourceCard from "./CopilotResourceCard";
+import { artifactMatchesSubject, timeGroup } from "./libraryUtils";
 
 interface Props {
   artifacts: StudentArtifact[];
@@ -15,43 +16,16 @@ interface Props {
   threads?: StudentThread[];
   routineKey?: string;
   subjectFilter?: string | null;
+  resources?: CopilotResource[];
+  selectedArtifactId?: string | null;
   onClose?: () => void;
+  onViewAll?: () => void;
+  onOpenResource?: (resource: CopilotResource) => void;
   completedTasks?: Set<string>;
   onToggleTask?: (dayIndex: number, itemIndex: number) => void;
   onPracticeTopic?: (subject: string, topic: string) => void;
   onStartTask?: (artifact: StudentArtifact, taskDescription: string, dayIndex: number, itemIndex: number) => void;
   onOpenThread?: (threadId: string) => void;
-}
-
-function timeGroup(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = diff / 86400000;
-  if (days < 1) return "Today";
-  if (days < 7) return "This Week";
-  return "Older";
-}
-
-function valueHasSubject(value: unknown, subject: string): boolean {
-  if (!value) return false;
-  if (typeof value === "string") return value.toLowerCase().includes(subject.toLowerCase());
-  if (Array.isArray(value)) return value.some((item) => valueHasSubject(item, subject));
-  if (typeof value === "object") return Object.values(value as Record<string, unknown>).some((item) => valueHasSubject(item, subject));
-  return false;
-}
-
-function artifactMatchesSubject(
-  artifact: StudentArtifact,
-  subject: string | null | undefined,
-  threads: StudentThread[]
-): boolean {
-  if (!subject) return true;
-  const linkedThread = artifact.thread_id ? threads.find((t) => t.id === artifact.thread_id) : null;
-  if (linkedThread?.subject === subject) return true;
-  const content = artifact.content as Record<string, unknown> | null;
-  if (content?.subject === subject) return true;
-  if (valueHasSubject(content?.subjects, subject)) return true;
-  if (valueHasSubject(artifact.title, subject)) return true;
-  return SUBJECTS.some((s) => s === subject) && valueHasSubject(content, subject);
 }
 
 function targetScoreLabel(artifact: StudentArtifact): string {
@@ -75,7 +49,11 @@ export default function StudentArtifactPane({
   threads = [],
   routineKey,
   subjectFilter,
+  resources = [],
+  selectedArtifactId,
   onClose,
+  onViewAll,
+  onOpenResource,
   completedTasks,
   onToggleTask,
   onPracticeTopic,
@@ -84,28 +62,34 @@ export default function StudentArtifactPane({
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (selectedArtifactId) setSelectedId(selectedArtifactId);
+  }, [selectedArtifactId]);
+
   // Filter artifacts by routine type and thread
   const filtered = useMemo(() => {
     let list = artifacts;
     // Exclude chat-only artifacts from the pane
     list = list.filter((a) => a.type !== "clarifications" && !isInlinePracticeArtifact(a));
-    // If viewing a thread, show that thread's artifacts first
-    if (thread) {
-      const threadArtifacts = list.filter((a) => a.thread_id === thread.id);
-      // If the thread has artifacts, show them; otherwise fall back to all recent artifacts
-      if (threadArtifacts.length > 0) {
-        list = threadArtifacts;
-      }
-      // else: keep all artifacts as fallback so pane isn't empty
-    }
-    // Filter by routine artifact types if applicable
-    if (routineKey && ROUTINE_ARTIFACT_TYPES[routineKey]) {
-      const allowedTypes = ROUTINE_ARTIFACT_TYPES[routineKey];
-      list = list.filter((a) => allowedTypes.includes(a.type as any));
-    }
     list = list.filter((a) => artifactMatchesSubject(a, subjectFilter, threads));
-    return list;
-  }, [artifacts, thread, routineKey, subjectFilter, threads]);
+    return [...list].sort((a, b) => {
+      const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
+      const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
+      if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [artifacts, thread, subjectFilter, threads]);
+
+  const filteredResources = useMemo(() => {
+    return resources
+      .filter((resource) => !subjectFilter || resource.subject === subjectFilter)
+      .sort((a, b) => {
+        const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
+        const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
+        if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [resources, subjectFilter, thread]);
 
   const pinnedTarget = useMemo(() => {
     return artifacts
@@ -117,7 +101,7 @@ export default function StudentArtifactPane({
   // Group by time
   const grouped = useMemo(() => {
     const groups: Record<string, StudentArtifact[]> = {};
-    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id)) {
+    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id).slice(0, 10)) {
       const g = timeGroup(a.created_at);
       if (!groups[g]) groups[g] = [];
       groups[g].push(a);
@@ -125,11 +109,14 @@ export default function StudentArtifactPane({
     return groups;
   }, [filtered, pinnedTarget]);
 
+  const visibleResources = useMemo(() => filteredResources.slice(0, Math.max(0, 10 - Object.values(grouped).reduce((total, items) => total + items.length, 0))), [filteredResources, grouped]);
+
   const groupedItemCount = useMemo(
     () => Object.values(grouped).reduce((total, items) => total + items.length, 0),
     [grouped]
   );
-  const visibleLibraryCount = groupedItemCount + (pinnedTarget ? 1 : 0);
+  const visibleLibraryCount = groupedItemCount + visibleResources.length + (pinnedTarget ? 1 : 0);
+  const totalAvailableCount = filtered.filter((item) => item.id !== pinnedTarget?.id).length + filteredResources.length + (pinnedTarget ? 1 : 0);
 
   const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
 
@@ -167,11 +154,19 @@ export default function StudentArtifactPane({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b shrink-0">
-        <p className="text-sm font-semibold text-foreground">Library</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Library</p>
+          <p className="text-[10px] text-muted-foreground">Saved outputs and learning resources</p>
+        </div>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-            {visibleLibraryCount}
+            {totalAvailableCount}
           </span>
+          {onViewAll && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onViewAll}>
+              View all
+            </Button>
+          )}
           {onClose && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -211,6 +206,9 @@ export default function StudentArtifactPane({
               <p className="text-xs">Saved study materials will appear here</p>
             </div>
           )}
+          {thread && groupedItemCount > 0 && (
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Current session first</p>
+          )}
           {Object.entries(grouped).map(([group, items]) => (
             <div key={group}>
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">{group}</p>
@@ -226,6 +224,16 @@ export default function StudentArtifactPane({
               </div>
             </div>
           ))}
+          {visibleResources.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Recommended resources</p>
+              <div className="space-y-1.5">
+                {visibleResources.map((resource) => (
+                  <CopilotResourceCard key={resource.id} resource={resource} compact onOpen={(item) => onOpenResource?.(item)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import ChatMessageList from "./ChatMessageList";
-import type { StudentThread, StudentMessage, StudentRoutine, StudentArtifact, StudentNotification } from "./types";
+import type { CopilotResource, StudentThread, StudentMessage, StudentRoutine, StudentArtifact, StudentNotification } from "./types";
 import type { PracticeState } from "./useInlinePractice";
 import ProactiveCards from "./ProactiveCards";
 import { studentProfile } from "@/data/student/profile";
@@ -20,6 +20,8 @@ interface Props {
   streamedText: string;
   pendingArtifact: boolean;
   artifacts: StudentArtifact[];
+  resources?: CopilotResource[];
+  onOpenResource?: (resource: CopilotResource) => void;
   onSend: (text: string, images?: string[]) => void;
   onToggleLeft: () => void;
   onToggleRight: () => void;
@@ -50,6 +52,8 @@ const StudentChatPane: React.FC<Props> = ({
   streamedText,
   pendingArtifact,
   artifacts,
+  resources = [],
+  onOpenResource,
   onSend,
   onToggleLeft,
   onToggleRight,
@@ -212,6 +216,8 @@ const StudentChatPane: React.FC<Props> = ({
           streamedText={streamedText}
           pendingArtifact={pendingArtifact}
           artifacts={artifacts}
+          resources={resources}
+          onOpenResource={onOpenResource}
           routine={routine}
           quickStartChips={quickStartChips}
           practiceStates={practiceStates}
