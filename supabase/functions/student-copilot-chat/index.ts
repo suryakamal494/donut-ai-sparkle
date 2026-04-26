@@ -792,6 +792,8 @@ REUSE RULES:
               continue;
             }
 
+            const enrichedContent = await enrichArtifactContent(supabase, artifactType, parsed.content ?? {}, thread_id);
+
             // Save artifact to DB
             const { data: art } = await supabase
               .from("student_copilot_artifacts")
@@ -800,7 +802,7 @@ REUSE RULES:
                 thread_id,
                 type: artifactType,
                 title: parsed.title ?? "Untitled",
-                content: parsed.content ?? {},
+                content: enrichedContent,
                 source: "ai",
               })
               .select("id, type, title, content, created_at")
@@ -813,7 +815,7 @@ REUSE RULES:
                 id: art.id,
                 type: artifactType,
                 title: parsed.title ?? "Untitled",
-                content: parsed.content ?? {},
+                content: enrichedContent,
               });
               controller.enqueue(
                 encoder.encode(`\n__ARTIFACT__${marker}__END__\n`)
