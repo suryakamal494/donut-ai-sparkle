@@ -95,7 +95,7 @@ export default function StudentArtifactPane({
   // Group by time
   const grouped = useMemo(() => {
     const groups: Record<string, StudentArtifact[]> = {};
-    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id)) {
+    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id).slice(0, 10)) {
       const g = timeGroup(a.created_at);
       if (!groups[g]) groups[g] = [];
       groups[g].push(a);
@@ -103,11 +103,14 @@ export default function StudentArtifactPane({
     return groups;
   }, [filtered, pinnedTarget]);
 
+  const visibleResources = useMemo(() => filteredResources.slice(0, Math.max(0, 10 - Object.values(grouped).reduce((total, items) => total + items.length, 0))), [filteredResources, grouped]);
+
   const groupedItemCount = useMemo(
     () => Object.values(grouped).reduce((total, items) => total + items.length, 0),
     [grouped]
   );
   const visibleLibraryCount = groupedItemCount + (pinnedTarget ? 1 : 0);
+  const totalAvailableCount = filtered.filter((item) => item.id !== pinnedTarget?.id).length + filteredResources.length + (pinnedTarget ? 1 : 0);
 
   const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
 
