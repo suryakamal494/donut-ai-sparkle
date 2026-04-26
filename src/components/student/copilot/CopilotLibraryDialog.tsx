@@ -45,16 +45,22 @@ interface Props {
   artifacts: StudentArtifact[];
   resources: CopilotResource[];
   threads: StudentThread[];
+  currentThreadId?: string | null;
   subjectFilter?: string | null;
   onOpenArtifact: (artifact: StudentArtifact) => void;
   onOpenResource: (resource: CopilotResource) => void;
 }
 
-export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, resources, threads, subjectFilter, onOpenArtifact, onOpenResource }: Props) {
+export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, resources, threads, currentThreadId, subjectFilter, onOpenArtifact, onOpenResource }: Props) {
   const [query, setQuery] = useState("");
   const [subject, setSubject] = useState<string | null>(subjectFilter ?? null);
   const [type, setType] = useState<string>("All");
   const [time, setTime] = useState<string>("All");
+
+  const threadArtifactIds = useMemo(
+    () => new Set(artifacts.filter((artifact) => artifact.thread_id === currentThreadId).map((artifact) => artifact.id)),
+    [artifacts, currentThreadId]
+  );
 
   React.useEffect(() => {
     if (open) setSubject(subjectFilter ?? null);
@@ -62,6 +68,7 @@ export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, re
 
   const entries = useMemo<LibraryEntry[]>(() => {
     const artifactEntries: LibraryEntry[] = artifacts
+      .filter((artifact) => Boolean(currentThreadId) && artifact.thread_id === currentThreadId)
       .filter((a) => a.type !== "clarifications")
       .map((artifact) => ({
         kind: "artifact",
@@ -72,17 +79,19 @@ export default function CopilotLibraryDialog({ open, onOpenChange, artifacts, re
         searchable: `${artifact.title} ${artifact.type} ${JSON.stringify(artifact.content ?? {})}`,
       }));
 
-    const resourceEntries: LibraryEntry[] = resources.map((resource) => ({
-      kind: "resource",
-      id: resource.id,
-      created_at: resource.created_at,
-      resource,
-      typeLabel: resource.type.toUpperCase() === "PPT" ? "PPT" : resource.type.charAt(0).toUpperCase() + resource.type.slice(1),
-      searchable: `${resource.title} ${resource.subject} ${resource.chapter ?? ""} ${resource.topic ?? ""} ${resource.description}`,
-    }));
+    const resourceEntries: LibraryEntry[] = resources
+      .filter((resource) => Boolean(currentThreadId) && (resource.thread_id === currentThreadId || (resource.artifact_id ? threadArtifactIds.has(resource.artifact_id) : false)))
+      .map((resource) => ({
+        kind: "resource",
+        id: resource.id,
+        created_at: resource.created_at,
+        resource,
+        typeLabel: resource.type.toUpperCase() === "PPT" ? "PPT" : resource.type.charAt(0).toUpperCase() + resource.type.slice(1),
+        searchable: `${resource.title} ${resource.subject} ${resource.chapter ?? ""} ${resource.topic ?? ""} ${resource.description}`,
+      }));
 
     return [...artifactEntries, ...resourceEntries].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [artifacts, resources]);
+  }, [artifacts, currentThreadId, resources, threadArtifactIds]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
