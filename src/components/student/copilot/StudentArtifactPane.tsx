@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { StudentArtifact, StudentThread } from "./types";
 import { ROUTINE_ARTIFACT_TYPES, SUBJECTS } from "./types";
-import { isInlinePracticeArtifact } from "./artifactNormalizers";
+import { isInlinePracticeArtifact, isInlineResourceArtifact } from "./artifactNormalizers";
 import ArtifactCard from "./artifacts/ArtifactCard";
 import StudentArtifactView from "./artifacts/ArtifactView";
 
@@ -88,7 +88,7 @@ export default function StudentArtifactPane({
   const filtered = useMemo(() => {
     let list = artifacts;
     // Exclude chat-only artifacts from the pane
-    list = list.filter((a) => a.type !== "clarifications" && !isInlinePracticeArtifact(a));
+    list = list.filter((a) => a.type !== "clarifications" && !isInlinePracticeArtifact(a) && !isInlineResourceArtifact(a));
     // If viewing a thread, show that thread's artifacts first
     if (thread) {
       const threadArtifacts = list.filter((a) => a.thread_id === thread.id);

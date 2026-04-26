@@ -10,6 +10,7 @@ import TargetTrackerView from "./TargetTrackerView";
 import MasteryMapView from "./MasteryMapView";
 import ProgressReportView from "./ProgressReportView";
 import TestDebriefView from "./TestDebriefView";
+import InlineResourceCard from "../InlineResourceCard";
 
 interface Props {
   artifact: StudentArtifact;
@@ -50,6 +51,14 @@ export default function StudentArtifactView({ artifact, completedTasks, onToggle
       return <ProgressReportView content={content} />;
     case "test_debrief":
       return <TestDebriefView content={content} />;
+    case "resource_recommendation":
+      return (
+        <div className="space-y-2">
+          {(content.resources ?? []).map((resource: any) => (
+            <InlineResourceCard key={resource.id} resource={resource} reason={content.reason} />
+          ))}
+        </div>
+      );
     default:
       return (
         <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-96">
