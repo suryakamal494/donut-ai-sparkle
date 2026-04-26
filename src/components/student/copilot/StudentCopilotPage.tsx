@@ -558,7 +558,6 @@ const StudentCopilotPage: React.FC = () => {
         artifacts={artifacts}
         resources={copilotResources}
         threads={threads}
-        currentThreadId={currentThreadId}
         subjectFilter={subjectFilter}
         onOpenArtifact={handleOpenLibraryArtifact}
         onOpenResource={handleOpenResource}
