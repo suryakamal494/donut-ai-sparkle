@@ -148,11 +148,19 @@ export default function StudentArtifactPane({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b shrink-0">
-        <p className="text-sm font-semibold text-foreground">Library</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Library</p>
+          <p className="text-[10px] text-muted-foreground">Saved outputs and learning resources</p>
+        </div>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-            {visibleLibraryCount}
+            {totalAvailableCount}
           </span>
+          {onViewAll && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onViewAll}>
+              View all
+            </Button>
+          )}
           {onClose && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -192,6 +200,9 @@ export default function StudentArtifactPane({
               <p className="text-xs">Saved study materials will appear here</p>
             </div>
           )}
+          {thread && groupedItemCount > 0 && (
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Current session first</p>
+          )}
           {Object.entries(grouped).map(([group, items]) => (
             <div key={group}>
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">{group}</p>
@@ -207,6 +218,16 @@ export default function StudentArtifactPane({
               </div>
             </div>
           ))}
+          {visibleResources.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Recommended resources</p>
+              <div className="space-y-1.5">
+                {visibleResources.map((resource) => (
+                  <CopilotResourceCard key={resource.id} resource={resource} compact onOpen={(item) => onOpenResource?.(item)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
