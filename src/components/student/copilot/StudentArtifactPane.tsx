@@ -150,8 +150,8 @@ export default function StudentArtifactPane({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b shrink-0">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Library</p>
-          <p className="text-[10px] text-muted-foreground">Saved outputs and learning resources</p>
+          <p className="text-sm font-semibold text-foreground">Thread library</p>
+          <p className="text-[10px] text-muted-foreground">Outputs from this chat</p>
         </div>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
@@ -197,8 +197,8 @@ export default function StudentArtifactPane({
           )}
           {visibleLibraryCount === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm font-medium mb-1">No thread items yet</p>
-              <p className="text-xs">Resources created in this chat will appear here</p>
+              <p className="text-sm font-medium mb-1">{thread ? "No outputs in this thread yet" : "Select a thread"}</p>
+              <p className="text-xs">{thread ? "Ask Copilot to create practice, a target, or a study plan." : "Open a chat to view its saved outputs."}</p>
             </div>
           )}
           {thread && groupedItemCount > 0 && (
