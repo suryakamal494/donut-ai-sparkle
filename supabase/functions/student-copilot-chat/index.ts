@@ -479,6 +479,60 @@ const TOOL_TO_ARTIFACT_TYPE: Record<string, string> = {
   create_progress_report: "progress_report",
 };
 
+function slugify(s: string): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function currentWeekKey(): string {
+  const d = new Date();
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+async function enrichArtifactContent(supabase: any, artifactType: string, content: any, threadId: string) {
+  const next = { ...(content ?? {}) };
+  const { data: thread } = await supabase
+    .from("student_copilot_threads")
+    .select("id, tool, scope_key, scope_meta")
+    .eq("id", threadId)
+    .maybeSingle();
+
+  if (artifactType === "target_tracker") {
+    const examName = next.exam_name ?? next.exam ?? "Exam";
+    next.exam_id = next.exam_id ?? thread?.scope_meta?.exam_id ?? slugify(examName);
+    next.parent_target_thread_id = threadId;
+    return next;
+  }
+
+  if (artifactType === "study_plan") {
+    const examId = next.exam_id ?? thread?.scope_meta?.exam_id ?? (next.exam ? slugify(next.exam) : null);
+    if (examId) next.exam_id = examId;
+    const { data: target } = await supabase
+      .from("student_copilot_artifacts")
+      .select("id, thread_id, content, created_at")
+      .eq("thread_id", threadId)
+      .eq("type", "target_tracker")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (target) {
+      next.parent_target_artifact_id = target.id;
+      next.parent_target_thread_id = target.thread_id;
+      next.exam_id = next.exam_id ?? target.content?.exam_id;
+    }
+    next.plan_window = next.plan_window ?? currentWeekKey();
+  }
+
+  return next;
+}
+
 // ========== Student base system prompt ==========
 
 const STUDENT_BASE_PROMPT = `You are DonutAI — a friendly, expert tutor for Indian school students preparing for board exams (CBSE/State) and competitive exams (JEE/NEET).
