@@ -109,7 +109,7 @@ export default function StudentArtifactPane({
     () => Object.values(grouped).reduce((total, items) => total + items.length, 0),
     [grouped]
   );
-  const visibleLibraryCount = groupedItemCount + (pinnedTarget ? 1 : 0);
+  const visibleLibraryCount = groupedItemCount + visibleResources.length + (pinnedTarget ? 1 : 0);
   const totalAvailableCount = filtered.filter((item) => item.id !== pinnedTarget?.id).length + filteredResources.length + (pinnedTarget ? 1 : 0);
 
   const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
