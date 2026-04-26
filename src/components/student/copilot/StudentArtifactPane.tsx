@@ -48,7 +48,10 @@ export default function StudentArtifactPane({
   threads = [],
   routineKey,
   subjectFilter,
+  resources = [],
   onClose,
+  onViewAll,
+  onOpenResource,
   completedTasks,
   onToggleTask,
   onPracticeTopic,
@@ -62,23 +65,25 @@ export default function StudentArtifactPane({
     let list = artifacts;
     // Exclude chat-only artifacts from the pane
     list = list.filter((a) => a.type !== "clarifications" && !isInlinePracticeArtifact(a));
-    // If viewing a thread, show that thread's artifacts first
-    if (thread) {
-      const threadArtifacts = list.filter((a) => a.thread_id === thread.id);
-      // If the thread has artifacts, show them; otherwise fall back to all recent artifacts
-      if (threadArtifacts.length > 0) {
-        list = threadArtifacts;
-      }
-      // else: keep all artifacts as fallback so pane isn't empty
-    }
-    // Filter by routine artifact types if applicable
-    if (routineKey && ROUTINE_ARTIFACT_TYPES[routineKey]) {
-      const allowedTypes = ROUTINE_ARTIFACT_TYPES[routineKey];
-      list = list.filter((a) => allowedTypes.includes(a.type as any));
-    }
     list = list.filter((a) => artifactMatchesSubject(a, subjectFilter, threads));
-    return list;
-  }, [artifacts, thread, routineKey, subjectFilter, threads]);
+    return [...list].sort((a, b) => {
+      const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
+      const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
+      if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [artifacts, thread, subjectFilter, threads]);
+
+  const filteredResources = useMemo(() => {
+    return resources
+      .filter((resource) => !subjectFilter || resource.subject === subjectFilter)
+      .sort((a, b) => {
+        const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
+        const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
+        if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [resources, subjectFilter, thread]);
 
   const pinnedTarget = useMemo(() => {
     return artifacts
