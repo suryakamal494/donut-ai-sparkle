@@ -10,6 +10,8 @@ import { studentProfile } from "@/data/student/profile";
 import StudentLeftRail from "./StudentLeftRail";
 import StudentChatPane from "./StudentChatPane";
 import StudentArtifactPane from "./StudentArtifactPane";
+import CopilotLibraryDialog from "./CopilotLibraryDialog";
+import CopilotResourceViewer from "./CopilotResourceViewer";
 import { useStudentChat } from "./useStudentChat";
 import { useInlinePractice } from "./useInlinePractice";
 import {
@@ -26,7 +28,9 @@ import {
   dismissNotification,
 } from "./api";
 import type { StudentThread, StudentMessage, StudentRoutine, StudentArtifact, TopicMastery, StudentNotification } from "./types";
+import type { CopilotResource } from "./types";
 import { DEFAULT_ROUTINE_KEY } from "./types";
+import { COPILOT_MOCK_RESOURCES } from "@/data/student/copilotResourceMockData";
 import { buildFullStudentContext } from "./context";
 import { buildAdaptivePracticeContext } from "./chatHelpers";
 import { seedCopilotDataIfNeeded } from "./seedCopilotData";
@@ -83,6 +87,10 @@ const StudentCopilotPage: React.FC = () => {
   const [leftVisible, setLeftVisible] = useState(true);
   const [rightVisible, setRightVisible] = useState(true);
   const [leftSheetOpen, setLeftSheetOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [resourceViewerOpen, setResourceViewerOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<CopilotResource | null>(null);
+  const [libraryArtifactId, setLibraryArtifactId] = useState<string | null>(null);
 
   // Chat hook
   const { streaming, streamedText, pendingArtifact, send } = useStudentChat();
@@ -112,6 +120,8 @@ const StudentCopilotPage: React.FC = () => {
     if (Array.isArray(chips)) return chips as string[];
     return [];
   }, [currentRoutine]);
+
+  const copilotResources = useMemo(() => COPILOT_MOCK_RESOURCES, []);
 
   // Track if we've handled the initial query params
   const initialParamsHandled = useRef(false);
