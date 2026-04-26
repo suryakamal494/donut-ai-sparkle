@@ -458,8 +458,12 @@ const StudentCopilotPage: React.FC = () => {
   }, [isMobile]);
 
   const toggleRight = useCallback(() => {
+    if (isMobile || window.innerWidth < 1024) {
+      setLibraryOpen(true);
+      return;
+    }
     setRightVisible((v) => !v);
-  }, []);
+  }, [isMobile]);
 
   const railProps = {
     routines,
