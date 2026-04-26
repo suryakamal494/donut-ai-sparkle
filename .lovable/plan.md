@@ -1,69 +1,38 @@
-Plan to fix the Student Copilot inline practice behavior
+I’ll update the student copilot UI based on the current screenshot and your notes.
 
-1. Make inline practice behave like a chat thread
-- Change the inline practice state model so it stores an ordered list of question entries, not only one `currentIndex`.
-- After a student submits Q1, keep Q1 visible with its submitted answer, result, and explanation/hint.
-- When the student clicks Next, append Q2 below Q1 as a new inline card instead of replacing Q1.
-- Continue this pattern until all 10 questions are visible in the same chat thread.
-- Keep the end summary card after the final answered question.
+Plan:
 
-2. Show the generated question immediately after the assistant response
-- Ensure the new inline practice artifact is attached to the correct assistant message and rendered as soon as it is created.
-- Avoid timestamp-only matching problems where the artifact appears in the wrong place or only after a refresh.
-- Keep small practice artifacts out of the right artifact pane.
+1. Make Active sessions collapsible again
+- Keep the existing lifecycle accordion behavior, but make the Active header clearly clickable and ensure clicking it can collapse the section even when active threads exist.
+- Preserve single-section behavior: Active, Recent, and Archived can still be opened/closed from the left rail.
+- Make the collapsed/expanded arrow state more obvious on mobile/tablet and desktop.
 
-3. Fix math rendering in question, answer, and explanation text
-- Improve `MathMarkdown` normalization so malformed escaped math such as `\$...\$`, `\pu{...}`, and generated strings like `$\pu{4 m/s^2}$` render correctly instead of showing raw symbols.
-- Use `MathMarkdown` for displayed correct answers too, not plain `<strong>{question.answer}</strong>` text.
-- Preserve KaTeX + mhchem support for physics/chemistry units and formulas.
+2. Replace horizontal subject scrolling with wrapped subject chips
+- Change the subject filter row from one-line horizontal scroll to a wrapping layout.
+- Subjects will appear across multiple rows if needed instead of requiring sideways scrolling.
+- Keep the selected subject visual state clear.
+- This will be mobile/tablet-first, so chips remain easy to tap and do not crowd the left rail.
 
-4. Support the correct inline question types
-- Extend inline question handling beyond only `mcq`, `short`, and `true_false`.
-- Normalize `assertion_reason`, `multi_step`, and integer/numerical questions safely.
-- For this requested 10-question practice flow, bias generation toward MCQs and assertion-reason MCQs rather than only integer/short-answer numericals.
-- Keep `{ label, text }` option objects end-to-end for reliable answer matching.
+3. Apply subject filtering to Library items too
+- Currently subject filtering is only applied to threads in `StudentLeftRail`.
+- I’ll pass the selected subject into the right-side panel and filter the library list as well.
+- Since library records do not have a dedicated `subject` column, I’ll infer subject safely from:
+  - the linked thread’s subject,
+  - `artifact.content.subject`,
+  - `artifact.content.subjects`,
+  - and, as fallback only, recognizable subject names in the title/content.
+- This means when Physics is selected, both the session list and the Library panel will show Physics-related items only.
 
-5. Update the AI practice-generation instructions
-- Tighten the backend function prompt/schema instructions for small practice sessions:
-  - For ≤10 questions, generate mostly MCQ-style interactive questions.
-  - Include a mix of conceptual MCQs, numerical MCQs, assertion-reason, and application questions.
-  - Do not generate only integer input questions unless the student explicitly asks for integer/numerical-only practice.
-  - Answers must remain option labels (`A`, `B`, etc.) for option-based questions.
+4. Rename “Artifacts” to “Library” in the student-facing UI
+- Update the right panel heading from “Artifacts” to “Library”.
+- Update empty-state copy from “No artifacts yet / Generated artifacts...” to school-friendly language such as “No library items yet / Saved study materials will appear here.”
+- Update toggle accessibility/title labels from “artifact panel” to “library panel”.
+- Keep internal variable/database names unchanged because they are technical implementation details.
 
-6. Mobile/tablet-first polish
-- Keep practice cards compact and readable at narrow widths.
-- Ensure previous answered cards do not become too tall or overflow.
-- Make the Next button and option tap targets comfortable on mobile/tablet.
-
-Technical changes expected
-- `src/components/student/copilot/useInlinePractice.ts`
-  - Replace single `currentIndex` rendering assumptions with an append-only visible/answered question flow.
-  - Store result per question index to prevent wrong answers appearing on a newly shown question.
-
-- `src/components/student/copilot/ChatMessageList.tsx`
-  - Render all visible inline practice question cards for a practice artifact, not only the current one.
-  - Place the practice sequence under the assistant message that created it.
-
-- `src/components/student/copilot/InlinePracticeCard.tsx`
-  - Render submitted state from persisted props rather than local-only state where needed.
-  - Add robust answer comparison and support option-based assertion-reason/multi-step MCQs.
-  - Render correct answers/explanations through `MathMarkdown`.
-
-- `src/components/student/copilot/MathMarkdown.tsx`
-  - Add safer normalization for escaped dollar delimiters and common AI-generated LaTeX/mhchem patterns.
-
-- `src/components/student/copilot/artifactNormalizers.ts`
-  - Normalize mixed practice question types into stable inline-compatible shapes.
-
-- `supabase/functions/student-copilot-chat/index.ts`
-  - Update practice tool schema/prompt instructions to generate mixed MCQ-first inline practice sessions for ≤10 questions.
-
-Validation
-- Run the app build/type check.
-- Test a 10-question practice request:
-  - Question appears inline immediately after the assistant response.
-  - Submitting Q1 keeps Q1 visible.
-  - Clicking Next appends Q2 below Q1 instead of replacing it.
-  - Answers do not leak into the next question.
-  - Math/unit formatting renders correctly.
-  - The generated set includes MCQs and assertion-reason/application variety, not only integer answers.
+5. Verify behavior
+- Run a build/type check after changes.
+- Check the affected student copilot layout at the current responsive size and ensure:
+  - Active can be minimized,
+  - subject chips wrap instead of scroll,
+  - subject filter affects sessions and Library,
+  - “Artifacts” no longer appears in student-facing labels for this panel.
