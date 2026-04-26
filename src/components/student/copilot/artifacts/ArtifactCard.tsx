@@ -12,7 +12,6 @@ import {
   BarChart3,
   ClipboardList,
   HelpCircle,
-  Presentation,
 } from "lucide-react";
 import type { StudentArtifact } from "../types";
 
@@ -27,7 +26,6 @@ const artifactIcons: Record<string, React.ElementType> = {
   progress_report: BarChart3,
   test_debrief: ClipboardList,
   clarifications: HelpCircle,
-  resource_recommendation: Presentation,
 };
 
 const artifactColors: Record<string, string> = {
@@ -41,7 +39,6 @@ const artifactColors: Record<string, string> = {
   progress_report: "text-cyan-600 bg-cyan-50",
   test_debrief: "text-amber-600 bg-amber-50",
   clarifications: "text-muted-foreground bg-muted",
-  resource_recommendation: "text-orange-600 bg-orange-50",
 };
 
 interface Props {

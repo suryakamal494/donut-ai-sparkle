@@ -60,34 +60,6 @@ export function isInlinePracticeArtifact(artifact: { type: string; content: any 
   );
 }
 
-export function isInlineResourceArtifact(artifact: { type: string; content: any }): boolean {
-  if (artifact.type !== "resource_recommendation") return false;
-  const content = artifact.content ?? {};
-  return content.presentation !== "artifact" || content.show_in_artifact_pane === false;
-}
-
-export function normalizeResourceRecommendation(content: any): any {
-  const resources = Array.isArray(content?.resources) ? content.resources : [];
-  return {
-    ...content,
-    presentation: content?.presentation ?? "inline",
-    show_in_artifact_pane: content?.show_in_artifact_pane ?? false,
-    resources: resources.map((resource: any, index: number) => ({
-      id: String(resource?.id ?? `resource-${index + 1}`),
-      title: String(resource?.title ?? "Learning resource"),
-      type: resource?.type ?? "ppt",
-      subject: resource?.subject,
-      chapter: resource?.chapter,
-      topic: resource?.topic,
-      description: resource?.description,
-      url: resource?.url,
-      embedUrl: resource?.embedUrl ?? resource?.embed_url,
-      thumbnailUrl: resource?.thumbnailUrl ?? resource?.thumbnail_url,
-      source: resource?.source,
-    })),
-  };
-}
-
 /**
  * Normalize concept_explainer content.
  * Handles both: { summary, steps } and { intro, body, try_yourself }
@@ -225,8 +197,6 @@ export function normalizeArtifactContent(type: string, content: any): any {
   switch (type) {
     case "practice_session":
       return normalizePracticeSession(content);
-    case "resource_recommendation":
-      return normalizeResourceRecommendation(content);
     case "concept_explainer":
       return normalizeConceptExplainer(content);
     case "worked_solution":

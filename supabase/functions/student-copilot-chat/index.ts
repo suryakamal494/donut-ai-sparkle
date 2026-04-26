@@ -103,50 +103,6 @@ const studentTools = [
   {
     type: "function",
     function: {
-      name: "recommend_learning_resource",
-      description: "Recommend one or more existing learning resources such as PowerPoints, videos, PDFs, or animations inline in chat.",
-      parameters: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          content: {
-            type: "object",
-            properties: {
-              reason: { type: "string" },
-              presentation: { type: "string", enum: ["inline", "artifact"] },
-              show_in_artifact_pane: { type: "boolean" },
-              resources: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string" },
-                    title: { type: "string" },
-                    type: { type: "string", enum: ["ppt", "video", "pdf", "animation", "image", "iframe"] },
-                    subject: { type: "string" },
-                    chapter: { type: "string" },
-                    topic: { type: "string" },
-                    description: { type: "string" },
-                    url: { type: "string" },
-                    embedUrl: { type: "string" },
-                    thumbnailUrl: { type: "string" },
-                    source: { type: "string" },
-                  },
-                  required: ["id", "title", "type"],
-                },
-              },
-            },
-            required: ["resources"],
-          },
-        },
-        required: ["title", "content"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "create_study_plan",
       description: "Build a multi-day study plan broken by chapter and time.",
       parameters: {
@@ -513,7 +469,6 @@ const studentTools = [
 const TOOL_TO_ARTIFACT_TYPE: Record<string, string> = {
   solve_doubt: "concept_explainer",
   create_practice_session: "practice_session",
-  recommend_learning_resource: "resource_recommendation",
   create_study_plan: "study_plan",
   create_target_tracker: "target_tracker",
   create_worked_solution: "worked_solution",
@@ -553,13 +508,6 @@ async function enrichArtifactContent(supabase: any, artifactType: string, conten
     const examName = next.exam_name ?? next.exam ?? "Exam";
     next.exam_id = next.exam_id ?? thread?.scope_meta?.exam_id ?? slugify(examName);
     next.parent_target_thread_id = threadId;
-    return next;
-  }
-
-  if (artifactType === "resource_recommendation") {
-    next.presentation = next.presentation ?? "inline";
-    next.show_in_artifact_pane = next.show_in_artifact_pane ?? false;
-    next.resources = Array.isArray(next.resources) ? next.resources : [];
     return next;
   }
 
@@ -612,7 +560,6 @@ ARTIFACT ROUTING — pick the RIGHT tool:
 - Student asks a concept doubt → solve_doubt (concept explainer)
 - Student asks to solve a specific problem step-by-step → create_worked_solution
 - Student asks for formulas/reference → create_formula_sheet
-- Student needs to read/watch an existing PPT, video, PDF, or animation before continuing → recommend_learning_resource
 - Student wants practice questions → create_practice_session
 - Student wants a study plan → create_study_plan
 - Student wants exam target tracking → create_target_tracker
@@ -627,14 +574,13 @@ TARGET + PLAN LINKING:
 INTERACTIVE TUTORING RULES:
 1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as an interactive threaded sequence inside chat and must not appear as a separate right-pane artifact card. For these small inline sets, generate mostly option-based questions: conceptual MCQs, numerical MCQs, assertion-reason MCQs, and application MCQs. Do NOT generate only integer/short-answer questions unless the student explicitly asks for integer-only or numerical-only practice.
 2. LARGE PRACTICE (>10 questions): Use create_practice_session as a normal artifact with content.presentation = "artifact".
-3. RESOURCE RECOMMENDATIONS: When a PPT/video/animation/PDF would help, call recommend_learning_resource and keep content.presentation = "inline" and show_in_artifact_pane = false. Use real-looking platform resources with embeddable URLs when known. Prefer PPTs for chapter overviews, videos for demonstrations, and animations for visual concepts. Do not overuse resources; one strong recommendation is enough.
-4. OPTION CONTRACT: For every MCQ, assertion_reason, true_false, or option-based multi_step question, options MUST be objects like {"label":"A","text":"..."}. The answer/correct_answer MUST be the option label only ("A", "B", "C", etc.), never the full option text.
-5. STUDY PLAN TASK FLOWS: When a student says "Start Day X Task Y" or "Teach me about [topic]" from a study plan, deliver content conversationally:
+3. OPTION CONTRACT: For every MCQ, assertion_reason, true_false, or option-based multi_step question, options MUST be objects like {"label":"A","text":"..."}. The answer/correct_answer MUST be the option label only ("A", "B", "C", etc.), never the full option text.
+4. STUDY PLAN TASK FLOWS: When a student says "Start Day X Task Y" or "Teach me about [topic]" from a study plan, deliver content conversationally:
    - First, explain the key concepts clearly with examples and LaTeX formulas.
    - Then ask 2-3 quick check questions inline to test understanding.
    - Adapt based on their responses — if they struggle, simplify and give more examples. If they ace it, move to harder applications.
-6. ALWAYS CHAT: Never respond with ONLY a tool call. Always include conversational text alongside any artifact. For example, if creating a study plan, also say "Here's your 5-day revision plan! Click on any task to start learning. Let me know if you want to adjust anything."
-7. TONE: Be warm, friendly, encouraging. Use occasional emojis. Ask "Ready for the next one?" or "Want to try a harder version?" Feel like a supportive friend, not an exam proctor.
+5. ALWAYS CHAT: Never respond with ONLY a tool call. Always include conversational text alongside any artifact. For example, if creating a study plan, also say "Here's your 5-day revision plan! Click on any task to start learning. Let me know if you want to adjust anything."
+6. TONE: Be warm, friendly, encouraging. Use occasional emojis. Ask "Ready for the next one?" or "Want to try a harder version?" Feel like a supportive friend, not an exam proctor.
 
 QUESTION DIVERSITY (for all practice artifacts):
 - Include a MIX of question types: conceptual MCQs, numerical MCQs, assertion-reason, and multi-step/application questions.

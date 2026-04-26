@@ -6,10 +6,9 @@ import MathMarkdown from "./MathMarkdown";
 import InlinePracticeCard from "./InlinePracticeCard";
 import PracticeSummaryCard from "./PracticeSummaryCard";
 import ClarificationCard from "./ClarificationCard";
-import InlineResourceCard from "./InlineResourceCard";
 import { splitStoredContent } from "./chatHelpers";
-import { isInlinePracticeArtifact, isInlineResourceArtifact, normalizeResourceRecommendation } from "./artifactNormalizers";
-import type { StudentMessage, StudentArtifact, StudentRoutine, ClarificationContent, ResourceRecommendationContent } from "./types";
+import { isInlinePracticeArtifact } from "./artifactNormalizers";
+import type { StudentMessage, StudentArtifact, StudentRoutine, ClarificationContent } from "./types";
 import type { PracticeState } from "./useInlinePractice";
 
 interface Props {
@@ -77,23 +76,6 @@ const ChatMessageList: React.FC<Props> = ({
     return map;
   }, [artifacts]);
 
-  const resourceArtifactMap = useMemo(() => {
-    const map = new Map<string, StudentArtifact[]>();
-    const resourceArts = artifacts.filter(isInlineResourceArtifact);
-    for (const a of resourceArts) {
-      const candidates = messages.filter((m) => m.role === "assistant" && m.thread_id === a.thread_id);
-      const nearest = candidates.reduce<StudentMessage | null>((best, msg) => {
-        const diff = Math.abs(new Date(a.created_at).getTime() - new Date(msg.created_at).getTime());
-        if (diff > 120000) return best;
-        if (!best) return msg;
-        const bestDiff = Math.abs(new Date(a.created_at).getTime() - new Date(best.created_at).getTime());
-        return diff < bestDiff ? msg : best;
-      }, null);
-      if (nearest) map.set(nearest.id, [...(map.get(nearest.id) ?? []), a]);
-    }
-    return map;
-  }, [artifacts, messages]);
-
   const findPracticeArtifact = (msg: StudentMessage): StudentArtifact | null => {
     if (msg.role !== "assistant") return null;
     return practiceArtifactMap.get(msg.id) ?? null;
@@ -151,7 +133,6 @@ const ChatMessageList: React.FC<Props> = ({
         const isUser = msg.role === "user";
         const practiceArtifact = findPracticeArtifact(msg);
         const clarificationArtifact = findClarificationArtifact(msg);
-        const resourceArtifacts = msg.role === "assistant" ? resourceArtifactMap.get(msg.id) ?? [] : [];
 
         return (
           <React.Fragment key={msg.id}>
@@ -231,19 +212,6 @@ const ChatMessageList: React.FC<Props> = ({
                     }
                     disabled={(clarificationArtifact.content as ClarificationContent)?.answered}
                   />
-                </div>
-              </div>
-            )}
-
-            {resourceArtifacts.length > 0 && (
-              <div className="flex justify-start">
-                <div className="w-full max-w-[92%] md:max-w-[82%] space-y-2">
-                  {resourceArtifacts.flatMap((artifact) => {
-                    const content = normalizeResourceRecommendation(artifact.content) as ResourceRecommendationContent;
-                    return (content.resources ?? []).map((resource) => (
-                      <InlineResourceCard key={`${artifact.id}-${resource.id}`} resource={resource} reason={content.reason} />
-                    ));
-                  })}
                 </div>
               </div>
             )}

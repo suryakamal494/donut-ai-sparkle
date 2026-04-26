@@ -48,36 +48,12 @@ export type StudentArtifactType =
   | "worked_solution"
   | "formula_sheet"
   | "practice_session"
-  | "resource_recommendation"
   | "study_plan"
   | "target_tracker"
   | "mastery_map"
   | "progress_report"
   | "test_debrief"
   | "clarifications";
-
-export type LearningResourceType = "ppt" | "video" | "pdf" | "animation" | "image" | "iframe";
-
-export interface LearningResource {
-  id: string;
-  title: string;
-  type: LearningResourceType;
-  subject?: string;
-  chapter?: string;
-  topic?: string;
-  description?: string;
-  url?: string;
-  embedUrl?: string;
-  thumbnailUrl?: string;
-  source?: string;
-}
-
-export interface ResourceRecommendationContent {
-  presentation?: "inline" | "artifact";
-  show_in_artifact_pane?: boolean;
-  reason?: string;
-  resources: LearningResource[];
-}
 
 // ---------- DB Row types ----------
 
@@ -234,7 +210,6 @@ export const TOOL_TO_ARTIFACT_TYPE: Record<string, StudentArtifactType> = {
   create_target_tracker: "target_tracker",
   create_worked_solution: "worked_solution",
   create_formula_sheet: "formula_sheet",
-  recommend_learning_resource: "resource_recommendation",
   create_mastery_map: "mastery_map",
   ask_clarifications: "clarifications",
   create_test_debrief: "test_debrief",

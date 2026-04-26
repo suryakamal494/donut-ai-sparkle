@@ -1,234 +1,75 @@
-What I understood
+Here is what I understood and the best implementation path.
 
-You want Student Copilot to stop treating every learning action as only text/charts/library artifacts. Sometimes the agent should recommend an existing platform resource, especially a PowerPoint presentation, directly inside the chat.
+Current issue:
+- The Library is just a list of generated study materials.
+- The exam target exists as a `target_tracker` library item, but it is not pinned globally.
+- Study plans are separate `study_plan` items, so the target, weekly plan, and continuation thread are not strongly connected in the UI.
+- Active sessions are inflated. I checked the backend: there are currently more active threads than the screenshot shows, including empty “New chat” rows, old duplicate roadmap threads, and older mock/demo threads. That is why the sidebar looks noisy.
 
-Expected student experience:
-
-1. The agent says something like: “Before we solve this, read this short PowerPoint.”
-2. Below that message, the chat shows a compact resource card, for example:
-   - “Electromagnetic Induction - Complete Lecture”
-   - Type: PowerPoint
-   - Subject/chapter/topic metadata
-   - CTA: “Open slides”
-3. When the student clicks it, a popup opens inside the Copilot screen, not a new browser tab.
-4. The popup displays the actual resource in a smaller, scrollable/previewable format:
-   - PPT/Google Slides: embedded slide viewer if available
-   - Video: embedded video player
-   - Animation/iframe: embedded interactive frame
-   - PDF/document: embedded document viewer
-5. The student can close the popup and continue the same chat thread.
-6. Later this same pattern can be used inside study-plan tasks, doubt explanations, target preparation, and revision flows.
-
-How this fits the current system
-
-Right now Student Copilot has three connected concepts:
+Recommended model:
 
 ```text
-Quick tools / selected routine
-        ↓
-Current thread + routing tool
-        ↓
-Chat messages + generated student_copilot_artifacts
-        ↓
-Right-side Library filters those artifacts by routine/thread/subject
+Pinned Target
+  -> linked target thread
+  -> linked target_tracker library item
+  -> linked weekly study_plan library item(s)
+  -> pending task opens same continuation thread
 ```
 
-The current “Library” is mostly for generated learning outputs: study plans, target trackers, explanations, formula sheets, progress reports, etc.
+So the target becomes the permanent “exam home”, and weekly plans become children of that target instead of unrelated charts.
 
-The new requirement is slightly different: a PowerPoint/video/animation recommendation should be a “resource attachment” in the chat. It should not always become a large generated library artifact. It should behave like an inline content recommendation that can open an in-chat preview popup.
+Plan:
 
-Implementation plan
+1. Add a pinned target card at the top of Library
+- Show the highest-priority active `target_tracker` item above the normal Library list.
+- Use school-friendly language like:
+  - “Pinned Target”
+  - “JEE Main — Target 250”
+  - “180 → 250”
+- Keep it visible even when the Library is filtered by routine, as long as it matches the selected subject or is an all-subject exam target.
+- Match the compact visual direction from your reference screenshot.
 
-1. Add a reusable inline resource model
+2. Make clicking the pinned target resume its continuation thread
+- If the target tracker has `thread_id`, clicking the pinned card will switch the active chat to that thread and load its messages.
+- This avoids creating a new chat.
+- If the target’s thread is missing, the fallback will be to open the target tracker detail in Library, not create a duplicate.
 
-Create a small typed structure for resources recommended inside chat:
+3. Link target trackers and weekly plans through metadata
+- Use the existing thread and artifact structure first, without overbuilding a new workflow.
+- For targets:
+  - thread tool: `exam`
+  - scope key: `exam:<exam-id>`
+  - artifact type: `target_tracker`
+- For weekly plans generated from that target:
+  - thread tool: `plan`
+  - scope key should include the exam id and week, e.g. `plan:exam:<exam-id>:<week>`
+  - artifact content should include `parent_target_thread_id`, `parent_target_artifact_id`, and `exam_id`.
+- This allows Library to show: target first, then related weekly plans underneath or in normal chronological order.
 
-```text
-LearningResource
-- id
-- title
-- type: ppt | video | pdf | animation | image | iframe
-- subject
-- chapter
-- topic
-- description
-- url
-- embedUrl
-- thumbnailUrl
-- source
-```
+4. When a student starts a pending task, continue the correct thread
+- For a study plan task, if the plan has a parent target thread, send the task into that thread or the plan’s own linked thread depending on intent:
+  - “Start today’s plan/task” continues the plan thread.
+  - Clicking the pinned target continues the target thread.
+- This keeps the student’s journey connected and prevents “New Study roadmap chat” duplicates.
 
-Use the existing platform content data first. The project already has PPT-style resources in mock/library data, including Google Slides embed URLs. So the first implementation can use existing content-library items rather than inventing new data.
+5. Clean up the inflated Active sessions
+- Add a one-time cleanup step for student copilot demo/mock clutter:
+  - archive empty active threads with zero messages and zero library items,
+  - archive duplicate roadmap threads caused by the previous `[object Object]` bug,
+  - archive duplicate “Teach me about: Revise distance...” roadmap threads where they are not the canonical artifact-linked thread,
+  - keep meaningful sessions with real messages/library items.
+- Stop the mock seeder from repeatedly reshaping old seeded rows in a way that keeps demo sessions fresh.
+- Keep only a small, realistic demo set active: target, current weekly plan, one practice session, and one recent doubt.
 
-2. Add a new Student Copilot artifact type for inline resources
+6. UI refinements after cleanup
+- Active should show only genuinely ongoing sessions.
+- Recent/Archived can keep older meaningful history, but no empty generated clutter.
+- Library should show the pinned target first, then the filtered study materials below.
 
-Add a new artifact type, for example:
-
-```text
-resource_recommendation
-```
-
-Its content will contain one or more recommended resources:
-
-```text
-{
-  presentation: "inline",
-  show_in_artifact_pane: false,
-  resources: [LearningResource]
-}
-```
-
-This keeps the right-side Library clean while still allowing chat to show the PPT/video/animation link exactly where the agent mentions it.
-
-3. Build the chat resource card
-
-Add a new component in Student Copilot chat:
-
-```text
-InlineResourceCard
-```
-
-Behavior:
-- Renders under the relevant assistant message, similar to the existing inline practice card.
-- Shows type icon, title, subject/chapter, short description, and an “Open” button.
-- Mobile/tablet first: card width should fit within chat, buttons should be thumb-friendly, and text should not overflow.
-- Supports multiple resources in one message if the agent recommends more than one.
-
-4. Build the in-chat resource preview popup
-
-Add a reusable preview dialog/sheet:
-
-```text
-ResourcePreviewDialog
-```
-
-Preview rules:
-- PPT with `embedUrl`: show an iframe using the existing Google Slides/PowerPoint embed URL.
-- PPT without `embedUrl`: show a fallback card with “Open original”.
-- Video: show embedded video iframe if available.
-- Animation/iframe: show iframe.
-- PDF: show iframe document viewer.
-- Image: show contained image preview.
-
-Responsive behavior:
-- Desktop/tablet: centered modal, large preview area.
-- Mobile: near-fullscreen bottom sheet/dialog so slides are still readable.
-- Keep close button visible at all times.
-
-5. Connect resource cards to assistant messages
-
-Mirror the existing inline practice implementation:
-
-Current pattern:
-```text
-assistant message
-  ↓ nearest matching artifact
-InlinePracticeCard renders below that message
-```
-
-New pattern:
-```text
-assistant message
-  ↓ nearest resource_recommendation artifact
-InlineResourceCard renders below that message
-```
-
-This gives the exact UX you asked for: the agent says “read this PowerPoint,” and the clickable PowerPoint appears inline below that chat message.
-
-6. Teach the agent when to recommend PPTs/resources
-
-Update the Student Copilot backend prompt/tooling so the agent can call a resource recommendation tool when useful.
-
-Add a tool such as:
-
-```text
-recommend_learning_resource
-```
-
-The tool will accept:
-- title
-- reason
-- resources array
-
-Prompt behavior:
-- When explaining a topic where a platform PPT/video/animation would help, recommend one resource inline.
-- For study-plan tasks, the agent can say: “First review these slides, then come back and I’ll quiz you.”
-- For target prep, the agent can recommend the most relevant PPT/video for the current weak chapter.
-- Do not overuse resources; only recommend when it supports the immediate learning step.
-
-7. Use existing content library resources first
-
-Initial implementation will map from existing mock/library content already present in the codebase:
-- PPT/Google Slides items from content data
-- Videos from content library
-- Animations/iframe content where available
-
-This avoids creating a new backend table immediately. Later, when real uploaded content needs to be fully persisted and searched from Lovable Cloud, we can add a proper `learning_resources` table and assignment rules.
-
-8. Keep Library filtering behavior separate
-
-For this first fix:
-- If no quick tool/routine is selected, the right Library should continue showing all meaningful library items by timeline.
-- Inline resource recommendations should not clutter the Library unless we intentionally decide to save them there.
-- Subject filter should still apply globally where relevant.
-
-This separation keeps the UI understandable:
-
-```text
-Chat inline card = “Open this resource now”
-Right Library = “Saved/generated learning outputs and important items”
-```
-
-Technical implementation details
-
-Files likely to change:
-
-```text
-src/components/student/copilot/types.ts
-- Add resource_recommendation type and resource content interfaces.
-
-src/components/student/copilot/ChatMessageList.tsx
-- Detect resource_recommendation artifacts near assistant messages.
-- Render InlineResourceCard below the message.
-- Manage preview dialog open state.
-
-src/components/student/copilot/InlineResourceCard.tsx
-- New compact card for PPT/video/pdf/animation links.
-
-src/components/student/copilot/ResourcePreviewDialog.tsx
-- New in-chat popup viewer for PPTs/videos/animations/documents.
-
-src/components/student/copilot/artifactNormalizers.ts
-- Normalize resource_recommendation content.
-
-src/components/student/copilot/StudentArtifactPane.tsx
-- Exclude inline resource recommendations from the right Library by default.
-
-supabase/functions/student-copilot-chat/index.ts
-- Add recommend_learning_resource tool.
-- Add system prompt guidance for using platform resources.
-- Store resource recommendations as inline artifacts.
-```
-
-Possible data-source files:
-
-```text
-src/data/mockData.ts
-src/data/contentLibraryData.ts
-src/data/instituteData.ts
-```
-
-Validation plan
-
-After implementation:
-
-1. Build check to ensure TypeScript passes.
-2. Test chat rendering with a seeded/sample resource recommendation artifact.
-3. Verify that clicking a PPT card opens the in-chat popup.
-4. Verify popup is usable on the current viewport and mobile/tablet sizes.
-5. Verify inline resources do not inflate the right-side Library unless explicitly configured.
-6. Verify existing inline practice and clarification cards still work.
-
-Important note
-
-This first implementation focuses on the PowerPoint/resource opening experience inside Student Copilot chat. It will create the architecture so the same component can later support videos, animations, PDFs, and study-plan resource links cleanly.
+Technical changes I will make after approval:
+- Update `StudentArtifactPane.tsx` to render a pinned target card and accept a thread-selection callback.
+- Update `StudentCopilotPage.tsx` to handle “open target thread” without routing through new-chat logic.
+- Add safe helpers to identify the current pinned target and related study plans.
+- Update target/study plan metadata handling where new library items are created.
+- Add a cleanup path for existing bad/empty duplicate student copilot rows.
+- Run build verification and preview-check the student copilot layout.
