@@ -500,13 +500,15 @@ const StudentCopilotPage: React.FC = () => {
         />
       </div>
 
-      {/* Desktop right artifact pane */}
+      {/* Desktop right library pane */}
       {!isMobile && rightVisible && (
         <div className="hidden lg:flex w-[360px] flex-shrink-0 bg-card/40 flex-col">
           <StudentArtifactPane
             artifacts={artifacts}
+            threads={threads}
             thread={currentThread}
             routineKey={currentRoutine?.key}
+            subjectFilter={subjectFilter}
             onClose={toggleRight}
             onStartTask={handleStartTask}
           />

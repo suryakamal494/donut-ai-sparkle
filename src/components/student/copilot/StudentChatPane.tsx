@@ -334,7 +334,8 @@ const CopilotTopBar: React.FC<TopBarProps> = ({ onToggleLeft, onToggleRight, onN
         size="sm"
         onClick={onToggleRight}
         className="h-9 w-9 p-0 flex-shrink-0 hidden lg:inline-flex"
-        aria-label="Toggle artifact panel"
+        aria-label="Toggle library panel"
+        title="Library"
       >
         <PanelRight className="w-4 h-4" />
       </Button>

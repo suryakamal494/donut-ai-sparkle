@@ -236,13 +236,13 @@ const ChatMessageList: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Pending artifact skeleton */}
+      {/* Pending library item skeleton */}
       {pendingArtifact && (
         <div className="flex justify-start">
           <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-donut-coral/30 bg-donut-coral/5 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-donut-coral">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Generating artifact…
+              Saving to library…
             </div>
           </div>
         </div>
