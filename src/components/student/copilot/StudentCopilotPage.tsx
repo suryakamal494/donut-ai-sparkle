@@ -422,6 +422,11 @@ const StudentCopilotPage: React.FC = () => {
     setCurrentThreadId(id);
   }, []);
 
+  const handleOpenThread = useCallback(async (id: string) => {
+    setCurrentThreadId(id);
+    setMessages(await fetchMessages(id));
+  }, []);
+
   const toggleLeft = useCallback(() => {
     if (isMobile) {
       setLeftSheetOpen((v) => !v);
@@ -511,6 +516,7 @@ const StudentCopilotPage: React.FC = () => {
             subjectFilter={subjectFilter}
             onClose={toggleRight}
             onStartTask={handleStartTask}
+            onOpenThread={handleOpenThread}
           />
         </div>
       )}

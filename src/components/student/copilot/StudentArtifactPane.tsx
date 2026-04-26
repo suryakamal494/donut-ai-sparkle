@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ interface Props {
   onToggleTask?: (dayIndex: number, itemIndex: number) => void;
   onPracticeTopic?: (subject: string, topic: string) => void;
   onStartTask?: (artifact: StudentArtifact, taskDescription: string, dayIndex: number, itemIndex: number) => void;
+  onOpenThread?: (threadId: string) => void;
 }
 
 function timeGroup(dateStr: string): string {
@@ -53,6 +54,21 @@ function artifactMatchesSubject(
   return SUBJECTS.some((s) => s === subject) && valueHasSubject(content, subject);
 }
 
+function targetScoreLabel(artifact: StudentArtifact): string {
+  const content = artifact.content as Record<string, any>;
+  const current = content?.current_score;
+  const target = content?.target_score;
+  if (current != null && target != null) return `${current} → ${target}`;
+  return "Target";
+}
+
+function targetTitle(artifact: StudentArtifact): string {
+  const content = artifact.content as Record<string, any>;
+  const exam = content?.exam_name ?? content?.exam ?? artifact.title;
+  const target = content?.target_score;
+  return target != null ? `${exam} — Target ${target}` : exam;
+}
+
 export default function StudentArtifactPane({
   artifacts,
   thread,
@@ -64,6 +80,7 @@ export default function StudentArtifactPane({
   onToggleTask,
   onPracticeTopic,
   onStartTask,
+  onOpenThread,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -90,16 +107,23 @@ export default function StudentArtifactPane({
     return list;
   }, [artifacts, thread, routineKey, subjectFilter, threads]);
 
+  const pinnedTarget = useMemo(() => {
+    return artifacts
+      .filter((a) => a.type === "target_tracker")
+      .filter((a) => artifactMatchesSubject(a, subjectFilter, threads))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+  }, [artifacts, subjectFilter, threads]);
+
   // Group by time
   const grouped = useMemo(() => {
     const groups: Record<string, StudentArtifact[]> = {};
-    for (const a of filtered) {
+    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id)) {
       const g = timeGroup(a.created_at);
       if (!groups[g]) groups[g] = [];
       groups[g].push(a);
     }
     return groups;
-  }, [filtered]);
+  }, [filtered, pinnedTarget]);
 
   const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
 
@@ -151,6 +175,30 @@ export default function StudentArtifactPane({
       </div>
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-4">
+          {pinnedTarget && (
+            <button
+              type="button"
+              onClick={() => pinnedTarget.thread_id ? onOpenThread?.(pinnedTarget.thread_id) : setSelectedId(pinnedTarget.id)}
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-muted/40"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Target className="h-3.5 w-3.5" />
+                  Pinned · Target
+                </div>
+                <span className="text-sm tabular-nums text-muted-foreground">{targetScoreLabel(pinnedTarget)}</span>
+              </div>
+              <p className="mt-2 text-sm font-semibold leading-snug text-foreground">{targetTitle(pinnedTarget)}</p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, Math.round((((pinnedTarget.content as any)?.current_score ?? 0) / ((pinnedTarget.content as any)?.target_score || (pinnedTarget.content as any)?.max_score || 100)) * 100)))}%`,
+                  }}
+                />
+              </div>
+            </button>
+          )}
           {filtered.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm font-medium mb-1">No library items yet</p>

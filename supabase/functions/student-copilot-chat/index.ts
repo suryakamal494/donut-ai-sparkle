@@ -479,6 +479,60 @@ const TOOL_TO_ARTIFACT_TYPE: Record<string, string> = {
   create_progress_report: "progress_report",
 };
 
+function slugify(s: string): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function currentWeekKey(): string {
+  const d = new Date();
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+async function enrichArtifactContent(supabase: any, artifactType: string, content: any, threadId: string) {
+  const next = { ...(content ?? {}) };
+  const { data: thread } = await supabase
+    .from("student_copilot_threads")
+    .select("id, tool, scope_key, scope_meta")
+    .eq("id", threadId)
+    .maybeSingle();
+
+  if (artifactType === "target_tracker") {
+    const examName = next.exam_name ?? next.exam ?? "Exam";
+    next.exam_id = next.exam_id ?? thread?.scope_meta?.exam_id ?? slugify(examName);
+    next.parent_target_thread_id = threadId;
+    return next;
+  }
+
+  if (artifactType === "study_plan") {
+    const examId = next.exam_id ?? thread?.scope_meta?.exam_id ?? (next.exam ? slugify(next.exam) : null);
+    if (examId) next.exam_id = examId;
+    const { data: target } = await supabase
+      .from("student_copilot_artifacts")
+      .select("id, thread_id, content, created_at")
+      .eq("thread_id", threadId)
+      .eq("type", "target_tracker")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (target) {
+      next.parent_target_artifact_id = target.id;
+      next.parent_target_thread_id = target.thread_id;
+      next.exam_id = next.exam_id ?? target.content?.exam_id;
+    }
+    next.plan_window = next.plan_window ?? currentWeekKey();
+  }
+
+  return next;
+}
+
 // ========== Student base system prompt ==========
 
 const STUDENT_BASE_PROMPT = `You are DonutAI — a friendly, expert tutor for Indian school students preparing for board exams (CBSE/State) and competitive exams (JEE/NEET).
@@ -511,6 +565,11 @@ ARTIFACT ROUTING — pick the RIGHT tool:
 - Student wants exam target tracking → create_target_tracker
 - Student wants to see their progress → create_mastery_map or create_progress_report
 - Student completed a test and wants analysis → create_test_debrief
+
+TARGET + PLAN LINKING:
+- Treat an exam target as the student's permanent exam home. Continue the same target thread for follow-up target questions.
+- If a student asks for a weekly plan after setting a target, create the study plan in the same target context and include exam/exam_id whenever known.
+- Weekly plans should support resuming pending tasks, not create unrelated duplicate roadmap sessions.
 
 INTERACTIVE TUTORING RULES:
 1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as an interactive threaded sequence inside chat and must not appear as a separate right-pane artifact card. For these small inline sets, generate mostly option-based questions: conceptual MCQs, numerical MCQs, assertion-reason MCQs, and application MCQs. Do NOT generate only integer/short-answer questions unless the student explicitly asks for integer-only or numerical-only practice.
@@ -738,6 +797,8 @@ REUSE RULES:
               continue;
             }
 
+            const enrichedContent = await enrichArtifactContent(supabase, artifactType, parsed.content ?? {}, thread_id);
+
             // Save artifact to DB
             const { data: art } = await supabase
               .from("student_copilot_artifacts")
@@ -746,7 +807,7 @@ REUSE RULES:
                 thread_id,
                 type: artifactType,
                 title: parsed.title ?? "Untitled",
-                content: parsed.content ?? {},
+                content: enrichedContent,
                 source: "ai",
               })
               .select("id, type, title, content, created_at")
@@ -759,7 +820,7 @@ REUSE RULES:
                 id: art.id,
                 type: artifactType,
                 title: parsed.title ?? "Untitled",
-                content: parsed.content ?? {},
+                content: enrichedContent,
               });
               controller.enqueue(
                 encoder.encode(`\n__ARTIFACT__${marker}__END__\n`)
