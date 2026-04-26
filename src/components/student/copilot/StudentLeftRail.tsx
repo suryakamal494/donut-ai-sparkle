@@ -160,7 +160,7 @@ const StudentLeftRail: React.FC<Props> = ({
         <div className="px-2 py-2 space-y-1.5">
           {filteredThreads.length === 0 && (
             <p className="text-xs text-muted-foreground px-2 py-4 text-center">
-              No conversations yet
+              {subjectFilter ? `No ${subjectFilter} conversations. Tap All to see every thread.` : "No conversations yet"}
             </p>
           )}
 
