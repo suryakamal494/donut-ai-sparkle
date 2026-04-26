@@ -3,11 +3,12 @@ import { X, ChevronLeft, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { StudentArtifact, StudentThread } from "./types";
-import { ROUTINE_ARTIFACT_TYPES, SUBJECTS } from "./types";
+import type { CopilotResource, StudentArtifact, StudentThread } from "./types";
 import { isInlinePracticeArtifact } from "./artifactNormalizers";
 import ArtifactCard from "./artifacts/ArtifactCard";
 import StudentArtifactView from "./artifacts/ArtifactView";
+import CopilotResourceCard from "./CopilotResourceCard";
+import { artifactMatchesSubject, timeGroup } from "./libraryUtils";
 
 interface Props {
   artifacts: StudentArtifact[];
@@ -15,43 +16,15 @@ interface Props {
   threads?: StudentThread[];
   routineKey?: string;
   subjectFilter?: string | null;
+  resources?: CopilotResource[];
   onClose?: () => void;
+  onViewAll?: () => void;
+  onOpenResource?: (resource: CopilotResource) => void;
   completedTasks?: Set<string>;
   onToggleTask?: (dayIndex: number, itemIndex: number) => void;
   onPracticeTopic?: (subject: string, topic: string) => void;
   onStartTask?: (artifact: StudentArtifact, taskDescription: string, dayIndex: number, itemIndex: number) => void;
   onOpenThread?: (threadId: string) => void;
-}
-
-function timeGroup(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = diff / 86400000;
-  if (days < 1) return "Today";
-  if (days < 7) return "This Week";
-  return "Older";
-}
-
-function valueHasSubject(value: unknown, subject: string): boolean {
-  if (!value) return false;
-  if (typeof value === "string") return value.toLowerCase().includes(subject.toLowerCase());
-  if (Array.isArray(value)) return value.some((item) => valueHasSubject(item, subject));
-  if (typeof value === "object") return Object.values(value as Record<string, unknown>).some((item) => valueHasSubject(item, subject));
-  return false;
-}
-
-function artifactMatchesSubject(
-  artifact: StudentArtifact,
-  subject: string | null | undefined,
-  threads: StudentThread[]
-): boolean {
-  if (!subject) return true;
-  const linkedThread = artifact.thread_id ? threads.find((t) => t.id === artifact.thread_id) : null;
-  if (linkedThread?.subject === subject) return true;
-  const content = artifact.content as Record<string, unknown> | null;
-  if (content?.subject === subject) return true;
-  if (valueHasSubject(content?.subjects, subject)) return true;
-  if (valueHasSubject(artifact.title, subject)) return true;
-  return SUBJECTS.some((s) => s === subject) && valueHasSubject(content, subject);
 }
 
 function targetScoreLabel(artifact: StudentArtifact): string {
