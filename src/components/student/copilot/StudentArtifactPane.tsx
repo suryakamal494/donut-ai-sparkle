@@ -107,25 +107,25 @@ export default function StudentArtifactPane({
     return list;
   }, [artifacts, thread, routineKey, subjectFilter, threads]);
 
-  // Group by time
-  const grouped = useMemo(() => {
-    const groups: Record<string, StudentArtifact[]> = {};
-    for (const a of filtered) {
-      const g = timeGroup(a.created_at);
-      if (!groups[g]) groups[g] = [];
-      groups[g].push(a);
-    }
-    return groups;
-  }, [filtered]);
-
-  const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
-
   const pinnedTarget = useMemo(() => {
     return artifacts
       .filter((a) => a.type === "target_tracker")
       .filter((a) => artifactMatchesSubject(a, subjectFilter, threads))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
   }, [artifacts, subjectFilter, threads]);
+
+  // Group by time
+  const grouped = useMemo(() => {
+    const groups: Record<string, StudentArtifact[]> = {};
+    for (const a of filtered.filter((item) => item.id !== pinnedTarget?.id)) {
+      const g = timeGroup(a.created_at);
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(a);
+    }
+    return groups;
+  }, [filtered, pinnedTarget]);
+
+  const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
 
   // Detail view
   if (selectedArtifact) {
