@@ -68,35 +68,30 @@ export default function StudentArtifactPane({
 
   // Filter artifacts by routine type and thread
   const filtered = useMemo(() => {
-    let list = artifacts;
+    let list = thread ? artifacts.filter((a) => a.thread_id === thread.id) : [];
     // Exclude chat-only artifacts from the pane
     list = list.filter((a) => a.type !== "clarifications" && !isInlinePracticeArtifact(a));
     list = list.filter((a) => artifactMatchesSubject(a, subjectFilter, threads));
-    return [...list].sort((a, b) => {
-      const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
-      const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
-      if (aCurrent !== bCurrent) return bCurrent - aCurrent;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+    return [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [artifacts, thread, subjectFilter, threads]);
 
+  const threadArtifactIds = useMemo(() => new Set(filtered.map((artifact) => artifact.id)), [filtered]);
+
   const filteredResources = useMemo(() => {
+    if (!thread) return [];
     return resources
+      .filter((resource) => resource.thread_id === thread.id || (resource.artifact_id ? threadArtifactIds.has(resource.artifact_id) : false))
       .filter((resource) => !subjectFilter || resource.subject === subjectFilter)
-      .sort((a, b) => {
-        const aCurrent = thread && a.thread_id === thread.id ? 1 : 0;
-        const bCurrent = thread && b.thread_id === thread.id ? 1 : 0;
-        if (aCurrent !== bCurrent) return bCurrent - aCurrent;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-  }, [resources, subjectFilter, thread]);
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [resources, subjectFilter, thread, threadArtifactIds]);
 
   const pinnedTarget = useMemo(() => {
+    if (!thread) return null;
     return artifacts
-      .filter((a) => a.type === "target_tracker")
+      .filter((a) => a.type === "target_tracker" && a.thread_id === thread.id)
       .filter((a) => artifactMatchesSubject(a, subjectFilter, threads))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
-  }, [artifacts, subjectFilter, threads]);
+  }, [artifacts, subjectFilter, thread, threads]);
 
   // Group by time
   const grouped = useMemo(() => {
@@ -202,8 +197,8 @@ export default function StudentArtifactPane({
           )}
           {visibleLibraryCount === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm font-medium mb-1">No library items yet</p>
-              <p className="text-xs">Saved study materials will appear here</p>
+              <p className="text-sm font-medium mb-1">No thread items yet</p>
+              <p className="text-xs">Resources created in this chat will appear here</p>
             </div>
           )}
           {thread && groupedItemCount > 0 && (
