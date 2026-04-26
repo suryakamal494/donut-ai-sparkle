@@ -125,6 +125,12 @@ export default function StudentArtifactPane({
     return groups;
   }, [filtered, pinnedTarget]);
 
+  const groupedItemCount = useMemo(
+    () => Object.values(grouped).reduce((total, items) => total + items.length, 0),
+    [grouped]
+  );
+  const visibleLibraryCount = groupedItemCount + (pinnedTarget ? 1 : 0);
+
   const selectedArtifact = selectedId ? artifacts.find((a) => a.id === selectedId) ?? null : null;
 
   // Detail view
@@ -164,7 +170,7 @@ export default function StudentArtifactPane({
         <p className="text-sm font-semibold text-foreground">Library</p>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-            {filtered.length}
+            {visibleLibraryCount}
           </span>
           {onClose && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
@@ -199,7 +205,7 @@ export default function StudentArtifactPane({
               </div>
             </button>
           )}
-          {filtered.length === 0 && (
+          {visibleLibraryCount === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm font-medium mb-1">No library items yet</p>
               <p className="text-xs">Saved study materials will appear here</p>
