@@ -17,6 +17,7 @@ interface Props {
   routineKey?: string;
   subjectFilter?: string | null;
   resources?: CopilotResource[];
+  selectedArtifactId?: string | null;
   onClose?: () => void;
   onViewAll?: () => void;
   onOpenResource?: (resource: CopilotResource) => void;
@@ -49,6 +50,7 @@ export default function StudentArtifactPane({
   routineKey,
   subjectFilter,
   resources = [],
+  selectedArtifactId,
   onClose,
   onViewAll,
   onOpenResource,
@@ -59,6 +61,10 @@ export default function StudentArtifactPane({
   onOpenThread,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (selectedArtifactId) setSelectedId(selectedArtifactId);
+  }, [selectedArtifactId]);
 
   // Filter artifacts by routine type and thread
   const filtered = useMemo(() => {
