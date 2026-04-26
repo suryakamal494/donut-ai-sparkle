@@ -535,6 +535,7 @@ const StudentCopilotPage: React.FC = () => {
           <StudentArtifactPane
             artifacts={artifacts}
             resources={copilotResources}
+            selectedArtifactId={libraryArtifactId}
             threads={threads}
             thread={currentThread}
             routineKey={currentRoutine?.key}
