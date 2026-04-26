@@ -13,6 +13,57 @@ import {
 const SEED_KEY = "copilot_mock_seeded_v3";
 const SEED_KEY_V4 = "copilot_mock_seeded_v4";
 const SEED_KEY_V5 = "copilot_mock_seeded_v5";
+const CLEANUP_KEY_V6 = "copilot_mock_cleanup_v6";
+
+async function cleanupCopilotDemoClutter(): Promise<void> {
+  if (localStorage.getItem(CLEANUP_KEY_V6) === "true") return;
+
+  const { data: activeThreads } = await supabase
+    .from("student_copilot_threads" as any)
+    .select("id,title,routine_key,tool,status")
+    .eq("student_id", "student-001")
+    .eq("status", "active");
+
+  const threads = (activeThreads ?? []) as any[];
+  const ids = threads.map((t) => t.id).filter(Boolean);
+  if (ids.length === 0) {
+    localStorage.setItem(CLEANUP_KEY_V6, "true");
+    return;
+  }
+
+  const [{ data: msgs }, { data: arts }] = await Promise.all([
+    supabase.from("student_copilot_messages" as any).select("thread_id").in("thread_id", ids),
+    supabase.from("student_copilot_artifacts" as any).select("thread_id").in("thread_id", ids),
+  ]);
+
+  const msgCount = new Map<string, number>();
+  for (const m of (msgs ?? []) as any[]) msgCount.set(m.thread_id, (msgCount.get(m.thread_id) ?? 0) + 1);
+  const artCount = new Map<string, number>();
+  for (const a of (arts ?? []) as any[]) artCount.set(a.thread_id, (artCount.get(a.thread_id) ?? 0) + 1);
+
+  const archiveIds = threads
+    .filter((t) => {
+      const title = String(t.title ?? "");
+      const empty = (msgCount.get(t.id) ?? 0) === 0 && (artCount.get(t.id) ?? 0) === 0;
+      const brokenRoadmap = t.routine_key === "s_roadmap" && !t.tool && (
+        title.includes("[object Object]") ||
+        title.startsWith("New Study roadmap chat") ||
+        title.startsWith("Teach me about: Revise distance")
+      );
+      const emptyNewChat = empty && /^New (Chat|Exam target|Study roadmap|Practice)/i.test(title);
+      return emptyNewChat || brokenRoadmap;
+    })
+    .map((t) => t.id);
+
+  if (archiveIds.length > 0) {
+    await supabase
+      .from("student_copilot_threads" as any)
+      .update({ status: "archived", archived_at: new Date().toISOString() } as any)
+      .in("id", archiveIds);
+  }
+
+  localStorage.setItem(CLEANUP_KEY_V6, "true");
+}
 
 /** Throws on DB error so the caller can abort seeding */
 async function insertOrSkip(
@@ -29,6 +80,8 @@ async function insertOrSkip(
 }
 
 export async function seedCopilotDataIfNeeded(): Promise<void> {
+  await cleanupCopilotDemoClutter();
+
   // Clear stale v1/v2 keys so we re-seed with fixed UUIDs
   localStorage.removeItem("copilot_mock_seeded_v1");
   localStorage.removeItem("copilot_mock_seeded_v2");
