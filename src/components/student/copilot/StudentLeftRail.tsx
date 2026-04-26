@@ -85,7 +85,8 @@ const StudentLeftRail: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    if (expandedBucket && grouped[expandedBucket].length > 0) return;
+    if (expandedBucket === null) return;
+    if (grouped[expandedBucket].length > 0) return;
     if (grouped.active.length > 0) {
       setExpandedBucket("active");
       return;
@@ -122,13 +123,13 @@ const StudentLeftRail: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* Subject filter chips — single-row scroll to save vertical space. */}
+      {/* Subject filter chips — wrapped so students can see every subject without horizontal scrolling. */}
       <div className="px-3 py-2 border-t">
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => onSubjectFilter(null)}
             className={cn(
-              "shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+              "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
               !subjectFilter
                 ? "bg-foreground text-background"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -141,7 +142,7 @@ const StudentLeftRail: React.FC<Props> = ({
               key={s}
               onClick={() => onSubjectFilter(subjectFilter === s ? null : s)}
               className={cn(
-                "shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                 subjectFilter === s
                   ? "bg-foreground text-background"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -273,6 +274,7 @@ const LifecycleSection: React.FC<LifecycleSectionProps> = ({
     >
       <button
         onClick={onToggle}
+        aria-expanded={isOpen}
         className={cn(
           "flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors",
           isOpen ? "bg-muted/70" : "bg-muted/30 hover:bg-muted/50",
