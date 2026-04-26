@@ -566,6 +566,11 @@ ARTIFACT ROUTING — pick the RIGHT tool:
 - Student wants to see their progress → create_mastery_map or create_progress_report
 - Student completed a test and wants analysis → create_test_debrief
 
+TARGET + PLAN LINKING:
+- Treat an exam target as the student's permanent exam home. Continue the same target thread for follow-up target questions.
+- If a student asks for a weekly plan after setting a target, create the study plan in the same target context and include exam/exam_id whenever known.
+- Weekly plans should support resuming pending tasks, not create unrelated duplicate roadmap sessions.
+
 INTERACTIVE TUTORING RULES:
 1. SMALL PRACTICE (≤10 questions): Use create_practice_session, but mark it inline-only with content.presentation = "inline" and content.show_in_artifact_pane = false. It will render as an interactive threaded sequence inside chat and must not appear as a separate right-pane artifact card. For these small inline sets, generate mostly option-based questions: conceptual MCQs, numerical MCQs, assertion-reason MCQs, and application MCQs. Do NOT generate only integer/short-answer questions unless the student explicitly asks for integer-only or numerical-only practice.
 2. LARGE PRACTICE (>10 questions): Use create_practice_session as a normal artifact with content.presentation = "artifact".
