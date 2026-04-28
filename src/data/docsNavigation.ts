@@ -201,6 +201,7 @@ export const docsNavigation: DocSection[] = [
           { title: "Content Tests", path: "06-testing-scenarios/inter-login-tests/content-tests" },
           { title: "Exam Tests", path: "06-testing-scenarios/inter-login-tests/exam-tests" },
           { title: "Timetable Tests", path: "06-testing-scenarios/inter-login-tests/timetable-tests" },
+          { title: "Timetable Institute QA", path: "06-testing-scenarios/inter-login-tests/timetable-institute-qa" },
           { title: "Curriculum Tests", path: "06-testing-scenarios/inter-login-tests/curriculum-tests" },
           { title: "Tier Management Tests", path: "06-testing-scenarios/inter-login-tests/tier-institute-tests" },
           { title: "Question Bank Tests", path: "06-testing-scenarios/inter-login-tests/question-bank-tests" },
