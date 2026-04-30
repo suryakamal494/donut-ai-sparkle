@@ -1,89 +1,94 @@
-## Focused Plan — Rewrite ONLY `timetable-workspace-qa.md` (revised)
+## Goal
 
-Single file, ~60 scenarios across sections A–J. Other QA docs untouched.
+Rewrite `docs/06-testing-scenarios/inter-login-tests/timetable-upload-qa.md` so a first-time tester can stress-test the Upload feature end-to-end: real-world image samples, OCR/extraction edge cases, batch/teacher/subject validation, and most importantly **partial-week embed + conflict management** against an already-populated timetable.
 
----
-
-## The new shape every scenario will follow
-
-```
-**[ID] — Self-Explanatory Title (8–14 words, plain English)**
-
-*What this is:* One short sentence framing the situation in plain words.
-
-*What to try:* 2–3 sentences describing the situation conceptually,
-hinting at variations (different teachers, both modes, drag vs dialog,
-refresh, after edits in master data) so the tester explores instead of
-following one fixed path.
-
-*Expected:* One clear sentence on what a passing test looks like.
-```
-
-**Three blocks only — `What this is`, `What to try`, `Expected`.** No "Background", no "Why it matters". Same shape applies to every section including Conflicts (C).
+Same 3-block scenario format as Workspace QA: **Self-Explanatory Title** → *What this is* / *What to try* / *Expected*. No "Background" or "Why it matters".
 
 ---
 
-## What stays vs what changes
+## Ground truth from the codebase (drives realistic scenarios)
 
-**Stays unchanged**
-- Filename and frontend route
-- All scenario IDs (`TT-WORKSPACE-A1` … `TT-WORKSPACE-J5`)
-- Section letters and themes (A. Teacher Mode … J. Export & Print)
-- "Before You Begin", "Golden Rule", "Critical Bugs", "Suggested Execution Order", "Related Documentation"
-- No new scenarios added, none removed
+Verified against `TimetableUpload.tsx`, `useTimetableUpload.ts`, `ParsedTimetableValidator.tsx`:
 
-**Changes**
-- Every scenario title rewritten to be self-explanatory in plain English
-- Every 1-line description expanded into the 3-block structure above
+- **File picker accepts `image/*` only** (JPG, PNG, screenshots). The UI hint says "PDF photos" but PDF and Excel files are blocked by the input. Scenarios must cover this gap.
+- **Batch must be selected before upload** is enabled.
+- **No week/date picker** — embed always targets the current week of the chosen batch.
+- **Validation runs after parse**, with these categories: teacher-not-found, teacher-not-assigned-to-batch, subject-not-in-batch, low-confidence (<0.8), duplicate slot inside parsed set.
+- **Embed conflict check** only compares parsed entries against existing entries in the **same batch / same day / same period**. Teacher clashes across other batches are NOT pre-checked at embed time (they appear later in Workspace conflict panel).
+- **Resolution choices**: Cancel, Skip Conflicts (embed only non-overlapping), Replace All (overwrite).
+- **Blocking errors disable Embed**; warnings (low confidence, duplicates) do not.
 
----
-
-## Title rewrite samples
-
-| ID | Old | New |
-|---|---|---|
-| A1 | Teacher Mode Shows Allowed Batches Only | Teacher Mode Should Only Offer Batches That Teacher Is Officially Assigned To |
-| A2 | Teacher With One Allowed Batch Drag-Drop | Dragging A Single-Batch Teacher Should Skip The Batch Picker |
-| A7 | Teacher Subject Auto-Mapping | Subject Should Auto-Fill From The Teacher–Batch Relationship, Not Be Free Choice |
-| C1 | Teacher Clash | Same Teacher Cannot Be In Two Classrooms At The Same Time |
-| C2 | Batch Clash | One Batch Cannot Have Two Different Classes Running Simultaneously |
-| C3 | Teacher Overload | Teacher Should Not Exceed Their Weekly Period Limit |
-| C4 | Conflict Count Accuracy | Conflict Badge Number Must Match The Real Problems In The Grid |
-| E5 | Copy With Holiday Skip Enabled | Copying Into A Week With A Holiday Should Skip Holiday Dates |
-| F3 | Publish With Conflicts | Publishing A Timetable That Still Has Conflicts Should Be Blocked Or Confirmed |
-| I1 | Past Week Read-Only | Past Weeks Should Be Read-Only To Protect Historical Records |
+These facts surface real bugs testers should hunt — not abstract scenarios.
 
 ---
 
-## Description rewrite samples
+## Document structure
 
-### Regular scenario (TT-WORKSPACE-A2)
+1. **Header & "Before You Begin"** — reframed to require testers to gather **real-world timetable samples** from the internet (school websites, coaching institutes, screenshots from WhatsApp, handwritten paper photos) and to **manually create a partially-filled batch timetable** before testing embed conflicts.
 
-> *What this is:* When a teacher only teaches one batch in the whole institute, dragging them onto an empty slot should not bother the admin with a "pick a batch" popup — the system already knows where they belong.
->
-> *What to try:* Find or create a teacher mapped to exactly one batch and one subject. Drag them into different empty slots across multiple days. Try with another such single-mapping teacher, and try again after editing that teacher's subject mapping in master data to confirm the mapping stays in sync.
->
-> *Expected:* The slot fills directly with the correct teacher, batch, and auto-mapped subject. No batch picker appears.
+2. **What "Good" Upload Means** — short principle box: extract → validate → resolve conflicts → embed without destroying existing data.
 
-### Conflict scenario (TT-WORKSPACE-C1)
+3. **The 7 Failure Modes Testers Must Hunt** — quick-reference list (file format rejection, OCR garbage on handwritten, partial-week overwrite, silent teacher mismatch, cross-batch teacher clash missed, week-context loss, replace-all data loss).
 
-> *What this is:* Forcing the same teacher into two parallel slots at the same day and period and watching whether the conflict engine catches it. A teacher cannot physically be in two classrooms at once, so the platform must flag this every time.
->
-> *What to try:* Assign the teacher to Class 10-A Monday P3, then try to also assign them to Class 10-B Monday P3. Reproduce the same situation from Teacher Mode and from Batch Mode, via drag-drop and via the assignment dialog. Also try producing the clash by Copy Week into a slot where they're already booked.
->
-> *Expected:* Either the second assignment is blocked outright, or it is allowed but the conflict panel immediately shows a clear "teacher clash" entry naming both batches, the teacher, and the period.
+4. **Test Scenarios** organised in sections:
+
+   - **A. File Format & Input Edge Cases** (~9 scenarios)
+     PDF rejection, Excel rejection, multi-page PDF expectation, very large image (>10MB), tiny/blurry image, screenshot of digital timetable, photo with glare/shadow, rotated/skewed photo, handwritten paper photo.
+
+   - **B. Real-World Sample Sourcing** (~5 scenarios)
+     Each scenario instructs the tester to find a specific timetable style online or create one, upload it, and report what extraction did. Styles: CBSE school grid, coaching-institute weekly grid, college timetable with merged cells, color-coded teacher chart, handwritten chalkboard photo.
+
+   - **C. OCR / Extraction Quality** (~7 scenarios)
+     Low-confidence flagging, name-variation matching ("Mr. Sharma" vs "Priya Sharma"), subject abbreviation ("Maths" vs "Mathematics"), missing periods, extra parsed periods that don't exist, teacher name typos that almost match, two teachers with similar names.
+
+   - **D. Validation Errors & Action Links** (~6 scenarios)
+     Teacher not in institute, teacher in institute but not in batch, teacher in batch but wrong subject mapping, subject not in batch curriculum, "Add Teacher" / "Manage Teachers" deep links preserve upload context, fixing one error re-runs validation.
+
+   - **E. Partial-Week Embed Into Existing Data** (~8 scenarios — most critical)
+     Each scenario starts by telling the tester to **pre-populate the target batch's week to ~50%** in Workspace, then upload a parsed set that fills different/overlapping slots. Covers: embed into empty week, embed into 50% filled week with no overlap, embed with partial overlap (Skip Conflicts), embed with partial overlap (Replace All), embed where parsed set has fewer entries than existing, cancel mid-conflict-dialog leaves nothing changed, embed preserves non-overlapping existing entries, undo after embed in Workspace.
+
+   - **F. Conflict Detection Coverage** (~7 scenarios)
+     Tester is asked to deliberately construct conflicts before upload: same teacher already teaching another batch at that slot, teacher overload after embed, batch already has a holiday on that day, slot falls on non-working day, parsed entry hits an exam-block slot, parsed slot exceeds period count for the day, two parsed entries hitting the same slot.
+
+   - **G. Week & Date Context** (~4 scenarios)
+     Document the current limitation (always embeds to current week), test changing batch after upload re-validates, switching batch mid-flow clears parsed state, embed appears in correct week of Workspace immediately.
+
+   - **H. Post-Embed Verification** (~5 scenarios)
+     After embed, open Workspace and verify: entries appear in correct slots, conflict panel re-evaluates with new entries, teacher load counters update, weekly/monthly views render embedded entries, print/export includes embedded entries.
+
+5. **Critical Bugs QA Must Flag Immediately** — refreshed list of ~10 real bugs (silent overwrite, replace-all without confirmation snapshot, teacher fuzzy-match accepting wrong teacher, embed succeeds despite blocking error, batch change leaves stale parsed state, conflict dialog cancel still mutates Workspace, handwritten garbage parsed silently as valid, etc.).
+
+6. **Suggested Execution Order** — file format → real samples → OCR quality → validation → partial-week embed → conflict coverage → post-embed verification.
+
+7. **Related Documentation** — keep existing links.
 
 ---
 
-## Execution
+## Style rules (same as Workspace QA)
 
-- Single file edit: `docs/06-testing-scenarios/inter-login-tests/timetable-workspace-qa.md`
-- No code changes, no navigation changes, no new files
-- Markdown italics render cleanly in the existing `DocsViewer`
-- File grows from ~360 lines to roughly ~600 lines
+- Self-explanatory titles: e.g. "Uploading A PDF Should Be Rejected At The File Picker, Not Silently Accepted" instead of "PDF Upload".
+- Every scenario uses the 3-block format. No tables of expected/actual.
+- *What to try* always tells the tester **what to set up first** (which batch, what existing entries, which sample image to source) before exercising the feature.
+- IDs follow `TT-UPLOAD-A1`, `TT-UPLOAD-B1`, etc., matching the existing convention.
+- Scope strictly to the Upload page — Workspace conflict-panel deep behaviour stays in Workspace QA, but cross-references are added.
 
 ---
 
-## Approval needed
+## Files touched
 
-Confirm and I will rewrite `timetable-workspace-qa.md` end-to-end in this 3-block format. After you review, we will move to the next document (Setup, Upload, or Substitution — your pick).
+- `docs/06-testing-scenarios/inter-login-tests/timetable-upload-qa.md` — full rewrite (overwrite via `code--exec` heredoc, like Workspace doc).
+- `.lovable/plan.md` — append note that Upload doc is now done; Setup and Substitution remain.
+
+No code, no navigation file changes (Upload doc is already registered).
+
+---
+
+After approval I rewrite the file in one pass, then ask you which doc to tackle next (Setup or Substitution).
+---
+
+## Progress
+
+- ✅ Workspace QA — rewritten (75 scenarios, A–J)
+- ✅ Upload QA — rewritten (51 scenarios, A–H)
+- ⏳ Setup QA — pending
+- ⏳ Substitution & Edge QA — pending
