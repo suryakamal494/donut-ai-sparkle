@@ -84,3 +84,11 @@ No code, no navigation file changes (Upload doc is already registered).
 ---
 
 After approval I rewrite the file in one pass, then ask you which doc to tackle next (Setup or Substitution).
+---
+
+## Progress
+
+- ✅ Workspace QA — rewritten (75 scenarios, A–J)
+- ✅ Upload QA — rewritten (51 scenarios, A–H)
+- ⏳ Setup QA — pending
+- ⏳ Substitution & Edge QA — pending
