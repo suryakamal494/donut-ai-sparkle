@@ -1,132 +1,149 @@
-# Teacher Reports QA — Three Test Cycle Documents
+# Audit of the Three Teacher Reports QA Documents
 
-## Progress
-- [x] Phase 1 — Chapters QA (`teacher-reports-chapters-qa.md`, ~45 scenarios across A–H, with data-seeding intro and highest-risk-bugs callouts)
-- [x] Phase 2 — Exams QA (`teacher-reports-exams-qa.md`, ~48 scenarios across A–H, subject-scoping + AI prefill emphasis)
-- [x] Phase 3 — Students QA (`teacher-reports-students-qa.md`, ~46 scenarios across A–H, prefill-parity + multi-subject-risk + stale-state emphasis)
+I audited all three docs (Chapters: 641 lines, Exams: 722 lines, Students: 660 lines) against the actual code in `src/components/teacher/reports/`, `src/data/teacher/`, `src/lib/reportColors.ts`, `src/lib/performanceIndex.ts`, and the StudentReport / BatchReport pages. Honest verdict below.
 
 ---
 
-Mirror the format already used in `timetable-substitution-edge-qa.md` and `timetable-upload-qa.md`: intent-led narrative intro, "Before You Begin" data-seeding section, scenarios with self-explanatory titles + 3 blocks (**What this is** / **What to try** / **Expected**). No `TR-` prefix — just `A1`, `B1`, etc. Plain numbering.
+## 1. Are they single-line? — Mostly no, but there are weak spots
 
-Each cycle stays in the 40–50 scenario range. Goal: give interns *intent* and edge-case awareness, not click-by-click recipes.
+The structure (intro narrative, "Before You Begin", "Highest-Risk Bugs", then 3 blocks per scenario) is right and consistent across all three. **The "What this is" block is consistently strong — 2 to 4 sentences explaining intent and stakes.**
 
-## Files to create
+**The weak block is "What to try".** Roughly 30–40 scenarios across the three docs have a one-sentence "What to try" of 50–90 characters. Examples:
+- Students D3: *"Tap chapter 1 to expand, then tap chapter 2 without collapsing chapter 1 first."*
+- Students C3: *"Open a student with no exam history at all."*
+- Chapters D3: *"Open a chapter where every student is in Mastery."*
+- Chapters E7: *"On the final step, click Generate twice in quick succession."*
 
-- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-chapters-qa.md` (Phase 1)
-- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-exams-qa.md` (Phase 2)
-- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-students-qa.md` (Phase 3)
+These are command-style instructions, not exploratory guidance. A tester reading "Tap chapter 1, then tap chapter 2" gets no insight into *what other taps to try, what state to capture, what to compare against*. This violates your standard.
 
-Plus update `.lovable/plan.md` to track progress and add entries to `docs/06-testing-scenarios/README.md` if a section listing exists.
-
----
-
-## Common "Before You Begin" — Data Seeding Guidance
-
-Every doc opens with a data-seeding section that tells the tester **what to populate and why**, never *exactly* which questions or marks to use. Example phrasing:
-
-> Before testing Chapter reports you need a batch with enough varied performance signal to make the heatmap, buckets, and AI insight cards meaningful. Aim for:
-> - **At least 2 batches** assigned to your teacher login, ideally one strong-performing and one struggling, so you can compare how the same UI handles different distributions.
-> - **At least 25–30 students** per batch — fewer and the bucketing (Mastery / Stable / Reinforcement / Foundational Risk) won't have anything to split.
-> - **At least 4–5 chapters** taught, with a mix: one chapter where most students score well, one where most struggle, one with very few attempts (sparse data), and one that has never been examined yet (zero data).
-> - **6–10 completed exams** spread over the last few weeks — mix Quick Tests, Grand Tests, and at least one Institute Test on your subject. Variation in dates is what drives the trend arrows.
-> - For at least one chapter, generate a **practice assignment** for each band so the Practice History section has rows to validate.
-
-The intent line: *"You are not building toy data. You are building the conditions under which real bugs surface — empty states, single-student bands, every-student-passed chapters, etc."*
+**"Expected" blocks have the same problem in ~20 places** — single-sentence pass criteria that don't explain the *failure mode* the tester should look for.
 
 ---
 
-## Phase 1 — Chapters QA (~45 scenarios, 8 sections)
+## 2. Do they create intent? — Yes for "What this is", inconsistent for the other two blocks
 
-**File**: `teacher-reports-chapters-qa.md`
+The "What this is" framing is strong. Every scenario explains *why* this matters (e.g. "A wrong colour here means a teacher reteaches a topic the class actually knows"). That part hits the bar.
 
-Routes touched: `/teacher/reports/:batchId` (Chapters tab), `/teacher/reports/:batchId/chapters/:chapterId`, `.../practice`, `.../practice/:sessionId`. Components: `ChaptersTab`, `ChapterOverviewBanner`, `TopicHeatmapGrid`, `StudentBuckets`, `ChapterPracticeHistory`, `ChapterExamBreakdown`, `BatchHealthCard`.
-
-Sections:
-
-- **A. Chapters Tab Listing & Sorting** (5) — empty state when no exams yet; chapter ordering (worst-first per project memory); chapters with zero attempts; long chapter names; subject filter when teacher has multiple subjects.
-- **B. Chapter Overview Banner** (4) — overall success rate calculation across mixed exam types; `examsCovering` count when same exam covers chapter twice; `totalQuestionsAsked` when a question is reused across exams; banner behavior on a chapter with one exam vs many.
-- **C. Topic Heatmap** (6) — color tier boundaries (75 / 50 / 35 thresholds — try seeding scores exactly on the line); topic with zero questions asked; very long topic names; heatmap density on 320px viewport; heatmap when all topics are green vs all red; tap-to-drill behavior.
-- **D. Student Buckets & PI Bucketing** (7) — default expand/collapse per band (Reinforcement and Foundational Risk should open, others closed); single-student band; empty band; band that contains every student; PI tie-breaking (two students with identical PI); student who has attempted 0 questions in this chapter (should they appear?); behavior when a student transferred mid-cycle.
-- **E. Generate Practice (3-step Wizard)** (8) — opening the wizard from each band's CTA; prefill correctness (chapter, weak topics, suggested difficulty); switching difficulty mid-wizard; generating with zero weak topics; assigning to a band that has 0 students; navigating back mid-wizard (state retention); double-clicking Generate (idempotency); long generation latency / abort.
-- **F. Chapter Practice History** (5) — newly-generated session appearing immediately; sessions ordered most-recent-first; session that no student has attempted yet; session whose linked chapter was renamed in master data; deleting a practice (if supported) and verifying counts elsewhere update.
-- **G. Chapter Exam Breakdown & Cross-Navigation** (5) — drilling from a row into the exam detail and back returning to this chapter (returnTo preservation); exam from a different subject incorrectly listed; exam that was un-published after results were captured; institute test rows distinguished visually (violet/purple per project memory); sort by date vs by avg.
-- **H. Edge Cases & Stability** (5) — same chapter under two curriculums (CBSE Physics vs JEE Physics) showing correct curriculum context; chapter removed from master data after exams reference it; mock data stability — refreshing the page should not change numbers (tests the seeded-PRNG promise); rapid tab switching between Chapters / Exams / Students; chapter detail on 320px screen.
-
-Critical edge bugs to call out at top of doc: stale numbers after returning from practice generation; bucket counts not summing to roster size; heatmap colors flipping after refresh (PRNG bug); returnTo lost when drilling two levels deep.
+**Where intent is missing:**
+- "What to try" reads as a recipe, not an invitation to explore. There's no *"also try X, also try Y, watch for Z"* in most scenarios.
+- "Expected" describes the happy path, rarely the failure shape (e.g. *"if you see X, that's a P0 bug; if you see Y, that's a UX issue"*).
+- Several scenarios reference behaviours the tester would have no way to inspect ("verify the seeded-PRNG promise", "verify ≥44px touch targets") without saying *how* to inspect them.
 
 ---
 
-## Phase 2 — Exams QA (~48 scenarios, 8 sections)
+## 3. Do they cover all edge cases? — Mostly, but with gaps and one wrong claim
 
-**File**: `teacher-reports-exams-qa.md`
+**Coverage strengths**
+- Empty states, single-row buckets, all-of-one-band, ties, transfers, renames in master data, 320px viewport — all hit.
+- Subject-scoping for institute Grand Tests is well covered in Exams (B1–B8) and the Students timeline (E4).
+- AI prefill drift across multiple entry points is well covered in Students H1–H3.
 
-Routes: `/teacher/reports/:batchId` (Exams tab), `/teacher/reports/:batchId/exams/:examId` (4 sub-tabs: Overview, Questions, Chapters, Difficulty). Components: `ExamsTab`, `ExamResultCard`, `ActionableInsightsCard`, `AIAnalysisCard`, `ReteachingPlanCard`, `RecentExamsCard`, `ExamCompareCard`.
-
-The exams cycle has the **strongest cross-portal angle** (institute-created Grand Tests must appear correctly per teacher subject), so emphasize that throughout.
-
-Sections:
-
-- **A. Exams Tab Listing — My Exams vs Institute Tests** (6) — visual separation of teacher-created vs institute-created tests; institute test styling (violet/purple); count badges on tabs; empty state for either side; sort by date vs avg; exam scheduled-but-not-completed not appearing here.
-- **B. Institute Test Subject Scoping (HIGH PRIORITY)** (7) —
-  - *Setup hint*: "Have institute admin create a Grand Test covering Physics + Chemistry + Maths, publish it to a batch with three teachers — one per subject. Log in as each teacher in turn."
-  - Each teacher sees only their subject's questions and analytics — never the other two.
-  - Teacher who teaches *two* subjects in the test sees both, side by side.
-  - Teacher with no subject in this test should not see the test at all (or sees it disabled with explanation).
-  - Multi-batch Grand Test: the same test appears under each batch with its own batch-level numbers.
-  - Re-assigning the test to a new batch after results exist — does the new batch start clean or inherit?
-  - A subject is added to the institute test after results captured — what does the teacher of that new subject see?
-  - Teacher's subject assignment is *removed* mid-cycle — does the institute test row disappear?
-- **C. Exam Detail — Overview Sub-tab** (5) — verdict card narrative; class average / median / top / bottom calculations; trend arrow vs previous exam in same chapter set; behavior when this is the first exam (no previous to compare); responsive layout at 320px.
-- **D. Questions Sub-tab + Reteaching Plan** (6) — question accordion expand/collapse; questions sorted by lowest success rate first; option-level distractor breakdown; Reteaching Plan card appearing only when there are <50% success questions; "Generate Homework" from Reteaching Plan prefilling correct topics; question that no student attempted.
-- **E. Chapters Sub-tab** (4) — per-chapter success rate within the exam; chapter that contributed only one question (statistical noise warning); cross-link to Chapter Report preserving exam context; chapter with all-correct vs all-wrong distribution.
-- **F. Difficulty Sub-tab** (4) — difficulty mix (Easy/Medium/Hard) bar; case where one bucket is empty; case where students did better on Hard than Medium (anomaly highlighted?); difficulty data when teacher used AI-generated questions vs question-bank-pulled.
-- **G. AI Touchpoints — Actionable Insights & AI Deep-Dive** (8) — Insight cards rendered with severity colors; "Take Action" launching AIHomeworkGeneratorDialog with correct prefill (subject, batch, topics, banner text); insight card when there are no findings (graceful empty state); AI Deep-Dive loading / error / timeout states; regenerate button; insight card based on stale data (after retest); insights for a Grand Test scoped to teacher's subject only; double-click protection on Take Action.
-- **H. Edge Cases, UI/UX & Stability** (8) — exam where every student got 100%; exam with one submission; exam open vs closed state; tab switching between sub-tabs preserves scroll; export / share button on a long exam; printing a long exam (per export-and-sharing memory); exam that spans multiple chapters not all assigned to this teacher; rapid back-button navigation.
-
-Top-of-doc highlighted bugs: **subject leakage on Grand Tests** (P0), insight prefill drift, AI Deep-Dive showing other subject's text, stale verdict after retest.
+**Coverage gaps I found while reading the code**
+1. **`getBatchStudentRoster` → `piBucket` real values are `"mastery" | "stable" | "reinforcement" | "risk"`** with thresholds **75 / 50 / 35** (per `studentReportData.ts` line 145–149 and `reportColors.ts`). The Students QA doc D1 quotes the *tooltip* in StudentReport.tsx which says **"≥65 / 40-64 / <40"** — and that tooltip IS wrong vs the code. So D1 *correctly* asks the tester to find the disagreement, but it should also tell the tester the *real* code thresholds (75/50/35) so they know which side is the bug.
+2. **Multi-Subject Risk Card factual error.** The Students QA doc G1–G5 says the card is on the Student Report page and triggers on "PI < 35 in 2+ subjects". The actual `MultiSubjectRiskCard` lives inside the **Copilot routine-pilot panel** (`src/components/teacher/routine-pilot/reports-cards/MultiSubjectRiskCard.tsx`), and `reportContext.ts` line 384 filters by **`weak_chapter_count >= 2` within one batch/subject**, not "2+ subjects". The card is not rendered anywhere on the Student Report page at all. **This entire G section is testing the wrong screen with the wrong rule.**
+3. **PI exposure claim is wrong.** Students B2 says "Raw PI is not exposed to the teacher". Actually `StudentProfileCard.tsx` (Copilot) line 52 renders `<Badge>PI {s.pi}</Badge>` and `MultiSubjectRiskCard` line 52 shows `PI {s.pi}` too. The rule the doc states does not match the implementation — either the rule is right and these are bugs to log, or the rule is wrong and the doc misleads testers.
+4. **"Generate Practice 3-Step Wizard" in Chapters E1–E8** describes a wizard. I did not verify the exact step count against the actual `AIHomeworkGeneratorDialog`. Worth confirming before publishing.
+5. **Chapter Practice History (Chapters F1–F5)** — needs verifying that `ChapterPracticeHistory` component actually exists in the chapter detail page; the file isn't in the `index.ts` export I read.
+6. **Missing scenarios:**
+   - **Print/Export of a Student Report** — Students doc says "export-friendly rendering" in F1 but no dedicated export scenario, even though `exportReport.ts` exists and the project has the off-screen html2canvas pattern documented.
+   - **AI Deep-Dive timeout / regenerate** is mentioned in Exams G but no equivalent for the Student AI Summary which calls `analyze-batch-report` / similar.
+   - **Today's Focus / Batch Health card** is rendered between tabs and the tab content (BatchReport.tsx line 88) — Chapters doc only mentions it once in passing (A1) but never tests its content, navigation, or how it changes when you switch tabs.
+   - **Bottom nav collision** on mobile (`pb-20 md:pb-6` on BatchReport) — never directly tested.
+   - **Roll number as identifier** appears in `StudentResultRow` and `StudentsTab` search but only one Chapters scenario covers it.
 
 ---
 
-## Phase 3 — Students QA (~45 scenarios, 8 sections)
+## 4. Did the docs actually read the code? — Partially. Some claims are invented.
 
-**File**: `teacher-reports-students-qa.md`
+Cases where the docs match the code well:
+- 4-tier colour bands and worst-first ordering (Chapters)
+- Subject-scoping rule for institute Grand Tests (Exams)
+- The three Generate Homework entry points on StudentReport (header CTA, AI summary CTA, but the third — *"weak topic row CTA"* — I could not find in `WeakTopicsList.tsx`. It may exist; needs to be re-verified before shipping.)
 
-Routes: `/teacher/reports/:batchId` (Students tab), `/teacher/reports/:batchId/students/:studentId`. Components: `StudentsTab`, `StudentHeaderCard`, `StudentAISummary`, `ChapterMasteryCard`, `ExamHistoryTimeline`, `DifficultyAnalysis`, `WeakTopicsList`, `MultiSubjectRiskCard`, `AIHomeworkGeneratorDialog`.
+Cases where the docs **invented behaviour**:
+- The Multi-Subject Risk card on the Student Report (does not exist there).
+- The "≥65 / 40-64 / <40" thresholds being authoritative (the actual color util uses 75/50/35; the tooltip is the outlier).
+- The "PI hidden from teacher" rule (PI is shown in multiple Copilot cards).
 
-Setup emphasis: tester needs students that span all four PI bands, at least one student weak in multiple subjects (to exercise multi-subject risk card), one student with very few attempts (sparse data), one student newly added.
-
-Sections:
-
-- **A. Students Tab Roster & PI Bucketing** (6) — bucket distribution; single-student bucket; empty bucket (default state); roster sort within bucket (worst-first); search/filter by name; student count badge accuracy.
-- **B. Student Header Card** (4) — name + class + batch shown; PI not shown to teacher (per memory — internal only); "Generate Homework" button position; header on 320px.
-- **C. AI Student Summary** (5) — strengths / priorities / engagement note rendering; summary for a top performer (no priorities — graceful); summary for a student with zero attempts; "Scroll to Weak Topics" anchor working; "Generate Homework" prefill carrying student name + weak topics into the dialog banner.
-- **D. Chapter Mastery Grid** (5) — color tiers (≥65 green, 40–64 amber, <40 red — verify exact thresholds per the page tooltip); expand/collapse single chapter at a time; chapter with no attempts; very wide grid scroll behavior; long chapter name truncation.
-- **E. Exam History Timeline** (5) — exams ordered chronologically; exam the student missed (absent / didn't submit); institute tests interspersed and visually distinct; tap-through to exam detail with returnTo back to this student; very long history (10+ exams) — pagination or scroll.
-- **F. Difficulty Analysis & Weak Topics** (5) — collapsible default state (collapsed on small screens per memory); weak topic list ordered worst-first; weak topic with one supporting attempt vs many; topic that no longer exists in master data; export-friendly rendering.
-- **G. Multi-Subject Risk & Cross-Subject Signal** (5) —
-  - *Setup hint*: "You need a student whose Performance Index is below 35 in at least two of your subjects. If you only teach one subject this section won't fire — confirm that's the expected behavior."
-  - Card appearing only when criteria met (PI < 35 in 2+ subjects per memory);
-  - card content listing each subject and its PI;
-  - card on a student weak in only one subject (should not appear);
-  - card when teacher only teaches one subject (should not appear, or shows itself differently);
-  - tapping a subject inside the card navigating to the right context.
-- **H. Generate Homework from Student Profile + Edge Cases** (10) — three entry points (header CTA, AI summary CTA, weak topic row CTA) all opening the same dialog with consistent prefill; dialog prefill including student name in banner and weak topics in instructions; switching subject inside the dialog when student has multi-subject weakness; generating without any weak topics (graceful default); double-click on Generate; navigating away mid-generation; student deleted from batch while you have their report open; student transferred to another batch (does this report still load?); student profile on 320px screen with collision padding (per UX memory); rapid drilling student → chapter → back → another student (state cleanup).
-
-Top-of-doc highlighted bugs: prefill drift between the three Generate Homework entry points (P0); chapter mastery thresholds disagreeing with the tooltip; institute exam history rows opening the wrong subject view; multi-subject risk card showing for single-subject teachers.
+These need to be corrected before the docs go to interns, otherwise they will spend time hunting for a card that isn't there or "verifying" a rule that the product never agreed to.
 
 ---
 
-## Cross-cutting UI/UX checks (woven into each cycle, not a separate section)
+## 5. If all scenarios pass, are reports production-ready? — Close, but not quite
 
-Each cycle includes responsive checks at 320 / 768 / desktop widths, touch target ≥44px verification, swipe-to-dismiss on mobile dialogs, and visual distinction of institute content (violet/purple) per project memory. These appear as individual scenarios in the Edge Cases section of each doc rather than as a dedicated section, so the focus stays on data correctness.
+**What would be confirmed:** subject-scoping integrity, sort/order correctness, colour tier consistency, deterministic mock data, prefill correctness, returnTo preservation across two-level drills, 320px layout, empty-state handling.
+
+**What would NOT be confirmed:**
+- Real backend persistence (currently mock data — the docs note this once but don't make the tester explicitly validate it)
+- Actual AI edge function output quality / token-limit failures (`analyze-batch-report`, `generate-chapter-practice`)
+- Performance under realistic load (a real institute has 500+ students per batch; the docs cap testing at 30)
+- Cross-portal flow: institute creates → teacher sees → student sees — only the institute → teacher leg is tested
+- Today's Focus / Batch Health card across all states
+- Three-level returnTo (Students → Student → Chapter → Exam → back × 3)
+
+So a "100% pass" gives roughly **80% confidence** the Reports module is shippable. The remaining 20% is real backend integration, AI output quality, scale, and end-to-end cross-portal flow.
 
 ---
 
-## Execution sequence
+## 6. Will an intern understand what to test from a scenario alone? — Not always
 
-1. **Phase 1**: Write `teacher-reports-chapters-qa.md`. Update `.lovable/plan.md`.
-2. **Phase 2**: Write `teacher-reports-exams-qa.md`. Update plan.
-3. **Phase 3**: Write `teacher-reports-students-qa.md`. Update plan and the testing-scenarios `README.md` index if a list exists.
+The "What this is" block reads well alone. But a tester reading just one scenario (e.g. Chapters E7 "Double-clicking Generate") sees:
+- Why it matters (idempotency)
+- What to do (click Generate twice quickly)
+- What should happen (one assignment created)
 
-Deliver phase 1 first, then ask for confirmation before phase 2 — same cadence used for the timetable docs. No code changes, docs only.
+What they DON'T see:
+- *Where* to find Generate (which band, from where on the page)
+- *What other rapid-action edge cases to also try* (network throttling, refresh during, navigating away)
+- *What error/state to capture if it fails* (server logs? toast? duplicate row?)
+- *What variations to repeat the test under* (different bands, different subjects, etc.)
+
+A senior tester fills these gaps from instinct. An intern won't.
+
+---
+
+# Remediation Plan
+
+I will rewrite all three docs in two passes:
+
+## Pass 1 — Correctness fixes (mandatory before any publish)
+
+For each doc:
+- **Students QA**: Remove or rewrite section G (Multi-Subject Risk Card) — either point it at the actual Copilot location or remove it entirely with a note that it's a Copilot test, not a Reports test.
+- **Students QA**: Rewrite B2 (PI exposure) to match what the code actually does — either reframe as "verify whether PI badges in the Copilot are intentional" or remove.
+- **Students QA D1 + Chapters C1**: Quote the *real* code thresholds (75/50/35) explicitly so the tester can identify which side is the bug if they disagree.
+- **Students QA H1**: Re-verify the third Generate Homework entry point (weak topic row CTA) by reading `WeakTopicsList.tsx`. If it doesn't exist, drop the scenario to two entry points.
+- **Chapters QA E1–E8**: Re-verify the wizard is actually 3-step against `AIHomeworkGeneratorDialog`. Update scenario titles and step counts to match.
+- **Chapters QA F1–F5**: Verify `ChapterPracticeHistory` is rendered in the chapter detail. If not present yet, mark the section as "for the upcoming Practice History feature" and move on.
+
+## Pass 2 — Depth fixes (the real ask)
+
+For every scenario where "What to try" is under ~150 characters or "Expected" is under ~120, expand both blocks to give the tester:
+- **In "What to try"**: 3–5 sentences covering the primary action *plus 2–3 variations* (different data shapes, different navigation paths, different network/timing conditions). Example for Chapters E7 (currently *"On the final step, click Generate twice in quick succession."*) becomes:
+  > Trigger Generate at least three different ways. First, the obvious one — click the button twice rapidly on a normal connection and watch the network tab. Second, throttle the network to 3G and try the same; the lock or spinner should appear faster than your second click can land. Third, hit Enter while the button still has focus immediately after the first click. Repeat the whole exercise from at least two different bands, since the prefill and target student set differ per band and the request payload may differ too.
+- **In "Expected"**: 3–4 sentences covering the happy path *plus the failure shapes to look for*. Example continuation:
+  > Exactly one practice row appears in History, with one corresponding network call. If you see two rows, that is a P0 duplication bug — capture the request payloads and the practice IDs. If you see one row but two network calls (the second returning 4xx because of a server-side dedupe), the UI is leaking duplicate clicks to the network even if the server saves us; that is a P1 lock bug. If the button never re-enables after a successful generation, that is a P2 stuck-state bug worth filing separately.
+
+This pattern — *primary action + variations + happy path + failure shapes + severity* — is what gives an intern enough to actually explore.
+
+## Files touched
+
+- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-chapters-qa.md`
+- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-exams-qa.md`
+- `docs/06-testing-scenarios/inter-login-tests/teacher-reports-students-qa.md`
+- `.lovable/plan.md` (track audit + remediation status)
+
+## Sequencing
+
+1. **Audit fix pass on Students QA first** (it has the most factual errors — Multi-Subject Risk card, PI exposure, third entry point). Deliver, you review.
+2. Then **depth pass on Students QA**.
+3. Then audit fix + depth pass on **Chapters QA** (mostly depth — wizard step count and Practice History existence are the only correctness items).
+4. Then audit fix + depth pass on **Exams QA** (mostly depth, plus verifying that "scheduled exam not appearing" rule is actually enforced in code).
+
+After each doc I will pause for your review before continuing — same cadence we used for the timetable docs.
+
+## Length expectation
+
+Expect each doc to grow from ~700 lines to ~1,300–1,500 lines after the depth pass. That is the cost of giving every scenario enough rope for an intern to explore independently.
+
+If you'd rather I just do correctness fixes (Pass 1) without the depth expansion, say so — that would be a much smaller change.
