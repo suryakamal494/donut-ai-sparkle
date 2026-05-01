@@ -1,5 +1,11 @@
-
 # Teacher Reports QA — Three Test Cycle Documents
+
+## Progress
+- [x] Phase 1 — Chapters QA (`teacher-reports-chapters-qa.md`, ~45 scenarios across A–H, with data-seeding intro and highest-risk-bugs callouts)
+- [ ] Phase 2 — Exams QA (next)
+- [ ] Phase 3 — Students QA
+
+---
 
 Mirror the format already used in `timetable-substitution-edge-qa.md` and `timetable-upload-qa.md`: intent-led narrative intro, "Before You Begin" data-seeding section, scenarios with self-explanatory titles + 3 blocks (**What this is** / **What to try** / **Expected**). No `TR-` prefix — just `A1`, `B1`, etc. Plain numbering.
 
