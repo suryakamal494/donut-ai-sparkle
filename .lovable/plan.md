@@ -147,3 +147,13 @@ After each doc I will pause for your review before continuing — same cadence w
 Expect each doc to grow from ~700 lines to ~1,300–1,500 lines after the depth pass. That is the cost of giving every scenario enough rope for an intern to explore independently.
 
 If you'd rather I just do correctness fixes (Pass 1) without the depth expansion, say so — that would be a much smaller change.
+
+---
+
+## Execution Status (live)
+
+- [x] **Students QA** — fully rewritten. Correctness fixes applied: Multi-Subject Risk section removed (it lives in the Copilot, not Reports — explicit note added in Highest-Risk #6); PI exposure (B2) reframed to match actual code (PI hidden in Reports, present in Copilot); third Generate Homework entry point dropped to two (WeakTopicsList has no per-row CTA — F5 added explicitly to prevent testers hunting for it); D1 now quotes both the tooltip text and the real `reportColors.ts` thresholds and asks the tester to report which side renders. Depth pass: every "What to try" and "Expected" expanded with variations + failure shapes + severity. 595 lines, zero blocks under 120 chars.
+- [ ] **Chapters QA** — needs correctness pass: rewrite section E to match real architecture (3-step *page* `configure → review → done` at `/practice` route, with all-bands-at-once question generation, common + per-band instructions, remove/regenerate, per-band assignment) — current docs describe a non-existent dialog wizard. F section is OK (`ChapterPracticeHistory` exists). Depth pass needed throughout.
+- [ ] **Exams QA** — depth pass needed; correctness mostly OK (subject-scoping language matches the spec). Verify the "scheduled-but-not-yet-conducted exam not appearing" rule against actual filter logic before publishing.
+
+Resume by rewriting Chapters QA section E first (highest correctness risk), then full depth pass on Chapters, then Exams.
