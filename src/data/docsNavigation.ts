@@ -219,6 +219,16 @@ export const docsNavigation: DocSection[] = [
           { title: "Course Filtering QA", path: "06-testing-scenarios/inter-login-tests/course-chapter-filtering-qa" },
           { title: "Course Assignment QA", path: "06-testing-scenarios/inter-login-tests/course-assignment-scope-qa" },
           { title: "Exam Distribution QA", path: "06-testing-scenarios/inter-login-tests/exam-distribution-qa" },
+          {
+            title: "Teacher Reports QA",
+            path: "06-testing-scenarios/inter-login-tests/teacher-reports-landing-and-health-qa",
+            children: [
+              { title: "Landing & Today's Focus", path: "06-testing-scenarios/inter-login-tests/teacher-reports-landing-and-health-qa" },
+              { title: "Chapters QA", path: "06-testing-scenarios/inter-login-tests/teacher-reports-chapters-qa" },
+              { title: "Exams QA", path: "06-testing-scenarios/inter-login-tests/teacher-reports-exams-qa" },
+              { title: "Students QA", path: "06-testing-scenarios/inter-login-tests/teacher-reports-students-qa" },
+            ],
+          },
         ],
       },
     ],

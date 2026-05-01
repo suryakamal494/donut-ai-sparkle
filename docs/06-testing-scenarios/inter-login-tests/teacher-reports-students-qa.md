@@ -2,6 +2,18 @@
 
 > This document is for testers validating the **Students tab** of the Teacher Reports module and the **Student Report** screen that hangs off it: the per-student header, AI summary, chapter mastery grid, exam history timeline, difficulty analysis, weak topics list, and the AI Homework Generator dialog. Where the Chapters cycle was about a *cohort* and the Exams cycle was about an *event*, this cycle is about an *individual learner*. The bugs that surface here are usually subtle: the wrong name in a banner, a stale weak topic carried over from a previous student, a colour on a chapter tile that disagrees with the tooltip beside it, a Performance Index value rendered in a place where it shouldn't be. None of them crash the page; all of them cause a teacher to assign the wrong work to the wrong child. Read every banner, every prefilled instruction, and every chapter colour with the question: *if I generated homework based on what I'm seeing, would the right student get the right practice?*
 
+## Threshold Reference (read before filing any color bug)
+
+There are currently **three** color-threshold scales in the Teacher Reports module. Knowing which is canonical prevents misfiled bugs.
+
+| Scale | Used by | Source of truth |
+|---|---|---|
+| **75 / 50 / 35** | Chapter detail, Topic Heatmap, Student Buckets, Today's Focus topic & student rows | `src/lib/reportColors.ts` — **canonical** |
+| 65 / 40 / 35 | `Reports.tsx` landing tile (`classAverage` color), `StudentReport.tsx` Chapter Mastery tooltip copy | UI-side hard-codes — **bugs to file against the UI** |
+| Pass/fail bands | Exam pass% badges, "at risk" PI < 35 | Matches canonical |
+
+**Rule for testers:** if a tile or row uses a threshold other than 75/50/35, file the discrepancy as a P2 UI bug pointing at the file in column 2, *not* as a data bug. Do not "fix" the test plan to match the UI.
+
 ---
 
 ## Before You Begin — Seed Your Data First
