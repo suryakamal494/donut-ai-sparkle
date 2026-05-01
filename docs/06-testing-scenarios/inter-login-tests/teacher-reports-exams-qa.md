@@ -721,3 +721,79 @@ Either changes are preserved, or a confirm-discard prompt appeared on close. Sil
 ## Wrap-up
 
 Once every scenario in this document passes (or every failure has a logged ticket), the Exams cycle is signed off. Move on to the **Students QA** cycle, which extends these patterns to per-student reports, mastery grids, and cross-subject risk tracking. Pay particular attention to the prefill-drift bugs from this cycle — they manifest in further entry points on the Student profile.
+
+### I. Institute Test Detail Page Deep-Dive
+
+Section B verified that subject-scoped institute-test cards exist on the Exams tab and that links work. This section walks the destination page itself — `/teacher/reports/{batchId}/institute-test/{testId}` — which has its own Summary cards, pattern badge, and three sub-tabs (Questions / Chapters / Difficulty). The Quick Test detail page is structurally similar but the Institute Test page has different visual treatment (violet/purple per the project's institute-test color memory) and stricter subject-scoping rules. Without this section, the institute-test integration is only half-tested.
+
+**I1 — Summary cards show subject-scoped scores, not whole-test scores**
+
+The four summary cards are Avg Score, Highest, Questions, Participants. The first two must be `subjectAvgScore / subjectMaxMarks` and `subjectHighest / subjectMaxMarks` — the teacher's slice, not the test's overall. If a Physics teacher opens a JEE Main institute test and sees the Maths-included whole-test score, that's a contract breach.
+
+What to try: pick a JEE Main or NEET institute test that covers Physics + Chemistry + Maths. As the Physics teacher, open the detail. Note the Avg Score numerator and denominator — the denominator must be the Physics-only max marks (typically 100/120/300, not 360/720). Do the same as Chemistry and Maths teachers if your seed allows.
+
+Expected: scores are subject-scoped, denominators match the subject's allotted marks. A whole-test score appearing here is P0 — it leaks the other subjects' performance into a single-subject view. A wrong denominator with the right numerator is P1 because it makes percentages misleading.
+
+**I2 — Pattern badge and subject badge use the right color treatment**
+
+The pattern badge (JEE Main blue / JEE Advanced orange / NEET green) is configured in `patternConfig`. The subject badge sits next to it in violet (`bg-violet-100 text-violet-700`) per the institute-test integration memory. The date and pass-percentage badges follow.
+
+What to try: open one test of each pattern. Confirm pattern badge color matches the table in `patternConfig`. Confirm the subject badge is violet/purple, not teal (teal is for regular exams). Then resize to 320px and confirm badges wrap to a second row cleanly without overlapping the pass% badge that floats right via `ml-auto`.
+
+Expected: pattern colors are correct per the config, subject badge is violet, pass% badge stays right-aligned. A teal subject badge here is a P2 visual-system bug — it conflates institute tests with quick tests visually. Overlapping badges at 320px is P2 layout.
+
+**I3 — Questions sub-tab lists every question with per-question correct% and avg time, scoped to the subject**
+
+This is the default sub-tab. Every row in `InstituteQuestionsTab` shows question text or stem, correct-answer rate, attempt rate, average time, and difficulty tag. Only the teacher's subject's questions appear — not the whole test's question bank.
+
+What to try: count questions on screen and compare against the test's stated subject question count. Confirm none of the visible questions belong to another subject (read the stem; if it's a Maths question on a Physics teacher's view, that's a leak). Find the lowest correct-% question and confirm it's flagged as needing reteaching attention.
+
+Expected: question count matches subject, no cross-subject leakage, low-correct% questions are visually distinct. A cross-subject question appearing is P0 isolation breach. Missing questions (subject says 30, list shows 25) is P1.
+
+**I4 — Chapters sub-tab groups questions under their chapter and supports expand/collapse**
+
+Switch to the Chapters sub-tab. Each row is a chapter from `detail.chapterSummary` with its average correct rate. Tapping a chapter expands to show the per-question detail filtered to that chapter (driven by `expandedChapters` Set state).
+
+What to try: expand and collapse chapters in different orders. Confirm expansion state is remembered across sub-tab switches (switch to Difficulty and back — were the chapters still expanded?). Confirm the per-chapter question list matches the chapter's question count badge. Find a chapter that wasn't covered in the test — it should not appear.
+
+Expected: expansion state is preserved within the page session, per-chapter question lists are correct, only chapters with questions in this test appear. Expansion resetting on sub-tab switch is P2 friction. A chapter appearing with zero questions is a P1 data bug.
+
+**I5 — Difficulty sub-tab shows the easy/medium/hard split for the subject's questions only**
+
+Switch to Difficulty. The breakdown should sum to the subject's question count (not the whole test's). Each difficulty band shows its question count, total participants attempting, and average correct rate.
+
+What to try: sum the easy + medium + hard counts and confirm it matches the Total Questions card from the page summary. Confirm the average correct rate per band is plausible (easy should typically beat hard). Then cross-check: if you sum (band_count × band_avg_correct) and divide by total questions, you should get something close to the page's overall Avg Score.
+
+Expected: counts sum correctly, ordering is plausible, cross-tab math is internally consistent. Sum mismatch is P1 — usually a filter bug where one band leaks in extra questions. Totally inverted ordering (hard easier than easy) is a P2 data-integrity flag worth investigating before filing.
+
+**I6 — Subject scoping holds inside each sub-tab, not just at page entry**
+
+The page boots with `subject = currentTeacher.subjects[0]`. Every sub-tab consumes already-scoped data. A subtle bug class: page entry filters correctly but a sub-tab fetches/re-derives from the unscoped source and shows mixed data.
+
+What to try: as a Physics teacher on a multi-subject institute test, walk all three sub-tabs and read the chapter or question names on each. If you ever see a Chemistry chapter ("Thermodynamics" in Chem context), a Maths chapter ("Trigonometry"), or a question with a Maths/Chem stem, the scope leak is in that specific sub-tab.
+
+Expected: every sub-tab is fully Physics-scoped. A leak in any one sub-tab is P0 — the teacher has no easy way to know which view to trust. Capture the sub-tab name, the offending chapter or question, and the URL.
+
+**I7 — Multilingual rendering uses Devanagari font for Hindi-medium institutes**
+
+Per the project's multilingual rendering memory, any Hindi text in the question stems must render with Noto Sans Devanagari, not the default Latin font. This applies to question text in the Questions sub-tab and chapter names if the chapter title is Hindi.
+
+What to try: open an institute test from a Hindi-medium batch (your seed must include one). Inspect Hindi text — characters should render as proper conjuncts, not as boxes or as a Latin-fallback font that makes Devanagari look thin and broken.
+
+Expected: Hindi renders cleanly. Boxes (tofu) are P1 — font missing. Latin-fallback is P2 — font present but not applied to this surface. If your institute has no Hindi content, document the gap and skip — don't fabricate test data to force this.
+
+**I8 — Test-not-found URL renders the empty state cleanly**
+
+Same contract as the practice-session-not-found case. Edit the URL to a fabricated test ID. The page should render "Test Not Found" with the GraduationCap icon and a working Go Back button.
+
+What to try: paste `/teacher/reports/batch-10a/institute-test/test-fake-id` into the URL bar. Confirm the empty state, no console errors, Go Back returns to the batch report.
+
+Expected: clean empty state. Crash is P0. Blank page with console error is P1. Loading the wrong test's data silently is P0 (data-leak class).
+
+**I9 — Page is stable across reloads, returns, and back-navigation preserves sub-tab**
+
+Reload the page five times — Summary cards, sub-tab counts, and Questions tab content must be identical per the project's deterministic mock-data rule. Switch to the Difficulty sub-tab, navigate away (e.g., breadcrumb to batch), come back via browser back — does the page reopen on Difficulty or reset to Questions?
+
+What to try: do all of the above. Watch closely for Avg Score and Highest changing on reload — those are PRNG-stability canaries.
+
+Expected: full determinism per testId, sub-tab state preserved on in-app back. Drift between reloads is P1 stability. Sub-tab reset on back is P2 friction.
