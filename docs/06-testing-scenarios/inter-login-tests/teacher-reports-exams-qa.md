@@ -2,6 +2,18 @@
 
 > This document is for testers validating the **Exams tab** of the Teacher Reports module and every screen that hangs off it: the per-exam Overview, Questions, Chapters, and Difficulty sub-tabs, the Actionable Insights and AI Deep-Dive cards, and the Reteaching Plan flow that pushes a teacher into generating remedial homework. Exams are the most cross-portal-sensitive surface in the entire teacher app — the same Grand Test created by the institute admin must render correctly for three different subject teachers, with **no leakage of one subject's questions or analytics into another**. Treat this cycle as primarily a hunt for *subject-scope correctness* and *AI prefill drift*. A wrong number on a chapter card is bad; a Physics teacher seeing Chemistry questions on a shared Grand Test is catastrophic.
 
+## Threshold Reference (read before filing any color bug)
+
+There are currently **three** color-threshold scales in the Teacher Reports module. Knowing which is canonical prevents misfiled bugs.
+
+| Scale | Used by | Source of truth |
+|---|---|---|
+| **75 / 50 / 35** | Chapter detail, Topic Heatmap, Student Buckets, Today's Focus topic & student rows | `src/lib/reportColors.ts` — **canonical** |
+| 65 / 40 / 35 | `Reports.tsx` landing tile (`classAverage` color), `StudentReport.tsx` Chapter Mastery tooltip copy | UI-side hard-codes — **bugs to file against the UI** |
+| Pass/fail bands | Exam pass% badges, "at risk" PI < 35 | Matches canonical |
+
+**Rule for testers:** if a tile or row uses a threshold other than 75/50/35, file the discrepancy as a P2 UI bug pointing at the file in column 2, *not* as a data bug. Do not "fix" the test plan to match the UI.
+
 ---
 
 ## Before You Begin — Seed Your Data First

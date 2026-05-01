@@ -2,6 +2,18 @@
 
 > This document is for testers validating the **Chapters tab** of the Teacher Reports module: how chapter-wise performance is summarised, how the topic heatmap and student buckets behave under varied data, and how the **Generate Homework** flow (a full-page 3-step experience at `/teacher/reports/:batchId/chapters/:chapterId/practice`) connects back into the report. Reports are the most data-sensitive part of the teacher portal — a wrong number here causes a teacher to mis-target a real student. Approach this as exploratory hunting for *silently wrong* values, not just for crashes. Read every scenario in full before you start clicking; the value of this cycle is in noticing what does *not* match the description, and that requires you to know what the description actually claims.
 
+## Threshold Reference (read before filing any color bug)
+
+There are currently **three** color-threshold scales in the Teacher Reports module. Knowing which is canonical prevents misfiled bugs.
+
+| Scale | Used by | Source of truth |
+|---|---|---|
+| **75 / 50 / 35** | Chapter detail, Topic Heatmap, Student Buckets, Today's Focus topic & student rows | `src/lib/reportColors.ts` — **canonical** |
+| 65 / 40 / 35 | `Reports.tsx` landing tile (`classAverage` color), `StudentReport.tsx` Chapter Mastery tooltip copy | UI-side hard-codes — **bugs to file against the UI** |
+| Pass/fail bands | Exam pass% badges, "at risk" PI < 35 | Matches canonical |
+
+**Rule for testers:** if a tile or row uses a threshold other than 75/50/35, file the discrepancy as a P2 UI bug pointing at the file in column 2, *not* as a data bug. Do not "fix" the test plan to match the UI.
+
 ---
 
 ## Before You Begin — Seed Your Data First
