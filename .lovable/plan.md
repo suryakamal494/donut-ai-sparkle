@@ -2,7 +2,7 @@
 
 ## Progress
 - [x] Phase 1 — Chapters QA (`teacher-reports-chapters-qa.md`, ~45 scenarios across A–H, with data-seeding intro and highest-risk-bugs callouts)
-- [ ] Phase 2 — Exams QA (next)
+- [x] Phase 2 — Exams QA (`teacher-reports-exams-qa.md`, ~48 scenarios across A–H, subject-scoping + AI prefill emphasis)
 - [ ] Phase 3 — Students QA
 
 ---
