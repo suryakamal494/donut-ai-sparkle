@@ -670,3 +670,63 @@ No horizontal scroll. All CTAs are reachable. Touch targets are at least 44px. S
 ---
 
 *This document covers the Chapters tab only. See `teacher-reports-exams-qa.md` for the Exams cycle and `teacher-reports-students-qa.md` for the Students cycle.*
+
+### I. Practice Session Detail Drill-In
+
+The 3-step generation flow (Section E) and the Practice History list (Section F) both end with the teacher looking at a session row. This section covers what happens when they tap that row and land on `/teacher/reports/{batchId}/chapters/{chapterId}/practice/{sessionId}` — the per-session drill-in. Without these scenarios the practice loop is half-tested: we know we can create and list, we don't know we can analyze.
+
+**I1 — The page renders all four overview stats and one band card per band**
+
+The drill-in opens with four `StatCard`s — Total Students, Completion %, Avg Accuracy, Questions — and then one `BandCard` per band that was generated (At Risk / Bottom / Middle / Top, depending on which were included). The band cards must show the band's color marker, the assigned-vs-completed count, and the questions-in-band count. Missing any of these forces the teacher back to the parent page to recompute.
+
+What to try: tap a session that was generated for all four bands. Read each StatCard and confirm the math (Completion = completed / assigned, Avg Accuracy = correct / answered). Then tap a session that was generated for only two bands — only those two BandCards should appear. Then resize to 320px and confirm the 2×2 stat grid stacks cleanly without clipping.
+
+Expected: stat math is correct, only generated bands render their cards, layout holds at 320px. Wrong math on Completion or Accuracy is P1 because it directly mis-states intervention progress. A BandCard rendering for a band that was excluded during generation is P0 architectural — it means the session record didn't honor the configuration.
+
+**I2 — Students tab: per-band accordions list the assigned students with their per-student status**
+
+Default view of the drill-in. Each band accordion is open by default (`defaultValue={bandDetails.map(b => b.key)}`). Each student row should show name, completion state, and accuracy on this session — not their overall PI, which would mix scopes.
+
+What to try: open a session, expand and collapse each band accordion. Confirm each student listed is actually in that band (cross-check against the parent chapter's Student Buckets section). Find a student who appears in multiple completed sessions — their per-session accuracy here should match what the practice history list summarized.
+
+Expected: students are bucketed correctly per band, per-session metrics shown not overall PI, accordion state survives a re-open of the page. A student showing up in the wrong band is a P1 data-mapping bug. A student listed in this session who wasn't actually assigned is P0.
+
+**I3 — Questions tab: per-band question lists match the configuration that produced them**
+
+Switch to the Questions tab. Each band accordion shows the questions that were generated for that band. Difficulty mix and topic spread should match what the teacher configured during the 3-step page (Section E). If band-specific instructions were used at generation time, those questions should still reflect that override.
+
+What to try: open a session you generated yourself with deliberate per-band overrides (e.g., harder-than-default for the Top band). Confirm the Top band's questions in this view are visibly harder than the At Risk band's. Confirm the question count per band matches what you set.
+
+Expected: the questions stored on the session match the configuration captured at generation time. A band whose questions don't reflect its override is a P1 because it breaks the differentiated-homework promise. Question count drift (set 8, see 6) is P1 — usually a save bug.
+
+**I4 — Breadcrumbs and back-navigation return to the chapter detail with practice history visible**
+
+The breadcrumb chain on this page is Reports › {Batch} › {Chapter} › Practice Detail. Tapping the {Chapter} segment must return to the chapter detail page with the Practice History section in view (or at least scroll-restorable to it).
+
+What to try: from a session detail, tap the Chapter breadcrumb. Then use the browser back button instead. Then on mobile use the system back gesture. All three should return to the chapter detail. Scroll position should land at or near the Practice History card, not the top of the chapter page.
+
+Expected: all three back paths work, scroll restoration drops the teacher into Practice History. Returning to the top of the chapter page is a P2 friction bug. Returning to the wrong batch or wrong chapter is P0.
+
+**I5 — Missing or deleted session URL renders the empty state, not a crash**
+
+Direct-link a session ID that doesn't exist (manually edit the URL to `.../practice/session-does-not-exist`). The page should render the "Practice Session Not Found" card with a working "Go Back" button — not a blank page, not a console error storm, not an infinite spinner.
+
+What to try: paste a fabricated session ID into the URL bar. Then try a real session ID with a fabricated chapter ID. Then try a real session ID for a session that belongs to a different batch.
+
+Expected: the empty state renders cleanly for all three cases. "Go Back" returns to the previous valid page. A crash here is P0. A blank white page with a console error is P1. The page silently loading some other session's data is P0 — that would be a data-leak bug.
+
+**I6 — Regenerate flow returns to the 3-step page with the original config prefilled**
+
+If the drill-in offers a "Regenerate" or "Generate again" action (verify against the live UI — the route exists, the button may not), it should land back on the 3-step practice page with the original session's configuration prefilled. The teacher may want to tweak one band and rerun, not start from scratch.
+
+What to try: locate the regenerate affordance. Tap it. Confirm the configure step opens with band selection, instruction overrides, and question counts already populated to match the source session. Make a small change and run — confirm a new session record appears in Practice History.
+
+Expected: prefill is faithful to the source session. If regenerate isn't implemented yet, file as a feature gap rather than a bug; if it is implemented and prefill is empty, that's P1 because the teacher loses their config. A regenerate that overwrites the existing session instead of creating a new one is P0 — destroys historical data.
+
+**I7 — The page is stable across reloads, returns, and concurrent sessions**
+
+Reload the page five times in a row — every stat must be identical (deterministic mock-data per the project's PRNG memory). Open the same session in two browser tabs — both should agree. Open a different session for the same chapter in a second tab — they must not contaminate each other's data.
+
+What to try: do all three. Pay attention to the StatCard numbers, the BandCard counts, and any per-student accuracy. A single digit changing between reloads is a stability regression.
+
+Expected: full determinism per session ID. Drift between reloads is a P1 data-stability bug — these sessions are referenced by name in conversations between teachers and parents and must not change underneath them.
