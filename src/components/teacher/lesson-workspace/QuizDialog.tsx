@@ -539,31 +539,53 @@ export const QuizDialog = ({
                     <label className="text-sm font-medium">
                       Topics <span className="text-destructive">*</span>
                     </label>
-                    {topicSuggestions.length > 0 && (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {topicSuggestions.map((t) => {
-                          const active = aiTopics.includes(t);
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => toggleTopic(t)}
-                              className={cn(
-                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
-                                active
-                                  ? "bg-primary/10 text-primary border-primary/30"
-                                  : "bg-background hover:bg-muted border-border/60",
-                              )}
-                            >
-                              {t}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <Popover open={topicPopoverOpen} onOpenChange={setTopicPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between h-9 text-xs font-normal"
+                        >
+                          <span className="truncate text-left">
+                            {aiTopics.length === 0
+                              ? "Select topics from this chapter..."
+                              : `${aiTopics.length} topic${aiTopics.length === 1 ? '' : 's'} selected`}
+                          </span>
+                          <Filter className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="p-0 w-[--radix-popover-trigger-width] bg-popover z-50"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Search topics..." className="h-9 text-xs" />
+                          <CommandList className="max-h-[220px]">
+                            <CommandEmpty>No topics found.</CommandEmpty>
+                            <CommandGroup>
+                              {topicSuggestions.map((t) => {
+                                const active = aiTopics.includes(t);
+                                return (
+                                  <CommandItem
+                                    key={t}
+                                    value={t}
+                                    onSelect={() => toggleTopic(t)}
+                                    className="text-xs"
+                                  >
+                                    <Checkbox checked={active} className="mr-2" />
+                                    <span className="flex-1 truncate">{t}</span>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add another topic..."
+                        placeholder="Or add a custom topic..."
                         value={topicDraft}
                         onChange={(e) => setTopicDraft(e.target.value)}
                         onKeyDown={(e) => {
