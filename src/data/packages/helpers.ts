@@ -104,6 +104,21 @@ export const removeAttachment = (attachmentId: string): void => {
   attachments = attachments.filter((a) => a.id !== attachmentId);
 };
 
+// ----- Lesson plans -----
+
+export const getLessonPlanById = (id: string): PackageLessonPlan | undefined =>
+  lessonPlans.find((lp) => lp.id === id);
+
+export const upsertLessonPlan = (lp: PackageLessonPlan): void => {
+  const idx = lessonPlans.findIndex((x) => x.id === lp.id);
+  if (idx === -1) lessonPlans = [...lessonPlans, lp];
+  else lessonPlans = lessonPlans.map((x) => (x.id === lp.id ? lp : x));
+};
+
+export const removeLessonPlan = (id: string): void => {
+  lessonPlans = lessonPlans.filter((lp) => lp.id !== id);
+};
+
 /** Shape summary like "2 grades · 5 subjects". */
 export const summarizeShape = (pkg: Package): string => {
   const gradeCount = pkg.shape.length;
