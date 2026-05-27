@@ -67,8 +67,12 @@ const navItems: NavItem[] = [
     children: [
       { title: "Curriculum", href: "/superadmin/parameters", icon: FolderTree },
       { title: "Courses", href: "/superadmin/parameters/courses", icon: GraduationCap },
-      { title: "Packages", href: "/superadmin/packages", icon: PackageIcon },
     ],
+  },
+  {
+    title: "Packages",
+    icon: PackageIcon,
+    href: "/superadmin/packages",
   },
   {
     title: "Roles & Access",
