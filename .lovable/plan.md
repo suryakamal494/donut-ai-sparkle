@@ -104,3 +104,14 @@ Covers the **Insights tab**. Sections:
 - Copilot insights — separate feature with its own architecture memory.
 
 This keeps the suite **focused and not overboard**, mirroring the user's guidance.
+
+---
+
+## Status: COMPLETE
+
+- Created `student-reports-setup-and-preconditions-qa.md` (shared prerequisites, login matrix, data floor, threshold reference, reset protocol)
+- Created `student-progress-overview-qa.md` (header, hero, standing, subject grid, trend chart, weekly activity, responsiveness)
+- Created `student-progress-subjects-qa.md` (grid, deep-dive, cross-tab handoff, multi-track, empty states)
+- Created `student-progress-exams-qa.md` (4 test types, auto-select, standing card, trend consistency, cross-login, multi-subject math)
+- Created `student-progress-insights-qa.md` (banner, streak, radar, weekly activity duplication, at-risk cross-surface, lazy load)
+- Registered all 5 docs in `src/data/docsNavigation.ts` under new "Student Reports QA" category
