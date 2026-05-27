@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, BookOpen, ClipboardList, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const ChapterAccordion = ({
   chapters,
   inclusionsEnabled,
 }: Props) => {
+  const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(chapters[0]?.id ?? null);
   const [sheet, setSheet] = useState<{
     chapterId: string;
@@ -94,13 +96,19 @@ const ChapterAccordion = ({
                   </p>
                 )}
                 {lessons.map((lp) => (
-                  <div
+                  <button
                     key={lp.id}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 text-sm"
+                    onClick={() =>
+                      navigate(`/superadmin/packages/${packageId}/lesson/${lp.id}`)
+                    }
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 text-sm hover:bg-muted/70 transition-colors text-left"
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="flex-1 truncate">{lp.title}</span>
-                  </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {lp.blocks.length} block{lp.blocks.length === 1 ? "" : "s"}
+                    </span>
+                  </button>
                 ))}
                 {attachments.map((a) => (
                   <div
@@ -125,7 +133,16 @@ const ChapterAccordion = ({
                   </div>
                 ))}
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button size="sm" variant="outline" disabled className="gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() =>
+                      navigate(
+                        `/superadmin/packages/${packageId}/lesson/new?grade=${gradeId}&subject=${subjectId}&chapter=${ch.id}`,
+                      )
+                    }
+                  >
                     <Plus className="w-3.5 h-3.5" /> Add lesson plan
                   </Button>
                   {inclusionsEnabled.tests && (

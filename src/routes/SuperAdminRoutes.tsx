@@ -33,6 +33,7 @@ import CreateContent from "@/pages/content/CreateContent";
 import Packages from "@/pages/packages/Packages";
 import CreatePackage from "@/pages/packages/CreatePackage";
 import PackageEditor from "@/pages/packages/PackageEditor";
+import PackageLessonComposer from "@/pages/packages/PackageLessonComposer";
 
 // Heavy pages - LAZY LOADED
 const CourseBuilder = lazy(() => import("@/pages/parameters/CourseBuilder"));
@@ -86,6 +87,7 @@ export default function SuperAdminRoutes() {
         <Route path="packages" element={<Packages />} />
         <Route path="packages/new" element={<CreatePackage />} />
         <Route path="packages/:id" element={<PackageEditor />} />
+        <Route path="packages/:id/lesson/:lpId" element={<PackageLessonComposer />} />
       </Route>
     </Routes>
   );
