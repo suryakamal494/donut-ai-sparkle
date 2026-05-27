@@ -113,7 +113,7 @@ const generateChapterContent = (
         type === "video"
           ? DURATIONS[(seed + i) % DURATIONS.length]
           : undefined,
-      thumbnail: previewUrl,
+      previewUrl,
     });
   }
   return items;
