@@ -406,8 +406,8 @@ export const QuizDialog = ({
   // Shared dialog content
   const dialogContent = (
     <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'bank' | 'ai')} className="flex flex-col flex-1">
-        <div className="px-4">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'bank' | 'ai')} className="flex flex-col flex-1 min-h-0">
+        <div className="px-4 shrink-0">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="bank" className="text-xs gap-1.5">
               <Search className="w-3.5 h-3.5" />
