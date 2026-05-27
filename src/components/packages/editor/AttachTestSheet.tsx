@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { teacherExams } from "@/data/teacher/exams";
-import { getSubjectName } from "@/data/masterData";
+import { getSubjectById } from "@/data/masterData";
 import type { PackageAttachmentKind } from "@/types/packages";
 
 interface Props {
@@ -48,7 +48,7 @@ const AttachTestSheet = ({
     }
   }, [open]);
 
-  const subjectName = getSubjectName(subjectId);
+  const subjectName = getSubjectById(subjectId)?.name ?? "";
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
