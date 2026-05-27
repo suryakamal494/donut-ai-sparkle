@@ -22,6 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +72,7 @@ import {
   getTopicsForChapter,
   type AiGenerationConfig,
 } from "@/data/aiQuestionMock";
+import { getTopicsByChapter } from "@/data/cbseMasterData";
 
 interface QuizDialogProps {
   open: boolean;
@@ -70,6 +80,7 @@ interface QuizDialogProps {
   onAddBlock: (block: Omit<LessonPlanBlock, 'id'>) => void;
   chapter?: string;
   subject?: string;
+  chapterId?: string;
 }
 
 // Question type icon mapping
@@ -173,6 +184,7 @@ export const QuizDialog = ({
   onAddBlock,
   chapter,
   subject,
+  chapterId,
 }: QuizDialogProps) => {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<'bank' | 'ai'>('bank');
@@ -216,9 +228,25 @@ export const QuizDialog = ({
 
   // Topic suggestions from the question bank for the current chapter/subject
   const topicSuggestions = useMemo(
-    () => getTopicsForChapter(chapter, subject).slice(0, 12),
-    [chapter, subject],
+    () => {
+      const fromMaster = chapterId ? getTopicsByChapter(chapterId).map(t => t.name) : [];
+      if (fromMaster.length) return fromMaster;
+      const fromBank = getTopicsForChapter(chapter, subject);
+      if (fromBank.length) return fromBank;
+      // Generic fallback so the dropdown is never empty
+      return [
+        "Introduction",
+        "Core Concepts",
+        "Worked Examples",
+        "Practice Problems",
+        "Real-world Applications",
+        "Common Misconceptions",
+        "Summary",
+      ];
+    },
+    [chapterId, chapter, subject],
   );
+  const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
   const totalMix = aiDiffMix.easy + aiDiffMix.medium + aiDiffMix.hard;
 
