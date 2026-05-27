@@ -1,24 +1,30 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Settings, CheckCircle2, ClipboardList, X, Plus } from "lucide-react";
+import { ArrowLeft, Settings, CheckCircle2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getPackageById,
   getGrandTestsForPackage,
   attachExamsToPackage,
-  removeAttachment,
   getLessonPlansForPackage,
+  getLessonPlansForChapter,
+  getAttachmentsForChapter,
   publishPackage,
 } from "@/data/packages";
 import { curriculums, courses } from "@/data/masterData";
-import { teacherExams } from "@/data/teacher/exams";
 import GradeSwitcher from "@/components/packages/editor/GradeSwitcher";
 import SubjectTabs from "@/components/packages/editor/SubjectTabs";
-import ChapterAccordion from "@/components/packages/editor/ChapterAccordion";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
 import AttachTestSheet from "@/components/packages/editor/AttachTestSheet";
 import PackageSettingsSheet from "@/components/packages/editor/PackageSettingsSheet";
+import PackageSummaryStrip from "@/components/packages/editor/PackageSummaryStrip";
+import ChapterRail, {
+  type ChapterRailItem,
+} from "@/components/packages/editor/ChapterRail";
+import ChapterDetailPane from "@/components/packages/editor/ChapterDetailPane";
+import GrandTestsPane from "@/components/packages/editor/GrandTestsPane";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
