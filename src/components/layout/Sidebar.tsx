@@ -16,6 +16,7 @@ import {
   PanelLeft,
   GraduationCap,
   FolderTree,
+  Package as PackageIcon,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "Curriculum", href: "/superadmin/parameters", icon: FolderTree },
       { title: "Courses", href: "/superadmin/parameters/courses", icon: GraduationCap },
+      { title: "Packages", href: "/superadmin/packages", icon: PackageIcon },
     ],
   },
   {

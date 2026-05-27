@@ -30,6 +30,9 @@ import CreateGrandTest from "@/pages/exams/CreateGrandTest";
 import ReviewExam from "@/pages/exams/ReviewExam";
 import Content from "@/pages/content/Content";
 import CreateContent from "@/pages/content/CreateContent";
+import Packages from "@/pages/packages/Packages";
+import CreatePackage from "@/pages/packages/CreatePackage";
+import PackageEditor from "@/pages/packages/PackageEditor";
 
 // Heavy pages - LAZY LOADED
 const CourseBuilder = lazy(() => import("@/pages/parameters/CourseBuilder"));
@@ -80,6 +83,9 @@ export default function SuperAdminRoutes() {
         <Route path="content/upload" element={<CreateContent />} />
         <Route path="content/create" element={<CreateContent />} />
         <Route path="content/ai-generate" element={<LazyPage><AIContentGenerator /></LazyPage>} />
+        <Route path="packages" element={<Packages />} />
+        <Route path="packages/new" element={<CreatePackage />} />
+        <Route path="packages/:id" element={<PackageEditor />} />
       </Route>
     </Routes>
   );

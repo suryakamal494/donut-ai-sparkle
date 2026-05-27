@@ -1,117 +1,187 @@
-## Student Reports QA — Plan
+# Lesson Packages — SuperAdmin Phased Implementation Plan
 
-The student panel doesn't have a separate "Reports" page — the equivalent is **`/student/progress`**, which has exactly **4 tabs**: Overview, Subjects, Exams, Insights. Since student reports are largely a *consumption* surface (no creation, no scoping), the test cycles are smaller than teacher/institute. The hard part is **setting up the right upstream data** (tests from institute + teacher) so the tabs actually have something to display.
-
-I'll write **5 documents** following the same depth/intent style as the Teacher Reports QA suite (narrative scenarios, exploratory "what to try" hints, P0–P2 severities).
+Six small phases. Each phase is independently demoable and leaves the app in a working state. UI quality is treated as a first-class deliverable in every phase — not deferred to a "polish" phase at the end.
 
 ---
 
-### Document 1 — `student-reports-setup-and-preconditions-qa.md` (NEW, shared prerequisite)
+## UI principles applied to every phase
 
-A single-source-of-truth setup guide that the other 4 docs reference. Covers:
+These are non-negotiable while building each screen:
 
-- **Required cross-login fixtures** the tester must seed BEFORE opening Progress:
-  - Min 1 **Quick Test** per subject created by the **Teacher** (subject-scoped, batch-assigned).
-  - Min 1 **Grand Test** created by the **Institute** (multi-subject — Physics + Chem + Maths or NEET pattern).
-  - Min 1 **Previous Year Paper** assigned to the batch.
-  - Min 1 **Multi-subject custom test** (where supported) to verify subject roll-ups.
-  - At least 5–6 attempted exams across **3+ subjects** so trends, sparklines, and radar render meaningfully.
-- **Login matrix**: which login creates what, and where the student must be enrolled.
-- **Data thresholds** the tester needs to hit to verify each visual:
-  - Trend chart needs ≥ 2 exams per subject.
-  - Radar needs ≥ 3 subjects with attempts.
-  - Streak calendar needs activity on multiple distinct days.
-  - "At Risk" insight needs at least one subject < 35%.
-- **Canonical thresholds reference** (mirrors teacher-reports docs): 75 / 50 / 35 from `reportColors.ts`.
-- **How to reset state** between cycles (clear localStorage keys for curriculum persistence).
+- **No forced scroll, no forced compactness.** Use proportionate space: header chrome stays around **15–20%** of viewport height, primary content gets the rest. Cards size to content, not to fill.
+- **Vertical scroll only inside designated regions** (e.g. chapter list, lesson list) — never the whole page bouncing.
+- **No horizontal scroll**, ever. Wide content uses tabs, accordions, or column collapse at `lg` / `md` breakpoints.
+- **Density by zone**: chrome (header/tabs/toolbar) = tight; canvas (editor/wizard body) = breathing room.
+- **Mobile-first audit at 320px** after each phase — even though SuperAdmin is desktop-led, the layout must not break.
+- **Reuse the Sophisticated Warmth tokens** from `index.css`. No raw colors.
+- **Plus Jakarta Sans**, 44px+ touch targets, semantic shadcn components only.
 
 ---
 
-### Document 2 — `student-progress-overview-qa.md`
+## Phase 1 — Foundation (data + routing + empty shell)
 
-Covers the **Overview tab** (default landing). Sections:
+**Goal:** "Packages" appears in the SuperAdmin sidebar and opens to a clean empty state. Nothing else.
 
-- **A. Header & Secondary Tags** — overall PI badge, streak chip, rank chip rendering with empty/full data.
-- **B. ProgressHeroCard** — overall average math, trend arrow direction vs. previous period.
-- **C. BatchStandingCard** — rank vs. batch size, percentile band coloring, edge cases (rank #1, last rank, ties).
-- **D. SubjectOverviewGrid (compact)** — subject tile colors, "tap to drill" handoff to Subjects tab with `selectedSubjectId` carried over.
-- **E. ExamTrendChart** — line continuity with 1 exam (degenerate), 2 exams, many exams; subject filter behavior.
-- **F. WeeklyActivityChart** — bar heights vs. minutes, total/average math, week boundary handling.
-- **G. Responsiveness** — 320px stack vs. `lg:grid-cols-2` split; swipe between tabs via `useSwipeTabs`.
+Scope:
 
----
+- `src/types/packages.ts` — `Package`, `PackageLessonPlan`, `PackageAttachment` types.
+- `src/data/packages/` — `mockPackages.ts` with 2–3 seed packages, `helpers.ts` (getters/setters in-memory).
+- Route registration in `SuperAdminRoutes.tsx`:
+  - `/superadmin/packages` → list page (empty state for now)
+  - `/superadmin/packages/new` → wizard placeholder
+  - `/superadmin/packages/:id` → editor placeholder
+- Sidebar entry in `Sidebar.tsx` with `Package` icon (lucide), placed under "Master Data".
 
-### Document 3 — `student-progress-subjects-qa.md`
+UI deliverables:
 
-Covers the **Subjects tab** + `SubjectDeepDive` drill-in. Sections:
+- Empty state page with a centered illustration block, one-line value prop, single `[+ Create your first package]` CTA. No filters, no chrome bloat.
+- Page header is a thin breadcrumb + title row (~64px), not a hero.
 
-- **A. Grid state** — all subjects from enrolled batch curriculum render; missing-data subject states.
-- **B. Selection & deep-dive** — clicking a tile loads `SubjectDeepDive`; back button restores grid + scroll position.
-- **C. Per-subject metrics** — average, exam count, weak chapters list, trend.
-- **D. Cross-tab handoff** — selecting a subject in Overview lands here with the right subject pre-selected.
-- **E. Curriculum-track behavior** — for multi-track students (e.g., NEET + boards), verify that each subject's track context is preserved (per `student-portal-curriculum-persistence` memory).
-- **F. Empty states** — subject with zero exams, zero chapters attempted.
+**Demo bar:** Click sidebar → land on Packages → see empty state → buttons route correctly.
 
 ---
 
-### Document 4 — `student-progress-exams-qa.md`
+## Phase 2 — List view (two-pane browser)
 
-Covers the **Exams tab** (timeline + per-exam standing + trend). This is where the upstream test setup matters most. Sections:
+**Goal:** Browse existing packages by curriculum/course source.
 
-- **A. Timeline composition** — Quick Tests, Grand Tests, PYPs all appear with correct type badges and subject labels ("Grand Test" label for multi-subject).
-- **B. Newest-first ordering & auto-select** — verify latest exam is auto-selected on tab entry; manual selection persists across re-renders.
-- **C. PerExamStandingCard** — rank, percentile, subject-wise breakdown for grand tests, total marks math `score/maxScore`.
-- **D. ExamTrendChart in this tab** — uses same dataset; verify consistency with Overview tab's chart.
-- **E. Cross-login traceability** — test created by Teacher A appears with Teacher A's name; institute Grand Test appears with institute label; PYP shows year/board.
-- **F. Multi-subject test behavior** — verify per-subject score breakdown on the standing card; verify it does NOT corrupt subject-level averages in the Subjects tab.
-- **G. Navigation** — clicking an exam (where supported) routes to `/student/tests/:testId/results`; back returns to the tab with selection preserved.
+Scope:
 
----
+- `PackageSourceTree.tsx` (left pane, ~260px): collapsible tree, two roots — Curriculums, Courses. Counts on the right.
+- `PackageCard.tsx` (right pane): one card per package showing name, source chip, shape summary (`2 grades · 4 subjects`), counts (`28 lessons · 8 tests`), status pill.
+- Right pane uses `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3` so cards fill width without horizontal scroll and without becoming oversized at xl.
 
-### Document 5 — `student-progress-insights-qa.md`
+UI guardrails:
 
-Covers the **Insights tab**. Sections:
+- Cards: **~180px tall**, not 300+. Information-dense without feeling cramped.
+- Left tree collapses to icons below `md`; on mobile becomes a top dropdown selector.
+- The `[+ New Package]` CTA is a **floating action button** at bottom-right on mobile, top-right in desktop header — never duplicated.
 
-- **A. InsightBanner** — verify banner type (encouragement vs. warning vs. milestone) matches data state; copy is data-grounded (mentions actual subject/chapter, not generic).
-- **B. StreakCalendar** — current streak, longest streak, active-day dot rendering across month boundaries; behavior with zero activity.
-- **C. SubjectRadarChart** — needs ≥ 3 subjects; verify axis labels, scale 0–100, color per subject from subject palette.
-- **D. WeeklyActivityChart** (duplicated from Overview) — verify same numbers shown in both tabs.
-- **E. At-Risk surfacing** — when any subject < 35%, verify it surfaces in insight banner copy AND aligns with the red color tier elsewhere.
-- **F. Lazy-load behavior** — each chart is `React.lazy`; verify skeletons render briefly and chart appears without layout shift.
+**Demo bar:** Pick "CBSE" in the tree → only CBSE packages show on the right → click a card → routes to editor (still placeholder).
 
 ---
 
-### Cross-cutting items in every doc
+## Phase 3 — Create wizard (3 steps)
 
-- **Threshold reference block** prepended (75/50/35 canonical, flag any 65/40 hard-codes as bugs).
-- **Severity tags** (P0 broken/wrong-data, P1 visible UX defect, P2 polish).
-- **"What to try"** exploratory variations: 320px viewport, swipe gestures, rapid tab-switching, network throttling on lazy chunks, localStorage clearing mid-session.
-- **Mobile-first** orientation (matches project memory: student panel is mobile/tab first).
+**Goal:** Admin can create a package end-to-end and land in the (still-empty) editor.
 
----
+Scope:
 
-### Integration
+- `CreatePackage.tsx` orchestrator with a slim step indicator (~56px tall, dots + labels, no giant stepper bar).
+- `StepIdentity.tsx` — name, description, source-type radio, source picker.
+- `StepShape.tsx` — grades multi-select; for each picked grade, inline subjects multi-select shown as a chip row. One row per grade keeps it scannable without scroll for up to ~6 grades.
+- `StepInclusions.tsx` — three toggle cards (Chapter Tests / Grand Tests / PYPs), each with one-sentence helper text.
 
-- Register all 5 docs in `src/data/docsNavigation.ts` under a new **"Student Reports QA"** category nested in `06-testing-scenarios/inter-login-tests`.
-- Update `.lovable/plan.md` to track this as the next QA cycle.
+UI guardrails:
 
----
+- Wizard is **a centered column max-w-2xl** so form fields don't sprawl on widescreen.
+- "Next" stays sticky at the bottom of the viewport on mobile; inline on desktop.
+- No step lets the form exceed viewport height for the common case (≤ 6 grades); only Step 2 may scroll inside its grade list region if many grades selected.
 
-### Out of scope (intentionally)
-
-- Test Player flow (`/student/tests/:testId`) — that's exam-taking, not reports. Already covered in `exam-tests.md`.
-- Dashboard / Subjects landing / Timetable tabs — these are not "reports". The user explicitly scoped this to reports.
-- Copilot insights — separate feature with its own architecture memory.
-
-This keeps the suite **focused and not overboard**, mirroring the user's guidance.
+**Demo bar:** Run the wizard → finish → land in editor with the chosen shape persisted in mock data.
 
 ---
 
-## Status: COMPLETE
+## Phase 4 — Editor shell (browse-only, no composer yet)
 
-- Created `student-reports-setup-and-preconditions-qa.md` (shared prerequisites, login matrix, data floor, threshold reference, reset protocol)
-- Created `student-progress-overview-qa.md` (header, hero, standing, subject grid, trend chart, weekly activity, responsiveness)
-- Created `student-progress-subjects-qa.md` (grid, deep-dive, cross-tab handoff, multi-track, empty states)
-- Created `student-progress-exams-qa.md` (4 test types, auto-select, standing card, trend consistency, cross-login, multi-subject math)
-- Created `student-progress-insights-qa.md` (banner, streak, radar, weekly activity duplication, at-risk cross-surface, lazy load)
-- Registered all 5 docs in `src/data/docsNavigation.ts` under new "Student Reports QA" category
+**Goal:** The grade/subject/chapter browser that becomes the daily workhorse, read-only.
+
+Scope:
+
+- `PackageEditor.tsx` shell:
+  - **Top bar** (~56px): package name, status pill, `[Settings]` `[Publish]` buttons.
+  - **Grade switcher** (~48px): pill row of grades from the package shape.
+  - **Subject tabs** (~44px): horizontal scroll-snap row only if subjects > 5, otherwise even spread.
+  - **Chapter accordion** (the canvas): chapters from master data scoped to active `Curriculum/Course × Grade × Subject`. Each chapter row shows lesson count + test count. Expanded body shows placeholder rows for lessons / attachments with "+ Add lesson plan" / "+ Attach test" buttons (disabled this phase).
+
+UI guardrails:
+
+- Three header strips together stay **under 160px** total so the chapter canvas owns ≥ 75% of the viewport.
+- Accordion bodies expand inline; only the chapter list region scrolls vertically when content overflows.
+- At `< md`, grade switcher becomes a select; subject tabs stay (they're the primary navigation).
+
+**Demo bar:** Switch grade → switch subject → expand a chapter → see its (empty) lesson slots.
+
+---
+
+## Phase 5 — Lesson composer + attach pickers (the heavy phase)
+
+**Goal:** Actually add lesson plans and attach tests. This is where the package becomes useful.
+
+Scope split into two sub-deliverables so the phase stays demoable mid-way:
+
+**5a — Attach pickers (lighter, ship first):**
+- `AttachTestSheet.tsx` — right-side sheet listing existing exams from the Exam module, filtered to active subject. Search + type filter (Chapter Test / Grand Test / PYP). Multi-select with `[Attach N]` action.
+- Wire "+ Attach test" / "+ Attach grand test" / "+ Attach PYP" buttons.
+- Show attached items in the chapter accordion with a `⋯` menu (Remove, Reorder).
+
+**5b — Lesson composer (the big one):**
+- `PackageLessonComposer.tsx` — thin wrapper at `/superadmin/packages/:id/lesson/:lpId` that mounts the existing teacher workspace (`WorkspaceCanvas`, `BlockDialog`, `ContentLibrarySheet`, `QuestionBankSheet`, `HomeworkBlockDialog`, `AIAssistDialog`) in a new `mode: 'package'` configuration.
+- Context bar shows `Package › Grade › Subject › Chapter` instead of `Batch › Date`.
+- Strip out batch-only affordances (Start Class, scheduled date).
+- Save writes to `PackageLessonPlan` in mock data.
+- Add `dnd-kit` sortable on lessons within a chapter and chapters within a subject.
+
+UI guardrails:
+
+- The composer reuses the existing teacher workspace layout untouched — no re-skinning, no shrinking. Consistency across roles is more valuable than custom chrome here.
+- Sheet pickers cap at **560px width on desktop**, full-width on mobile, with the action bar pinned to the bottom so the list region is the only scroll zone.
+
+**Demo bar (5a):** Attach a chapter test, a grand test, and a PYP. **Demo bar (5b):** Create a lesson with explain/quiz/homework blocks, reorder lessons, save and reopen.
+
+---
+
+## Phase 6 — Settings, publish, archive
+
+**Goal:** Lifecycle controls — close out the SuperAdmin scope.
+
+Scope:
+
+- `PackageSettings.tsx` side sheet from `[Settings]` button:
+  - Rename, description edit
+  - Add/remove grades (guard: confirmation if lessons exist under it)
+  - Add/remove subjects per grade (same guard)
+  - Toggle Chapter Tests / Grand Tests / PYP inclusion
+  - Archive (soft) — moves out of default list view
+- Publish flow:
+  - `[Publish]` button disabled until ≥ 1 lesson plan exists; tooltip explains why.
+  - On publish: confirmation dialog, status flips to `Published`.
+- List view gets a `[Show archived]` toggle and a `Status: Draft / Published / All` segmented control in the header (kept thin — ~40px row).
+
+UI guardrails:
+
+- Settings sheet is **single-column**, sections separated by labeled dividers — not nested tabs. Nesting tabs in a sheet creates the cramped feel you flagged.
+- Destructive actions (archive, remove grade) use the destructive button variant + confirm dialog.
+
+**Demo bar:** Open settings → toggle inclusions, archive a package, publish another → confirm it surfaces under the new filters.
+
+---
+
+## Phase summary table
+
+```text
+Phase  Name                          Approx. effort   Demoable result
+1      Foundation                    Small            Sidebar entry + empty Packages page
+2      List view                     Small-Medium     Two-pane browse of seed packages
+3      Create wizard                 Medium           End-to-end package creation
+4      Editor shell (read-only)      Medium           Grade/subject/chapter browser
+5a     Attach pickers                Small            Tests/grand tests attached
+5b     Lesson composer (reuse)       Large            Full lesson authoring inside packages
+6      Settings, publish, archive    Small-Medium     Lifecycle complete
+```
+
+After Phase 6, SuperAdmin is feature-complete and we can move to the Institute panel (out of scope here).
+
+---
+
+## What stays out across all phases
+
+- Institute / Teacher / Student panel surfaces.
+- Custom-course auto-assembled virtual packages.
+- Versioning, diffs, change notifications.
+- Supabase persistence (mock-only this scope).
+- Bulk operations (bulk duplicate packages, bulk reassign lessons).
+
+---
+
+**Confirm phase ordering or call out anything you'd resequence, and I'll start Phase 1.**
