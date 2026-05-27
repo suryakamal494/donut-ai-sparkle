@@ -12,6 +12,7 @@ export interface ContentItem {
   description?: string;
   duration?: string;
   thumbnail?: string;
+  previewUrl?: string;
 }
 
 export const contentTypeConfig: Record<ContentItem['type'], { icon: typeof Video; color: string; bgColor: string }> = {
