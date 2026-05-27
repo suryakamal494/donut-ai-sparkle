@@ -60,6 +60,50 @@ export const getAttachmentsForChapter = (
     .filter((a) => a.packageId === packageId && a.chapterId === chapterId)
     .sort((a, b) => a.order - b.order);
 
+/** Grand tests live at the package level (no chapterId). */
+export const getGrandTestsForPackage = (packageId: string): PackageAttachment[] =>
+  attachments
+    .filter((a) => a.packageId === packageId && a.kind === "grand-test" && !a.chapterId)
+    .sort((a, b) => a.order - b.order);
+
+export const attachExamsToPackage = (
+  packageId: string,
+  examIds: string[],
+  scope: {
+    kind: PackageAttachment["kind"];
+    gradeId: string;
+    subjectId: string;
+    chapterId?: string;
+  },
+): void => {
+  const existing = attachments.filter(
+    (a) =>
+      a.packageId === packageId &&
+      a.gradeId === scope.gradeId &&
+      a.subjectId === scope.subjectId &&
+      (a.chapterId ?? null) === (scope.chapterId ?? null) &&
+      a.kind === scope.kind,
+  );
+  const startOrder = existing.length;
+  const fresh: PackageAttachment[] = examIds
+    .filter((eid) => !existing.some((a) => a.examId === eid))
+    .map((examId, i) => ({
+      id: `${packageId}-${scope.kind}-${examId}-${Date.now()}-${i}`,
+      packageId,
+      gradeId: scope.gradeId,
+      subjectId: scope.subjectId,
+      chapterId: scope.chapterId,
+      kind: scope.kind,
+      examId,
+      order: startOrder + i,
+    }));
+  attachments = [...attachments, ...fresh];
+};
+
+export const removeAttachment = (attachmentId: string): void => {
+  attachments = attachments.filter((a) => a.id !== attachmentId);
+};
+
 /** Shape summary like "2 grades · 5 subjects". */
 export const summarizeShape = (pkg: Package): string => {
   const gradeCount = pkg.shape.length;
