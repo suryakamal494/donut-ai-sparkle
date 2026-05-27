@@ -4,12 +4,11 @@ import { ArrowLeft, Save, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
-  WorkspaceToolbar,
   WorkspaceCanvas,
   WorkspaceFooter,
-  AIAssistDialog,
+  QuizDialog,
+  detectLinkType,
   type LessonPlanBlock,
   type BlockType,
 } from "@/components/teacher/lesson-workspace";
@@ -21,6 +20,19 @@ import {
 } from "@/data/packages";
 import { getSubjectById, curriculums, courses } from "@/data/masterData";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
+import { PackageWorkspaceToolbar } from "@/components/packages/editor/PackageWorkspaceToolbar";
+import { ChapterContentSheet } from "@/components/packages/editor/ChapterContentSheet";
+import type { ContentItem } from "@/data/contentLibraryData";
+
+const GRADE_LABEL: Record<string, string> = {
+  "class-6": "Class 6",
+  "class-7": "Class 7",
+  "class-8": "Class 8",
+  "class-9": "Class 9",
+  "class-10": "Class 10",
+  "class-11": "Class 11",
+  "class-12": "Class 12",
+};
 
 const PackageLessonComposer = () => {
   const navigate = useNavigate();
@@ -48,13 +60,15 @@ const PackageLessonComposer = () => {
     const list = getChaptersForScope(pkg.sourceType, pkg.sourceId, gradeId, subjectId);
     return list.find((c) => c.id === chapterId)?.name ?? "Chapter";
   }, [pkg, gradeId, subjectId, chapterId]);
+  const pathLabel = useMemo(() => {
+    const cls = GRADE_LABEL[gradeId] ?? gradeId;
+    return [sourceName, cls, subjectName, chapterName].filter(Boolean).join(" › ");
+  }, [sourceName, gradeId, subjectName, chapterName]);
 
   const [planTitle, setPlanTitle] = useState(existing?.title ?? "");
   const [blocks, setBlocks] = useState<LessonPlanBlock[]>(existing?.blocks ?? []);
-  const [topic, setTopic] = useState(existing?.topics?.[0] ?? "");
-  const [activeBlockType, setActiveBlockType] = useState<BlockType | null>(null);
-  const [showAIDialog, setShowAIDialog] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [showContentSheet, setShowContentSheet] = useState(false);
+  const [showQuizDialog, setShowQuizDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   if (!pkg) {
@@ -74,52 +88,39 @@ const PackageLessonComposer = () => {
 
   const handleAddBlock = useCallback((block: Omit<LessonPlanBlock, "id">) => {
     setBlocks((prev) => [...prev, { ...block, id: `block-${Date.now()}` }]);
-    setActiveBlockType(null);
   }, []);
-  const handleBlockClick = (type: BlockType) =>
-    setActiveBlockType(activeBlockType === type ? null : type);
+
   const handleEditBlock = (block: LessonPlanBlock) =>
     toast({ title: "Edit Block", description: `Editing: ${block.title}` });
   const handleDeleteBlock = (blockId: string) =>
     setBlocks((prev) => prev.filter((b) => b.id !== blockId));
   const handleReorderBlocks = (next: LessonPlanBlock[]) => setBlocks(next);
-  const handleAddBetween = (index: number, type: BlockType) => {
-    const newBlock: LessonPlanBlock = {
-      id: `block-${Date.now()}`,
-      type,
-      title: "",
-      source: "custom",
-      duration: 10,
-    };
-    setBlocks((prev) => [...prev.slice(0, index), newBlock, ...prev.slice(index)]);
-  };
+  // Packages composer has no "insert between" affordance — toolbar appends only.
+  const handleAddBetween = (_index: number, _type: BlockType) => {};
 
-  const handleAIGenerate = async () => {
-    if (!topic) return;
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("lesson-plan-ai", {
-        body: { action: "generate_plan", topic, subject: subjectName, chapter: chapterName },
-      });
-      if (error) throw error;
-      if (data?.data?.blocks) {
-        const next: LessonPlanBlock[] = data.data.blocks.map((b: any, i: number) => ({
-          id: `block-ai-${Date.now()}-${i}`,
-          type: ["explain", "demonstrate", "quiz", "homework"].includes(b.type) ? b.type : "explain",
-          title: b.title || "",
-          content: b.content || "",
-          duration: b.duration || 10,
-          source: "ai" as const,
-          aiGenerated: true,
-        }));
-        setBlocks(next);
-        toast({ title: "Lesson Generated", description: `Created ${next.length} blocks` });
-      }
-    } catch (e: any) {
-      toast({ title: "Generation Failed", description: e.message, variant: "destructive" });
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleAttachContent = (items: ContentItem[]) => {
+    const now = Date.now();
+    const newBlocks: LessonPlanBlock[] = items.map((item, i) => {
+      const url = item.description?.startsWith("http") ? item.description : "";
+      return {
+        id: `block-${now}-${i}`,
+        type: "explain",
+        title: item.title,
+        content: item.description,
+        source: "library",
+        sourceId: item.id,
+        sourceType: item.type,
+        attachmentUrl: url || undefined,
+        embedUrl: url || undefined,
+        linkType: url ? detectLinkType(url) : undefined,
+        duration: 10,
+      };
+    });
+    setBlocks((prev) => [...prev, ...newBlocks]);
+    toast({
+      title: "Attached",
+      description: `${items.length} item${items.length === 1 ? "" : "s"} added to lesson.`,
+    });
   };
 
   const handleSave = async () => {
@@ -141,7 +142,7 @@ const PackageLessonComposer = () => {
       chapterId,
       order,
       title: planTitle.trim(),
-      topics: topic ? [topic] : existing?.topics ?? [],
+      topics: existing?.topics ?? [],
       blocks,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -191,21 +192,16 @@ const PackageLessonComposer = () => {
       </header>
 
       {/* Context chip row */}
-      <div className="px-4 md:px-6 py-2 border-b bg-muted/20 text-[11px] text-muted-foreground">
-        {pkg.sourceType === "curriculum" ? "Curriculum" : "Course"}: {sourceName}
+      <div className="px-4 md:px-6 py-2 border-b bg-muted/20 text-[11px] text-muted-foreground truncate">
+        {pathLabel}
       </div>
 
       {/* Composer body */}
       <main className="flex-1 overflow-y-auto">
         <div className="space-y-4 max-w-4xl mx-auto px-4 md:px-6 py-4 pb-24">
-          <WorkspaceToolbar
-            onBlockClick={handleBlockClick}
-            onAIAssist={() => setShowAIDialog(true)}
-            onAddBlock={handleAddBlock}
-            isGenerating={isGenerating}
-            activeBlock={activeBlockType}
-            chapter={chapterName}
-            subject={subjectName}
+          <PackageWorkspaceToolbar
+            onAddContent={() => setShowContentSheet(true)}
+            onAddQuiz={() => setShowQuizDialog(true)}
           />
 
           <WorkspaceCanvas
@@ -214,6 +210,7 @@ const PackageLessonComposer = () => {
             onEditBlock={handleEditBlock}
             onDeleteBlock={handleDeleteBlock}
             onAddBetween={handleAddBetween}
+            mode="packages"
           />
 
           <WorkspaceFooter
@@ -226,16 +223,21 @@ const PackageLessonComposer = () => {
         </div>
       </main>
 
-      <AIAssistDialog
-        open={showAIDialog}
-        onOpenChange={setShowAIDialog}
-        topic={topic}
+      <ChapterContentSheet
+        open={showContentSheet}
+        onOpenChange={setShowContentSheet}
+        subjectName={subjectName}
+        chapterName={chapterName}
+        pathLabel={pathLabel}
+        onAttach={handleAttachContent}
+      />
+
+      <QuizDialog
+        open={showQuizDialog}
+        onOpenChange={setShowQuizDialog}
+        onAddBlock={handleAddBlock}
         chapter={chapterName}
         subject={subjectName}
-        onTopicChange={setTopic}
-        onChapterChange={() => {}}
-        onGenerate={handleAIGenerate}
-        isGenerating={isGenerating}
       />
     </div>
   );

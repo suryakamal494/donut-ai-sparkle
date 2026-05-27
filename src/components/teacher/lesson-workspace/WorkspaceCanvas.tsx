@@ -30,6 +30,12 @@ interface WorkspaceCanvasProps {
   onEditBlock: (block: LessonPlanBlock) => void;
   onDeleteBlock: (blockId: string) => void;
   onAddBetween: (index: number, type: BlockType) => void;
+  /**
+   * "packages" mode hides the 4-block-type empty-state legend and the bottom
+   * "Add Content" button (the SuperAdmin Packages composer renders its own
+   * two-action toolbar above the canvas instead).
+   */
+  mode?: "teacher" | "packages";
 }
 
 export const WorkspaceCanvas = ({
@@ -38,6 +44,7 @@ export const WorkspaceCanvas = ({
   onEditBlock,
   onDeleteBlock,
   onAddBetween,
+  mode = "teacher",
 }: WorkspaceCanvasProps) => {
   const [previewBlock, setPreviewBlock] = useState<LessonPlanBlock | null>(null);
   const [activeBlock, setActiveBlock] = useState<LessonPlanBlock | null>(null);
@@ -83,9 +90,12 @@ export const WorkspaceCanvas = ({
             Start building your lesson
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Use the toolbar above to add teaching blocks. Drag and drop to reorder.
+            {mode === "packages"
+              ? "Use the buttons above to attach existing content or add a quiz. Drag to reorder."
+              : "Use the toolbar above to add teaching blocks. Drag and drop to reorder."}
           </p>
-          
+
+          {mode === "teacher" && (
           <div className="grid grid-cols-2 gap-3 text-left">
             {(['explain', 'demonstrate', 'quiz', 'homework'] as BlockType[]).map((type) => {
               const config = blockTypeConfig[type];
@@ -118,6 +128,7 @@ export const WorkspaceCanvas = ({
               );
             })}
           </div>
+          )}
         </div>
       </div>
     );
@@ -147,18 +158,20 @@ export const WorkspaceCanvas = ({
             />
           ))}
           
-          {/* Single Add Content Button at Bottom */}
-          <div className="pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-10 gap-2 border-dashed border-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5"
-              onClick={() => onAddBetween(blocks.length, 'explain')}
-            >
-              <Plus className="w-4 h-4" />
-              Add Content
-            </Button>
-          </div>
+          {/* Single Add Content Button at Bottom (teacher mode only — packages has its own toolbar) */}
+          {mode === "teacher" && (
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-10 gap-2 border-dashed border-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5"
+                onClick={() => onAddBetween(blocks.length, 'explain')}
+              >
+                <Plus className="w-4 h-4" />
+                Add Content
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Content Preview Dialog */}
