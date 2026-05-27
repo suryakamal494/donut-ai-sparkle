@@ -1,187 +1,78 @@
-# Lesson Packages — SuperAdmin Phased Implementation Plan
 
-Six small phases. Each phase is independently demoable and leaves the app in a working state. UI quality is treated as a first-class deliverable in every phase — not deferred to a "polish" phase at the end.
+## Goal
 
----
+Right now both seeded packages are essentially empty (`mockPackageLessonPlans = []`, `mockPackageAttachments = []`). Every chapter accordion shows "Nothing added yet", so we cannot judge whether the editor handles real volume — 5+ chapters, 4–5 lesson plans each, chapter tests, PYPs, grand tests. This plan seeds rich, repeated mock data, then audits what the UI does at that volume and lists the fixes worth making.
 
-## UI principles applied to every phase
+## 1. Mock data — what we seed
 
-These are non-negotiable while building each screen:
+We add two fully-populated packages. Content is intentionally repeated (same PPT/PDF/video URLs reused across blocks) — the point is volume, not uniqueness.
 
-- **No forced scroll, no forced compactness.** Use proportionate space: header chrome stays around **15–20%** of viewport height, primary content gets the rest. Cards size to content, not to fill.
-- **Vertical scroll only inside designated regions** (e.g. chapter list, lesson list) — never the whole page bouncing.
-- **No horizontal scroll**, ever. Wide content uses tabs, accordions, or column collapse at `lg` / `md` breakpoints.
-- **Density by zone**: chrome (header/tabs/toolbar) = tight; canvas (editor/wizard body) = breathing room.
-- **Mobile-first audit at 320px** after each phase — even though SuperAdmin is desktop-led, the layout must not break.
-- **Reuse the Sophisticated Warmth tokens** from `index.css`. No raw colors.
-- **Plus Jakarta Sans**, 44px+ touch targets, semantic shadcn components only.
+### Package A — "CBSE Foundation Pack" (curriculum: cbse)
+- **Shape**: Class 6 + Class 7, subjects Mathematics, Science, English, Social Science (4 subjects × 2 grades = 8 grade-subject cells).
+- **Inclusions**: chapterTests ✅, grandTests ✅, PYPs ❌.
+- **Depth per cell**:
+  - Pick first **5 chapters** per (grade, subject) from `allCBSEChapters` (Math chapters already exist; Science/English/SST will use whatever exists in `cbseMasterData`; if a subject has < 5 chapters we just take what's there — no new master data is invented).
+  - Each chapter gets **4–5 lesson plans** (e.g. "Introduction", "Core Concepts", "Worked Examples", "Practice", "Recap").
+  - Each lesson plan has **6–10 blocks** mixing all four block types (`explain`, `demonstrate`, `quiz`, `homework`) with repeating dummy YouTube/Google Slides/PDF URLs.
+  - Each chapter gets **1 chapter-test attachment** (reusing existing `teacherExams` ids in round-robin).
+- **Grand tests**: 3 package-level grand tests.
+- **Expected totals**: ~8 cells × 5 chapters × 4.5 lessons ≈ **180 lesson plans**, ~40 chapter tests, 3 grand tests.
 
----
+### Package B — "JEE Mains Accelerator" (course: jee-mains)
+- **Shape**: Class 11 + Class 12, subjects Physics, Chemistry, Mathematics.
+- **Inclusions**: chapterTests ✅, grandTests ✅, PYPs ✅.
+- **Depth per cell**: 5 chapters, **5 lesson plans** each (slightly heavier — competitive prep), 8–12 blocks per lesson, heavier on `demonstrate` (solved problems) and `quiz` blocks.
+- **Per chapter**: 1 chapter test + 1 PYP attachment.
+- **Grand tests**: 5 package-level mock tests ("Full Mock 1" … "Full Mock 5").
+- **Expected totals**: 6 cells × 5 chapters × 5 lessons = **150 lesson plans**, 30 chapter tests, 30 PYPs, 5 grand tests.
 
-## Phase 1 — Foundation (data + routing + empty shell)
+### Implementation
+- New file: `src/data/packages/mockSeedGenerator.ts` — pure functions that build `PackageLessonPlan[]` and `PackageAttachment[]` from a config (grade, subject, chapters list, lessons-per-chapter, blocks-per-lesson). Deterministic ids (`pkg-{packageId}-lp-{gradeId}-{subjectId}-{chapterId}-{n}`), deterministic order. No `Math.random` — use index-driven cycling so re-renders stay stable (per project memory rule on data stability).
+- Update `src/data/packages/mockPackages.ts`:
+  - Replace the two existing demo packages with Package A & B above (keep the third "Physics Accelerator" or remove — TBD: remove to avoid duplicate JEE pack).
+  - Populate `mockPackageLessonPlans` and `mockPackageAttachments` via the generator at module load.
+- Reuse `teacherExams` for attachment `examId`s (round-robin) so the editor's name lookup keeps working.
+- Block content reuses a small URL pool:
+  - PPT: 1 Google Slides URL repeated
+  - PDF: 1 PDF URL repeated
+  - Video: 2 YouTube URLs repeated
+  - Quiz: text-only block with sample question text
+  - Homework: text-only
 
-**Goal:** "Packages" appears in the SuperAdmin sidebar and opens to a clean empty state. Nothing else.
+No new master data is created — we only consume `allCBSEChapters`, `courseOwnedChapters`, and existing `teacherExams`.
 
-Scope:
+## 2. UI audit — what we expect to break and what we'll fix
 
-- `src/types/packages.ts` — `Package`, `PackageLessonPlan`, `PackageAttachment` types.
-- `src/data/packages/` — `mockPackages.ts` with 2–3 seed packages, `helpers.ts` (getters/setters in-memory).
-- Route registration in `SuperAdminRoutes.tsx`:
-  - `/superadmin/packages` → list page (empty state for now)
-  - `/superadmin/packages/new` → wizard placeholder
-  - `/superadmin/packages/:id` → editor placeholder
-- Sidebar entry in `Sidebar.tsx` with `Package` icon (lucide), placed under "Master Data".
+Once seeded, here is what the current editor will likely struggle with. We confirm each by loading the seeded packages, then fix in this same pass:
 
-UI deliverables:
+| Surface | Likely issue at scale | Proposed fix |
+|---|---|---|
+| `Packages.tsx` list card | `summarizeCounts` returns raw lessons + tests numbers; with 180 lessons the card looks fine but no breakdown | Show "180 lessons · 40 tests · 3 grand · 0 PYPs" small line |
+| `ChapterAccordion` (open chapter with 5 lessons + 1 test) | Fine for 5, but if all chapters were opened it'd be a long page | Keep single-open behavior (already correct); add "Expand all / Collapse all" toggle |
+| Chapter row | Only shows `lessons.length` and `attachments.length` icons | Add a small chip showing block count total (`Σ blocks`) so the density is visible |
+| Lesson row inside accordion | Shows "X blocks" — but with 10 blocks the lesson title can be cramped on narrow viewports (we're at 1046px so fine; on tablet it will wrap) | Move block count to a chip on second line under 640px |
+| `GrandTestsSection` | Renders a flat `<ul>`; 5 items ok, but no grouping by subject/grade | Group grand tests by subject when > 3 items |
+| `AttachTestSheet` | Lists all `teacherExams` filtered by subject; ours are ~10 so fine | No change |
+| `SubjectTabs` (Package A has 4 subjects per grade) | Currently horizontal tabs — at 320px width 4 subject names overflow | Add horizontal scroll-snap + chevron affordance |
+| `GradeSwitcher` (2 grades only) | Fine | No change |
+| `PackageEditor` header | Title + status + Settings + Publish — at 360px the publish label collapses to icon already; status pill hidden under `sm` | Keep as-is |
+| Performance | All helpers do array `filter` on every render; with 180 lessons × 5 re-renders this is still trivial | Defer — no change now |
 
-- Empty state page with a centered illustration block, one-line value prop, single `[+ Create your first package]` CTA. No filters, no chrome bloat.
-- Page header is a thin breadcrumb + title row (~64px), not a hero.
+We will **not** rebuild any flows, only the small affordances above. If the audit surfaces something worse than expected we'll flag it before changing more.
 
-**Demo bar:** Click sidebar → land on Packages → see empty state → buttons route correctly.
+## 3. Deliverables
 
----
+1. `src/data/packages/mockSeedGenerator.ts` — generator helpers (new).
+2. `src/data/packages/mockPackages.ts` — rewritten with the two rich packages and seeded arrays.
+3. `src/components/packages/PackageCard.tsx` — richer count line.
+4. `src/components/packages/editor/ChapterAccordion.tsx` — block-count chip + "Expand all / Collapse all" toggle (toggle lives in `PackageEditor` toolbar).
+5. `src/components/packages/editor/SubjectTabs.tsx` — horizontal scroll-snap on narrow widths.
+6. `src/pages/packages/PackageEditor.tsx` — wire the expand/collapse toggle; group grand tests by subject when > 3.
 
-## Phase 2 — List view (two-pane browser)
+No backend, no route changes, no new pages. No changes to lesson composer, settings sheet, or attach-test sheet behavior.
 
-**Goal:** Browse existing packages by curriculum/course source.
+## 4. Open questions before I build
 
-Scope:
-
-- `PackageSourceTree.tsx` (left pane, ~260px): collapsible tree, two roots — Curriculums, Courses. Counts on the right.
-- `PackageCard.tsx` (right pane): one card per package showing name, source chip, shape summary (`2 grades · 4 subjects`), counts (`28 lessons · 8 tests`), status pill.
-- Right pane uses `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3` so cards fill width without horizontal scroll and without becoming oversized at xl.
-
-UI guardrails:
-
-- Cards: **~180px tall**, not 300+. Information-dense without feeling cramped.
-- Left tree collapses to icons below `md`; on mobile becomes a top dropdown selector.
-- The `[+ New Package]` CTA is a **floating action button** at bottom-right on mobile, top-right in desktop header — never duplicated.
-
-**Demo bar:** Pick "CBSE" in the tree → only CBSE packages show on the right → click a card → routes to editor (still placeholder).
-
----
-
-## Phase 3 — Create wizard (3 steps)
-
-**Goal:** Admin can create a package end-to-end and land in the (still-empty) editor.
-
-Scope:
-
-- `CreatePackage.tsx` orchestrator with a slim step indicator (~56px tall, dots + labels, no giant stepper bar).
-- `StepIdentity.tsx` — name, description, source-type radio, source picker.
-- `StepShape.tsx` — grades multi-select; for each picked grade, inline subjects multi-select shown as a chip row. One row per grade keeps it scannable without scroll for up to ~6 grades.
-- `StepInclusions.tsx` — three toggle cards (Chapter Tests / Grand Tests / PYPs), each with one-sentence helper text.
-
-UI guardrails:
-
-- Wizard is **a centered column max-w-2xl** so form fields don't sprawl on widescreen.
-- "Next" stays sticky at the bottom of the viewport on mobile; inline on desktop.
-- No step lets the form exceed viewport height for the common case (≤ 6 grades); only Step 2 may scroll inside its grade list region if many grades selected.
-
-**Demo bar:** Run the wizard → finish → land in editor with the chosen shape persisted in mock data.
-
----
-
-## Phase 4 — Editor shell (browse-only, no composer yet)
-
-**Goal:** The grade/subject/chapter browser that becomes the daily workhorse, read-only.
-
-Scope:
-
-- `PackageEditor.tsx` shell:
-  - **Top bar** (~56px): package name, status pill, `[Settings]` `[Publish]` buttons.
-  - **Grade switcher** (~48px): pill row of grades from the package shape.
-  - **Subject tabs** (~44px): horizontal scroll-snap row only if subjects > 5, otherwise even spread.
-  - **Chapter accordion** (the canvas): chapters from master data scoped to active `Curriculum/Course × Grade × Subject`. Each chapter row shows lesson count + test count. Expanded body shows placeholder rows for lessons / attachments with "+ Add lesson plan" / "+ Attach test" buttons (disabled this phase).
-
-UI guardrails:
-
-- Three header strips together stay **under 160px** total so the chapter canvas owns ≥ 75% of the viewport.
-- Accordion bodies expand inline; only the chapter list region scrolls vertically when content overflows.
-- At `< md`, grade switcher becomes a select; subject tabs stay (they're the primary navigation).
-
-**Demo bar:** Switch grade → switch subject → expand a chapter → see its (empty) lesson slots.
-
----
-
-## Phase 5 — Lesson composer + attach pickers (the heavy phase)
-
-**Goal:** Actually add lesson plans and attach tests. This is where the package becomes useful.
-
-Scope split into two sub-deliverables so the phase stays demoable mid-way:
-
-**5a — Attach pickers (lighter, ship first):**
-- `AttachTestSheet.tsx` — right-side sheet listing existing exams from the Exam module, filtered to active subject. Search + type filter (Chapter Test / Grand Test / PYP). Multi-select with `[Attach N]` action.
-- Wire "+ Attach test" / "+ Attach grand test" / "+ Attach PYP" buttons.
-- Show attached items in the chapter accordion with a `⋯` menu (Remove, Reorder).
-
-**5b — Lesson composer (the big one):**
-- `PackageLessonComposer.tsx` — thin wrapper at `/superadmin/packages/:id/lesson/:lpId` that mounts the existing teacher workspace (`WorkspaceCanvas`, `BlockDialog`, `ContentLibrarySheet`, `QuestionBankSheet`, `HomeworkBlockDialog`, `AIAssistDialog`) in a new `mode: 'package'` configuration.
-- Context bar shows `Package › Grade › Subject › Chapter` instead of `Batch › Date`.
-- Strip out batch-only affordances (Start Class, scheduled date).
-- Save writes to `PackageLessonPlan` in mock data.
-- Add `dnd-kit` sortable on lessons within a chapter and chapters within a subject.
-
-UI guardrails:
-
-- The composer reuses the existing teacher workspace layout untouched — no re-skinning, no shrinking. Consistency across roles is more valuable than custom chrome here.
-- Sheet pickers cap at **560px width on desktop**, full-width on mobile, with the action bar pinned to the bottom so the list region is the only scroll zone.
-
-**Demo bar (5a):** Attach a chapter test, a grand test, and a PYP. **Demo bar (5b):** Create a lesson with explain/quiz/homework blocks, reorder lessons, save and reopen.
-
----
-
-## Phase 6 — Settings, publish, archive
-
-**Goal:** Lifecycle controls — close out the SuperAdmin scope.
-
-Scope:
-
-- `PackageSettings.tsx` side sheet from `[Settings]` button:
-  - Rename, description edit
-  - Add/remove grades (guard: confirmation if lessons exist under it)
-  - Add/remove subjects per grade (same guard)
-  - Toggle Chapter Tests / Grand Tests / PYP inclusion
-  - Archive (soft) — moves out of default list view
-- Publish flow:
-  - `[Publish]` button disabled until ≥ 1 lesson plan exists; tooltip explains why.
-  - On publish: confirmation dialog, status flips to `Published`.
-- List view gets a `[Show archived]` toggle and a `Status: Draft / Published / All` segmented control in the header (kept thin — ~40px row).
-
-UI guardrails:
-
-- Settings sheet is **single-column**, sections separated by labeled dividers — not nested tabs. Nesting tabs in a sheet creates the cramped feel you flagged.
-- Destructive actions (archive, remove grade) use the destructive button variant + confirm dialog.
-
-**Demo bar:** Open settings → toggle inclusions, archive a package, publish another → confirm it surfaces under the new filters.
-
----
-
-## Phase summary table
-
-```text
-Phase  Name                          Approx. effort   Demoable result
-1      Foundation                    Small            Sidebar entry + empty Packages page
-2      List view                     Small-Medium     Two-pane browse of seed packages
-3      Create wizard                 Medium           End-to-end package creation
-4      Editor shell (read-only)      Medium           Grade/subject/chapter browser
-5a     Attach pickers                Small            Tests/grand tests attached
-5b     Lesson composer (reuse)       Large            Full lesson authoring inside packages
-6      Settings, publish, archive    Small-Medium     Lifecycle complete
-```
-
-After Phase 6, SuperAdmin is feature-complete and we can move to the Institute panel (out of scope here).
-
----
-
-## What stays out across all phases
-
-- Institute / Teacher / Student panel surfaces.
-- Custom-course auto-assembled virtual packages.
-- Versioning, diffs, change notifications.
-- Supabase persistence (mock-only this scope).
-- Bulk operations (bulk duplicate packages, bulk reassign lessons).
-
----
-
-**Confirm phase ordering or call out anything you'd resequence, and I'll start Phase 1.**
+1. **Third existing package** (`jee-mains-physics-accelerator`) — keep it as a small "skinny" example, or remove since Package B covers JEE Mains more deeply?
+2. **Lesson plans per chapter** — confirm 4–5 (CBSE) / 5 (JEE) is the right target, or go denser (e.g. 8) to truly stress the accordion?
+3. **Should Package A also include PYPs** so we can see the PYP attachment UI populated, even though CBSE foundation doesn't usually carry PYPs?
