@@ -146,7 +146,12 @@ export const summarizeShape = (pkg: Package): string => {
 /** Counts of lessons + attachments for the list-view card. */
 export const summarizeCounts = (
   pkg: Package,
-): { lessons: number; tests: number } => ({
-  lessons: getLessonPlansForPackage(pkg.id).length,
-  tests: getAttachmentsForPackage(pkg.id).length,
-});
+): { lessons: number; tests: number; grand: number; pyp: number } => {
+  const atts = getAttachmentsForPackage(pkg.id);
+  return {
+    lessons: getLessonPlansForPackage(pkg.id).length,
+    tests: atts.filter((a) => a.kind === "chapter-test").length,
+    grand: atts.filter((a) => a.kind === "grand-test").length,
+    pyp: atts.filter((a) => a.kind === "pyp").length,
+  };
+};
