@@ -125,6 +125,41 @@ const PackageEditor = () => {
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
+
+  // Per-chapter aggregates for the rail + summary strip.
+  const railItems: ChapterRailItem[] = chapters.map((c) => {
+    const lessons = pkg.inclusions.lessonPlans
+      ? getLessonPlansForChapter(pkg.id, c.id)
+      : [];
+    const attachments = getAttachmentsForChapter(pkg.id, c.id).filter(
+      (a) => a.kind !== "grand-test",
+    );
+    return {
+      ...c,
+      lessonCount: lessons.length,
+      testCount: attachments.length,
+      progress: 0,
+    };
+  });
+  const maxLessons = Math.max(1, ...railItems.map((r) => r.lessonCount));
+  railItems.forEach((r) => {
+    r.progress = r.lessonCount / maxLessons;
+  });
+  const chaptersPopulated = railItems.filter(
+    (r) => r.lessonCount > 0 || r.testCount > 0,
+  ).length;
+  const totalBlocks = railItems.reduce((sum, r) => {
+    const lessons = getLessonPlansForChapter(pkg.id, r.id);
+    return sum + lessons.reduce((s, lp) => s + lp.blocks.length, 0);
+  }, 0);
+  const chapterTestTotal = railItems.reduce((s, r) => s + r.testCount, 0);
+  const grandTestItems = getGrandTestsForPackage(pkg.id);
+  const totalTests = chapterTestTotal + grandTestItems.length;
+  const activeChapterIndex =
+    view.kind === "chapter" ? chapters.findIndex((c) => c.id === view.id) : -1;
+  const activeChapter =
+    activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
+
   const anyTestInclusion =
     pkg.inclusions.chapterTests ||
     pkg.inclusions.grandTests ||
