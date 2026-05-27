@@ -48,8 +48,8 @@ const PackageCard = ({ pkg }: { pkg: Package }) => {
       </div>
 
       {/* Footer counts */}
-      <div className="flex items-center justify-between pt-2 mt-auto border-t border-border/60">
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between pt-2 mt-auto border-t border-border/60 gap-2">
+        <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap min-w-0">
           <span className="inline-flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" />
             {counts.lessons} lesson{counts.lessons === 1 ? "" : "s"}
@@ -58,8 +58,18 @@ const PackageCard = ({ pkg }: { pkg: Package }) => {
             <ClipboardList className="w-3.5 h-3.5" />
             {counts.tests} test{counts.tests === 1 ? "" : "s"}
           </span>
+          {counts.grand > 0 && (
+            <span className="inline-flex items-center gap-1 text-violet-700">
+              · {counts.grand} grand
+            </span>
+          )}
+          {counts.pyp > 0 && (
+            <span className="inline-flex items-center gap-1 text-amber-700">
+              · {counts.pyp} PYP
+            </span>
+          )}
         </div>
-        <MoreHorizontal className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        <MoreHorizontal className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
       </div>
     </button>
   );
