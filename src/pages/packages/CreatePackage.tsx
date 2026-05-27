@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Layers, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Check, Layers, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,6 +65,7 @@ const CreatePackage = () => {
 
   // Step 3
   const [inclusions, setInclusions] = useState<PackageInclusions>({
+    lessonPlans: true,
     chapterTests: true,
     grandTests: false,
     previousYearPapers: false,
@@ -104,8 +105,14 @@ const CreatePackage = () => {
   const step1Valid = name.trim().length >= 3 && sourceId.length > 0;
   const step2Valid =
     shape.length > 0 && shape.every((r) => r.subjectIds.length > 0);
+  const step3Valid =
+    inclusions.lessonPlans ||
+    inclusions.chapterTests ||
+    inclusions.grandTests ||
+    inclusions.previousYearPapers;
 
-  const canAdvance = step === 1 ? step1Valid : step === 2 ? step2Valid : true;
+  const canAdvance =
+    step === 1 ? step1Valid : step === 2 ? step2Valid : step3Valid;
 
   const handleNext = () => {
     if (!canAdvance) return;
@@ -348,6 +355,13 @@ const CreatePackage = () => {
 
               {[
                 {
+                  key: "lessonPlans" as const,
+                  title: "Lesson Plans (Content)",
+                  helper:
+                    "Author lesson plans with videos, PDFs, slides, and quizzes per chapter.",
+                  icon: BookOpen,
+                },
+                {
                   key: "chapterTests" as const,
                   title: "Chapter Tests",
                   helper:
@@ -388,6 +402,11 @@ const CreatePackage = () => {
                   />
                 </label>
               ))}
+              {!step3Valid && (
+                <p className="text-xs text-destructive pt-1">
+                  Enable at least one slot to continue.
+                </p>
+              )}
             </section>
           )}
         </div>
