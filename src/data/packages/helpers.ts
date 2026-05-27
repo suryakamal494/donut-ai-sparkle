@@ -38,6 +38,20 @@ export const archivePackage = (id: string): void => {
   );
 };
 
+export const publishPackage = (id: string): void => {
+  packages = packages.map((p) =>
+    p.id === id
+      ? { ...p, status: "published", updatedAt: new Date().toISOString() }
+      : p,
+  );
+};
+
+export const restorePackage = (id: string): void => {
+  packages = packages.map((p) =>
+    p.id === id ? { ...p, status: "draft", updatedAt: new Date().toISOString() } : p,
+  );
+};
+
 export const getLessonPlansForPackage = (packageId: string): PackageLessonPlan[] =>
   lessonPlans.filter((lp) => lp.packageId === packageId);
 

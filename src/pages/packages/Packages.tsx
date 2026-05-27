@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package as PackageIcon, Plus, Menu } from "lucide-react";
+import { Package as PackageIcon, Plus, Menu, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { getAllPackages } from "@/data/packages";
@@ -9,21 +9,36 @@ import PackageSourceTree, {
 } from "@/components/packages/PackageSourceTree";
 import PackageCard from "@/components/packages/PackageCard";
 import { curriculums, courses } from "@/data/masterData";
+import { cn } from "@/lib/utils";
+
+type StatusFilter = "all" | "draft" | "published";
 
 const Packages = () => {
   const navigate = useNavigate();
-  const allPackages = useMemo(
-    () => getAllPackages().filter((p) => p.status !== "archived"),
-    [],
-  );
+  const [showArchived, setShowArchived] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selection, setSelection] = useState<SourceSelection>({ kind: "all" });
 
+  const allPackages = useMemo(
+    () =>
+      showArchived
+        ? getAllPackages().filter((p) => p.status === "archived")
+        : getAllPackages().filter((p) => p.status !== "archived"),
+    [showArchived],
+  );
+
   const visiblePackages = useMemo(() => {
-    if (selection.kind === "all") return allPackages;
-    return allPackages.filter(
-      (p) => p.sourceType === selection.type && p.sourceId === selection.id,
-    );
-  }, [allPackages, selection]);
+    let list = allPackages;
+    if (selection.kind !== "all") {
+      list = list.filter(
+        (p) => p.sourceType === selection.type && p.sourceId === selection.id,
+      );
+    }
+    if (!showArchived && statusFilter !== "all") {
+      list = list.filter((p) => p.status === statusFilter);
+    }
+    return list;
+  }, [allPackages, selection, statusFilter, showArchived]);
 
   const selectionLabel =
     selection.kind === "all"
@@ -57,21 +72,51 @@ const Packages = () => {
               {selectionLabel}
             </p>
             <h1 className="text-lg font-semibold text-foreground leading-tight truncate">
-              Packages
+              {showArchived ? "Archived packages" : "Packages"}
             </h1>
           </div>
         </div>
-        <Button
-          onClick={() => navigate("/superadmin/packages/new")}
-          className="gap-2 hidden sm:inline-flex"
-          style={{
-            background: "linear-gradient(135deg, #F97316 0%, #EC4899 100%)",
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          New Package
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 hidden sm:inline-flex"
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            <Archive className="w-4 h-4" />
+            {showArchived ? "Active" : "Archived"}
+          </Button>
+          <Button
+            onClick={() => navigate("/superadmin/packages/new")}
+            className="gap-2 hidden sm:inline-flex"
+            style={{
+              background: "linear-gradient(135deg, #F97316 0%, #EC4899 100%)",
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            New Package
+          </Button>
+        </div>
       </header>
+
+      {!showArchived && (
+        <div className="px-4 md:px-6 h-10 border-b bg-background/60 flex items-center gap-1">
+          {(["all", "draft", "published"] as StatusFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "px-3 h-7 rounded-full text-xs font-medium capitalize transition-colors",
+                statusFilter === s
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {s === "all" ? "All" : s}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex-1 flex min-h-0">
         {/* Left tree — desktop only */}
