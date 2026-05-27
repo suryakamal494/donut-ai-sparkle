@@ -1,78 +1,75 @@
 
-## Goal
+## What I understood
 
-Right now both seeded packages are essentially empty (`mockPackageLessonPlans = []`, `mockPackageAttachments = []`). Every chapter accordion shows "Nothing added yet", so we cannot judge whether the editor handles real volume — 5+ chapters, 4–5 lesson plans each, chapter tests, PYPs, grand tests. This plan seeds rich, repeated mock data, then audits what the UI does at that volume and lists the fixes worth making.
+You're inside `/superadmin/packages/:id/lesson/new?grade&subject&chapter`. At this point Curriculum → Class → Subject → Chapter are already locked by the URL, so the composer should not behave like the teacher workspace (which builds plans from scratch with 4 block types).
 
-## 1. Mock data — what we seed
+For SuperAdmin Packages the job is **assembly, not authoring**:
+- Content already exists in the library (PPTs, PDFs, videos, animations, images).
+- A package lesson plan is just an **ordered list of references** to that content, optionally with one or more Quiz blocks attached.
+- The picker must be **scoped** to the current chapter — not the whole library — and there must be a tiny "quick add" path so the admin doesn't have to bounce to Content Library, upload, come back.
 
-We add two fully-populated packages. Content is intentionally repeated (same PPT/PDF/video URLs reused across blocks) — the point is volume, not uniqueness.
+### Your two points — are they valid?
 
-### Package A — "CBSE Foundation Pack" (curriculum: cbse)
-- **Shape**: Class 6 + Class 7, subjects Mathematics, Science, English, Social Science (4 subjects × 2 grades = 8 grade-subject cells).
-- **Inclusions**: chapterTests ✅, grandTests ✅, PYPs ❌.
-- **Depth per cell**:
-  - Pick first **5 chapters** per (grade, subject) from `allCBSEChapters` (Math chapters already exist; Science/English/SST will use whatever exists in `cbseMasterData`; if a subject has < 5 chapters we just take what's there — no new master data is invented).
-  - Each chapter gets **4–5 lesson plans** (e.g. "Introduction", "Core Concepts", "Worked Examples", "Practice", "Recap").
-  - Each lesson plan has **6–10 blocks** mixing all four block types (`explain`, `demonstrate`, `quiz`, `homework`) with repeating dummy YouTube/Google Slides/PDF URLs.
-  - Each chapter gets **1 chapter-test attachment** (reusing existing `teacherExams` ids in round-robin).
-- **Grand tests**: 3 package-level grand tests.
-- **Expected totals**: ~8 cells × 5 chapters × 4.5 lessons ≈ **180 lesson plans**, ~40 chapter tests, 3 grand tests.
+1. **Remove Homework + Demonstrate, keep only Quiz, drop Explain too; merge everything into one "Add Content" affordance.** ✅ Valid. Inside Packages the distinction between Explain/Demonstrate is teacher-pedagogy and doesn't carry weight for an admin assembling reusable content. One generic "Content" item (typed by what it actually is — PPT / PDF / Video / Animation / Image) + "Quiz" is enough.
+2. **Picker should be chapter-scoped, with inline "quick add new content" without leaving the page.** ✅ Valid and correct. Anything else creates friction at scale (180+ lesson plans).
 
-### Package B — "JEE Mains Accelerator" (course: jee-mains)
-- **Shape**: Class 11 + Class 12, subjects Physics, Chemistry, Mathematics.
-- **Inclusions**: chapterTests ✅, grandTests ✅, PYPs ✅.
-- **Depth per cell**: 5 chapters, **5 lesson plans** each (slightly heavier — competitive prep), 8–12 blocks per lesson, heavier on `demonstrate` (solved problems) and `quiz` blocks.
-- **Per chapter**: 1 chapter test + 1 PYP attachment.
-- **Grand tests**: 5 package-level mock tests ("Full Mock 1" … "Full Mock 5").
-- **Expected totals**: 6 cells × 5 chapters × 5 lessons = **150 lesson plans**, 30 chapter tests, 30 PYPs, 5 grand tests.
+### One suggestion I'd add
 
-### Implementation
-- New file: `src/data/packages/mockSeedGenerator.ts` — pure functions that build `PackageLessonPlan[]` and `PackageAttachment[]` from a config (grade, subject, chapters list, lessons-per-chapter, blocks-per-lesson). Deterministic ids (`pkg-{packageId}-lp-{gradeId}-{subjectId}-{chapterId}-{n}`), deterministic order. No `Math.random` — use index-driven cycling so re-renders stay stable (per project memory rule on data stability).
-- Update `src/data/packages/mockPackages.ts`:
-  - Replace the two existing demo packages with Package A & B above (keep the third "Physics Accelerator" or remove — TBD: remove to avoid duplicate JEE pack).
-  - Populate `mockPackageLessonPlans` and `mockPackageAttachments` via the generator at module load.
-- Reuse `teacherExams` for attachment `examId`s (round-robin) so the editor's name lookup keeps working.
-- Block content reuses a small URL pool:
-  - PPT: 1 Google Slides URL repeated
-  - PDF: 1 PDF URL repeated
-  - Video: 2 YouTube URLs repeated
-  - Quiz: text-only block with sample question text
-  - Homework: text-only
+Keep the **block model** (`LessonPlanBlock`) as-is in the underlying type, but in the Packages composer collapse the toolbar to **two actions only**:
+- **+ Add content** → opens a chapter-scoped sheet
+- **+ Add quiz** → opens existing QuizDialog
 
-No new master data is created — we only consume `allCBSEChapters`, `courseOwnedChapters`, and existing `teacherExams`.
+The sheet has two tabs:
+- **Library** — only items where `subject == currentSubject && chapter == currentChapter` (filtered out of `mockContentLibrary`). Multi-select + Add.
+- **Quick add** — title + type (PPT/PDF/Video/Animation/Image) + URL/file. Saves to the library tagged with the locked curriculum/subject/chapter, then immediately attaches to the lesson. No navigation away.
 
-## 2. UI audit — what we expect to break and what we'll fix
+This way the admin never has to "create new content" as a separate trip, and the path (CBSE → Math → Knowing Our Numbers) is pre-filled and non-editable in the quick-add form.
 
-Once seeded, here is what the current editor will likely struggle with. We confirm each by loading the seeded packages, then fix in this same pass:
+---
 
-| Surface | Likely issue at scale | Proposed fix |
-|---|---|---|
-| `Packages.tsx` list card | `summarizeCounts` returns raw lessons + tests numbers; with 180 lessons the card looks fine but no breakdown | Show "180 lessons · 40 tests · 3 grand · 0 PYPs" small line |
-| `ChapterAccordion` (open chapter with 5 lessons + 1 test) | Fine for 5, but if all chapters were opened it'd be a long page | Keep single-open behavior (already correct); add "Expand all / Collapse all" toggle |
-| Chapter row | Only shows `lessons.length` and `attachments.length` icons | Add a small chip showing block count total (`Σ blocks`) so the density is visible |
-| Lesson row inside accordion | Shows "X blocks" — but with 10 blocks the lesson title can be cramped on narrow viewports (we're at 1046px so fine; on tablet it will wrap) | Move block count to a chip on second line under 640px |
-| `GrandTestsSection` | Renders a flat `<ul>`; 5 items ok, but no grouping by subject/grade | Group grand tests by subject when > 3 items |
-| `AttachTestSheet` | Lists all `teacherExams` filtered by subject; ours are ~10 so fine | No change |
-| `SubjectTabs` (Package A has 4 subjects per grade) | Currently horizontal tabs — at 320px width 4 subject names overflow | Add horizontal scroll-snap + chevron affordance |
-| `GradeSwitcher` (2 grades only) | Fine | No change |
-| `PackageEditor` header | Title + status + Settings + Publish — at 360px the publish label collapses to icon already; status pill hidden under `sm` | Keep as-is |
-| Performance | All helpers do array `filter` on every render; with 180 lessons × 5 re-renders this is still trivial | Defer — no change now |
+## Implementation plan
 
-We will **not** rebuild any flows, only the small affordances above. If the audit surfaces something worse than expected we'll flag it before changing more.
+### 1. New chapter-scoped content sheet
+`src/components/packages/editor/ChapterContentSheet.tsx`
+- Props: `open`, `onOpenChange`, `subjectName`, `chapterName`, `curriculumOrCourse`, `onAttach(items)`.
+- Tabs: **Library** | **Quick add**.
+- **Library tab**: search + type filter (All / PPT / PDF / Video / Animation / Image), list filtered by `subject` + `chapter` from `mockContentLibrary`. Checkbox multi-select. "Add N items" footer button.
+- **Quick add tab**: shows the locked path as a read-only breadcrumb chip (e.g. `CBSE › Mathematics › Class 6 › Knowing Our Numbers`). Fields: Title, Type (segmented), URL (or "paste link / upload" — for now URL field is fine since everything is mock). Submit → pushes a new ContentItem into the in-memory library and attaches.
 
-## 3. Deliverables
+### 2. New helper for chapter-scoped library
+`src/data/contentLibraryHelpers.ts` (new)
+- `getContentForChapter(subjectName, chapterName)` — returns filtered items.
+- `addContentToLibrary(item)` — mutates the in-memory array (consistent with how other mock stores work).
 
-1. `src/data/packages/mockSeedGenerator.ts` — generator helpers (new).
-2. `src/data/packages/mockPackages.ts` — rewritten with the two rich packages and seeded arrays.
-3. `src/components/packages/PackageCard.tsx` — richer count line.
-4. `src/components/packages/editor/ChapterAccordion.tsx` — block-count chip + "Expand all / Collapse all" toggle (toggle lives in `PackageEditor` toolbar).
-5. `src/components/packages/editor/SubjectTabs.tsx` — horizontal scroll-snap on narrow widths.
-6. `src/pages/packages/PackageEditor.tsx` — wire the expand/collapse toggle; group grand tests by subject when > 3.
+### 3. Simplified composer toolbar (Packages only)
+Create `src/components/packages/editor/PackageWorkspaceToolbar.tsx` — do **not** reuse `WorkspaceToolbar` (which has 4 block types and AI assist tied to teacher flows).
+- Two big primary buttons: **+ Add content** and **+ Add quiz**.
+- Removes Explain / Demonstrate / Homework / AI Assist.
 
-No backend, no route changes, no new pages. No changes to lesson composer, settings sheet, or attach-test sheet behavior.
+### 4. Update `PackageLessonComposer.tsx`
+- Replace `<WorkspaceToolbar … />` with `<PackageWorkspaceToolbar … />`.
+- Wire **Add content** → opens new `ChapterContentSheet`. On attach, each picked/created item becomes one block of type `explain` under the hood (kept for type compatibility) but rendered generically — `title`, `attachmentUrl`/`embedUrl`, `linkType` derived from item type.
+- Wire **Add quiz** → existing `QuizDialog` flow (already in `lesson-workspace`).
+- Remove AI dialog wiring; keep header (breadcrumb + title + Save) and canvas as-is.
+- Keep block reordering, delete, and add-between (between-block + menu shows only the two options).
 
-## 4. Open questions before I build
+### 5. Update `WorkspaceCanvas` "add between" menu (Packages-only path)
+Two options: Add content / Add quiz. Easiest path: pass a `mode="packages"` prop to `WorkspaceCanvas` to restrict the menu — small, scoped change, doesn't affect teacher flow.
 
-1. **Third existing package** (`jee-mains-physics-accelerator`) — keep it as a small "skinny" example, or remove since Package B covers JEE Mains more deeply?
-2. **Lesson plans per chapter** — confirm 4–5 (CBSE) / 5 (JEE) is the right target, or go denser (e.g. 8) to truly stress the accordion?
-3. **Should Package A also include PYPs** so we can see the PYP attachment UI populated, even though CBSE foundation doesn't usually carry PYPs?
+### 6. Block rendering
+`WorkspaceBlock` already renders attachments/links/quizzes generically based on `attachmentUrl`/`embedUrl`/`questions`, so no changes needed there.
+
+---
+
+## Technical notes
+
+- No schema changes. `LessonPlanBlock.type` stays as `'explain' | 'demonstrate' | 'quiz' | 'homework'` because teacher workspace still uses all four; the Packages composer just never produces `demonstrate`/`homework` and tags every library/quick-add item as `explain` with `source: 'library'`.
+- `mockContentLibrary` is mutated in-memory; no Supabase work in this phase.
+- The Packages composer becomes a true *assembly* surface; teacher lesson workspace is untouched.
+- File touch list: 1 new sheet, 1 new helpers file, 1 new toolbar, edits to `PackageLessonComposer.tsx` and `WorkspaceCanvas.tsx`.
+
+---
+
+## Open question
+
+For **Quick add**, do you want a real file-upload affordance now (we'd stub it as a fake URL), or is a single "URL / link" field enough for mock parity? My recommendation: URL field only for now — matches how the rest of the mock content layer works and keeps the sheet light.
