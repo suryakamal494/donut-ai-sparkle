@@ -106,15 +106,12 @@ const PackageEditor = () => {
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
-  const grandTestCount = getGrandTestsForPackage(pkg.id).length;
   const anyTestInclusion =
     pkg.inclusions.chapterTests ||
     pkg.inclusions.grandTests ||
     pkg.inclusions.previousYearPapers;
   const lessonsRequirementMet =
     !pkg.inclusions.lessonPlans || lessonCount > 0;
-  const testsRequirementMet =
-    !anyTestInclusion || grandTestCount > 0 || lessonCount > 0; /* chapter attachments hard to count cheaply; treat lessons OR grand as a proxy if tests-only flow not yet attached */
   const hasAnyInclusion = pkg.inclusions.lessonPlans || anyTestInclusion;
   const canPublish =
     hasAnyInclusion &&
