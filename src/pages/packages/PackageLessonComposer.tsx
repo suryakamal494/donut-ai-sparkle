@@ -238,6 +238,7 @@ const PackageLessonComposer = () => {
         onAddBlock={handleAddBlock}
         chapter={chapterName}
         subject={subjectName}
+        chapterId={chapterId}
       />
     </div>
   );
