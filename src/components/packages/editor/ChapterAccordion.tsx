@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, BookOpen, ClipboardList, Plus, X } from "lucide-react";
+import { ChevronDown, BookOpen, ClipboardList, Plus, X, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { EditorChapter } from "./packageChapterLookup";
@@ -59,6 +59,7 @@ const ChapterAccordion = ({
         const isOpen = openId === ch.id;
         const lessons = getLessonPlansForChapter(packageId, ch.id);
         const attachments = getAttachmentsForChapter(packageId, ch.id);
+        const blockCount = lessons.reduce((s, lp) => s + lp.blocks.length, 0);
         return (
           <div key={ch.id} className="bg-background">
             <button
@@ -81,6 +82,12 @@ const ChapterAccordion = ({
                   <BookOpen className="w-3.5 h-3.5" />
                   {lessons.length}
                 </span>
+                {blockCount > 0 && (
+                  <span className="hidden sm:inline-flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5" />
+                    {blockCount}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1">
                   <ClipboardList className="w-3.5 h-3.5" />
                   {attachments.length}
