@@ -935,7 +935,7 @@ export const QuizDialog = ({
   // Desktop: Dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[560px] h-[85vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2 shrink-0">
           <DialogTitle className="text-lg">Add Quiz Block</DialogTitle>
           <p className="text-sm text-muted-foreground">
