@@ -70,6 +70,10 @@ const PackageEditor = () => {
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
   const { toast } = useToast();
+  const [view, setView] = useState<{ kind: "chapter"; id: string } | { kind: "grand" }>(
+    { kind: "chapter", id: "" },
+  );
+  const [railOpen, setRailOpen] = useState(false);
 
   // When grade changes, snap subject to first available for that grade.
   useEffect(() => {
@@ -88,6 +92,15 @@ const PackageEditor = () => {
       activeSubject,
     );
   }, [pkg, activeGrade, activeSubject]);
+
+  // Keep selection in sync with available chapters.
+  useEffect(() => {
+    if (view.kind === "grand") return;
+    if (chapters.length === 0) return;
+    if (!chapters.some((c) => c.id === view.id)) {
+      setView({ kind: "chapter", id: chapters[0].id });
+    }
+  }, [chapters, view]);
 
   if (!pkg) {
     return (
