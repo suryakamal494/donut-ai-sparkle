@@ -11,11 +11,17 @@ import {
   FileText,
   Grid3X3,
   Filter,
+  X,
+  RefreshCw,
+  Trash2,
+  ArrowLeft,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
   DialogContent,
@@ -45,9 +51,18 @@ import {
   mockQuestions, 
   type Question, 
   type QuestionType,
+  type QuestionDifficulty,
+  type CognitiveType,
   difficultyConfig,
   questionTypeLabels,
+  cognitiveTypeConfig,
 } from "@/data/questionsData";
+import {
+  generateMockAiQuestions,
+  regenerateMockQuestion,
+  getTopicsForChapter,
+  type AiGenerationConfig,
+} from "@/data/aiQuestionMock";
 
 interface QuizDialogProps {
   open: boolean;
@@ -167,9 +182,19 @@ export const QuizDialog = ({
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   
   // AI generate state
+  const [aiStep, setAiStep] = useState<'configure' | 'generating' | 'review'>('configure');
   const [aiPrompt, setAiPrompt] = useState('');
   const [questionCount, setQuestionCount] = useState<number>(5);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiTopics, setAiTopics] = useState<string[]>([]);
+  const [aiCognitive, setAiCognitive] = useState<CognitiveType[]>(['conceptual']);
+  const [aiQType, setAiQType] = useState<QuestionType>('mcq_single');
+  const [aiDiffMix, setAiDiffMix] = useState<Record<QuestionDifficulty, number>>({
+    easy: 2, medium: 2, hard: 1,
+  });
+  const [topicDraft, setTopicDraft] = useState('');
+  const [aiResults, setAiResults] = useState<Question[]>([]);
+  const [aiSelected, setAiSelected] = useState<Set<string>>(new Set());
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   
   // Filter questions
   const filteredQuestions = useMemo(() => {
@@ -188,6 +213,123 @@ export const QuizDialog = ({
       return matchesSearch && matchesType && matchesDifficulty && matchesContext;
     });
   }, [searchQuery, selectedType, selectedDifficulty, subject]);
+
+  // Topic suggestions from the question bank for the current chapter/subject
+  const topicSuggestions = useMemo(
+    () => getTopicsForChapter(chapter, subject).slice(0, 12),
+    [chapter, subject],
+  );
+
+  const totalMix = aiDiffMix.easy + aiDiffMix.medium + aiDiffMix.hard;
+
+  // Keep difficulty mix in sync with the slider count
+  const setCount = (next: number) => {
+    setQuestionCount(next);
+    const current = aiDiffMix.easy + aiDiffMix.medium + aiDiffMix.hard;
+    if (current === next) return;
+    if (current === 0) {
+      setAiDiffMix({ easy: 0, medium: next, hard: 0 });
+      return;
+    }
+    // Scale proportionally then fix rounding into medium
+    const scale = next / current;
+    const e = Math.round(aiDiffMix.easy * scale);
+    const h = Math.round(aiDiffMix.hard * scale);
+    const m = Math.max(0, next - e - h);
+    setAiDiffMix({ easy: e, medium: m, hard: h });
+  };
+
+  const updateMix = (key: QuestionDifficulty, value: number) => {
+    const clamped = Math.max(0, Math.min(questionCount, value));
+    const others = (["easy", "medium", "hard"] as QuestionDifficulty[]).filter(k => k !== key);
+    const remaining = questionCount - clamped;
+    const othersSum = others.reduce((a, k) => a + aiDiffMix[k], 0);
+    const next: Record<QuestionDifficulty, number> = { ...aiDiffMix, [key]: clamped };
+    if (othersSum === 0) {
+      next[others[0]] = remaining;
+      next[others[1]] = 0;
+    } else {
+      const r0 = Math.round((aiDiffMix[others[0]] / othersSum) * remaining);
+      next[others[0]] = Math.max(0, Math.min(remaining, r0));
+      next[others[1]] = Math.max(0, remaining - next[others[0]]);
+    }
+    setAiDiffMix(next);
+  };
+
+  const toggleTopic = (t: string) => {
+    setAiTopics(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  };
+  const addTopicDraft = () => {
+    const t = topicDraft.trim();
+    if (!t) return;
+    if (!aiTopics.includes(t)) setAiTopics(prev => [...prev, t]);
+    setTopicDraft('');
+  };
+  const toggleCognitive = (c: CognitiveType) => {
+    setAiCognitive(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  };
+
+  const buildAiConfig = (): AiGenerationConfig => ({
+    subject, chapter,
+    topics: aiTopics,
+    cognitiveTypes: aiCognitive,
+    questionType: aiQType,
+    difficultyMix: aiDiffMix,
+    count: questionCount,
+    prompt: aiPrompt,
+  });
+
+  const runGenerate = async () => {
+    setAiStep('generating');
+    await new Promise(r => setTimeout(r, 1400));
+    const results = generateMockAiQuestions(buildAiConfig());
+    setAiResults(results);
+    setAiSelected(new Set(results.map(r => r.id)));
+    setAiStep('review');
+  };
+
+  const regenerateOne = async (q: Question, index: number) => {
+    setRegeneratingId(q.id);
+    await new Promise(r => setTimeout(r, 700));
+    const replacement = regenerateMockQuestion(buildAiConfig(), index, q);
+    setAiResults(prev => prev.map((x, i) => i === index ? replacement : x));
+    setAiSelected(prev => {
+      const next = new Set(prev);
+      if (next.delete(q.id)) next.add(replacement.id);
+      return next;
+    });
+    setRegeneratingId(null);
+  };
+
+  const regenerateAll = async () => {
+    setAiStep('generating');
+    await new Promise(r => setTimeout(r, 1200));
+    const results = generateMockAiQuestions(buildAiConfig());
+    setAiResults(results);
+    setAiSelected(new Set(results.map(r => r.id)));
+    setAiStep('review');
+  };
+
+  const deleteOne = (id: string) => {
+    setAiResults(prev => prev.filter(q => q.id !== id));
+    setAiSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
+  };
+
+  const toggleAiSelect = (id: string) => {
+    setAiSelected(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const resetAiFlow = () => {
+    setAiStep('configure');
+    setAiResults([]);
+    setAiSelected(new Set());
+  };
+
+  const configValid = aiTopics.length > 0 && aiCognitive.length > 0 && questionCount > 0;
   
   const toggleQuestion = (questionId: string) => {
     setSelectedQuestions(prev => {
@@ -216,21 +358,19 @@ export const QuizDialog = ({
     onOpenChange(false);
   };
   
-  const handleAIGenerate = async () => {
-    setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+  const handleAddAiSelected = () => {
+    if (aiSelected.size === 0) return;
+    const ids = aiResults.filter(q => aiSelected.has(q.id)).map(q => q.id);
     onAddBlock({
       type: 'quiz',
-      title: `AI Quiz: ${questionCount} Questions on ${chapter || 'Topic'}`,
+      title: `AI Quiz: ${ids.length} Questions on ${chapter || 'Topic'}`,
       content: aiPrompt,
       source: 'ai',
-      questions: Array.from({ length: questionCount }, (_, i) => `ai-q-${i}`),
-      duration: questionCount * 2,
+      questions: ids,
+      duration: ids.length * 2,
       aiGenerated: true,
     });
-    
-    setIsGenerating(false);
+    resetAiFlow();
     setAiPrompt('');
     onOpenChange(false);
   };
