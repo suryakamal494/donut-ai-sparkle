@@ -8,6 +8,8 @@ import {
   getGrandTestsForPackage,
   attachExamsToPackage,
   removeAttachment,
+  getLessonPlansForPackage,
+  publishPackage,
 } from "@/data/packages";
 import { curriculums, courses } from "@/data/masterData";
 import { teacherExams } from "@/data/teacher/exams";
@@ -16,6 +18,24 @@ import SubjectTabs from "@/components/packages/editor/SubjectTabs";
 import ChapterAccordion from "@/components/packages/editor/ChapterAccordion";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
 import AttachTestSheet from "@/components/packages/editor/AttachTestSheet";
+import PackageSettingsSheet from "@/components/packages/editor/PackageSettingsSheet";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const statusStyles = {
   draft: "bg-amber-100 text-amber-800",
@@ -39,8 +59,11 @@ const PackageEditor = () => {
     activeRow?.subjectIds[0] ?? "",
   );
   const [grandSheetOpen, setGrandSheetOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
+  const { toast } = useToast();
 
   // When grade changes, snap subject to first available for that grade.
   useEffect(() => {
@@ -82,6 +105,9 @@ const PackageEditor = () => {
       ? curriculums.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
+  const lessonCount = getLessonPlansForPackage(pkg.id).length;
+  const canPublish = lessonCount > 0 && pkg.status !== "published";
+
   return (
     <div className="flex flex-col h-full">
       {/* Top bar — package name + status + actions */}
@@ -109,21 +135,45 @@ const PackageEditor = () => {
         >
           {pkg.status}
         </span>
-        <Button variant="ghost" size="sm" disabled className="gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setSettingsOpen(true)}
+        >
           <Settings className="w-4 h-4" />
           <span className="hidden md:inline">Settings</span>
         </Button>
-        <Button
-          size="sm"
-          disabled
-          className="gap-1.5"
-          style={{
-            background: "linear-gradient(135deg, #F97316 0%, #EC4899 100%)",
-          }}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          <span className="hidden md:inline">Publish</span>
-        </Button>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  size="sm"
+                  disabled={!canPublish}
+                  onClick={() => setPublishOpen(true)}
+                  className="gap-1.5"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #F97316 0%, #EC4899 100%)",
+                  }}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="hidden md:inline">
+                    {pkg.status === "published" ? "Published" : "Publish"}
+                  </span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canPublish && (
+              <TooltipContent side="bottom">
+                {pkg.status === "published"
+                  ? "Package is already published."
+                  : "Add at least one lesson plan to publish."}
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </header>
 
       {/* Grade switcher */}
@@ -187,6 +237,43 @@ const PackageEditor = () => {
           }}
         />
       )}
+
+      <PackageSettingsSheet
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        pkg={pkg}
+        onChange={refresh}
+        onArchived={() => navigate("/superadmin/packages")}
+      />
+
+      <AlertDialog open={publishOpen} onOpenChange={setPublishOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish this package?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Institutes on matching tiers will see this package immediately.
+              You can still edit lessons and attachments after publishing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                publishPackage(pkg.id);
+                setPublishOpen(false);
+                refresh();
+                toast({
+                  title: "Published",
+                  description: `${pkg.name} is now live.`,
+                });
+              }}
+              style={{ background: "linear-gradient(135deg, #F97316 0%, #EC4899 100%)" }}
+            >
+              Publish
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
