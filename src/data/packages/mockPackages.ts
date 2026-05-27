@@ -23,6 +23,7 @@ export const mockPackages: Package[] = [
       { gradeId: "class-12", subjectIds: ["1", "2"] },
     ],
     inclusions: {
+      lessonPlans: true,
       chapterTests: true,
       grandTests: true,
       previousYearPapers: false,
@@ -43,6 +44,7 @@ export const mockPackages: Package[] = [
       { gradeId: "class-12", subjectIds: ["1", "2"] },
     ],
     inclusions: {
+      lessonPlans: true,
       chapterTests: true,
       grandTests: true,
       previousYearPapers: true,
