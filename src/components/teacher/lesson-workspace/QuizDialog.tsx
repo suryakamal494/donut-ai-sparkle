@@ -485,7 +485,7 @@ export const QuizDialog = ({
           </div>
           
           {/* Question List - with proper scroll container */}
-          <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[45vh]" : "h-[280px]")}>
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-3 space-y-2">
               {filteredQuestions.length > 0 ? (
                 filteredQuestions.map((question) => (
@@ -523,7 +523,7 @@ export const QuizDialog = ({
         <TabsContent value="ai" className="mt-0 flex-1 flex flex-col min-h-0 overflow-hidden">
           {aiStep === 'configure' && (
             <>
-              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[55vh]" : "h-[400px]")}>
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-4 space-y-4">
                   {(subject || chapter) && (
                     <div className="flex items-center gap-2 flex-wrap">
@@ -797,7 +797,7 @@ export const QuizDialog = ({
                 </div>
               </div>
 
-              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[45vh]" : "h-[320px]")}>
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 space-y-2">
                   {aiResults.map((q, i) => {
                     const selected = aiSelected.has(q.id);
