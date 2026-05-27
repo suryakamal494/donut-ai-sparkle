@@ -22,6 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +72,7 @@ import {
   getTopicsForChapter,
   type AiGenerationConfig,
 } from "@/data/aiQuestionMock";
+import { getTopicsByChapter } from "@/data/cbseMasterData";
 
 interface QuizDialogProps {
   open: boolean;
@@ -70,6 +80,7 @@ interface QuizDialogProps {
   onAddBlock: (block: Omit<LessonPlanBlock, 'id'>) => void;
   chapter?: string;
   subject?: string;
+  chapterId?: string;
 }
 
 // Question type icon mapping
@@ -173,6 +184,7 @@ export const QuizDialog = ({
   onAddBlock,
   chapter,
   subject,
+  chapterId,
 }: QuizDialogProps) => {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<'bank' | 'ai'>('bank');
@@ -216,9 +228,25 @@ export const QuizDialog = ({
 
   // Topic suggestions from the question bank for the current chapter/subject
   const topicSuggestions = useMemo(
-    () => getTopicsForChapter(chapter, subject).slice(0, 12),
-    [chapter, subject],
+    () => {
+      const fromMaster = chapterId ? getTopicsByChapter(chapterId).map(t => t.name) : [];
+      if (fromMaster.length) return fromMaster;
+      const fromBank = getTopicsForChapter(chapter, subject);
+      if (fromBank.length) return fromBank;
+      // Generic fallback so the dropdown is never empty
+      return [
+        "Introduction",
+        "Core Concepts",
+        "Worked Examples",
+        "Practice Problems",
+        "Real-world Applications",
+        "Common Misconceptions",
+        "Summary",
+      ];
+    },
+    [chapterId, chapter, subject],
   );
+  const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
   const totalMix = aiDiffMix.easy + aiDiffMix.medium + aiDiffMix.hard;
 
@@ -457,7 +485,7 @@ export const QuizDialog = ({
           </div>
           
           {/* Question List - with proper scroll container */}
-          <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[45vh]" : "h-[280px]")}>
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-3 space-y-2">
               {filteredQuestions.length > 0 ? (
                 filteredQuestions.map((question) => (
@@ -495,7 +523,7 @@ export const QuizDialog = ({
         <TabsContent value="ai" className="mt-0 flex-1 flex flex-col min-h-0 overflow-hidden">
           {aiStep === 'configure' && (
             <>
-              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[55vh]" : "h-[400px]")}>
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-4 space-y-4">
                   {(subject || chapter) && (
                     <div className="flex items-center gap-2 flex-wrap">
@@ -511,31 +539,53 @@ export const QuizDialog = ({
                     <label className="text-sm font-medium">
                       Topics <span className="text-destructive">*</span>
                     </label>
-                    {topicSuggestions.length > 0 && (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {topicSuggestions.map((t) => {
-                          const active = aiTopics.includes(t);
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => toggleTopic(t)}
-                              className={cn(
-                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
-                                active
-                                  ? "bg-primary/10 text-primary border-primary/30"
-                                  : "bg-background hover:bg-muted border-border/60",
-                              )}
-                            >
-                              {t}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <Popover open={topicPopoverOpen} onOpenChange={setTopicPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between h-9 text-xs font-normal"
+                        >
+                          <span className="truncate text-left">
+                            {aiTopics.length === 0
+                              ? "Select topics from this chapter..."
+                              : `${aiTopics.length} topic${aiTopics.length === 1 ? '' : 's'} selected`}
+                          </span>
+                          <Filter className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="p-0 w-[--radix-popover-trigger-width] bg-popover z-50"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Search topics..." className="h-9 text-xs" />
+                          <CommandList className="max-h-[220px]">
+                            <CommandEmpty>No topics found.</CommandEmpty>
+                            <CommandGroup>
+                              {topicSuggestions.map((t) => {
+                                const active = aiTopics.includes(t);
+                                return (
+                                  <CommandItem
+                                    key={t}
+                                    value={t}
+                                    onSelect={() => toggleTopic(t)}
+                                    className="text-xs"
+                                  >
+                                    <Checkbox checked={active} className="mr-2" />
+                                    <span className="flex-1 truncate">{t}</span>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add another topic..."
+                        placeholder="Or add a custom topic..."
                         value={topicDraft}
                         onChange={(e) => setTopicDraft(e.target.value)}
                         onKeyDown={(e) => {
@@ -747,7 +797,7 @@ export const QuizDialog = ({
                 </div>
               </div>
 
-              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[45vh]" : "h-[320px]")}>
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 space-y-2">
                   {aiResults.map((q, i) => {
                     const selected = aiSelected.has(q.id);
@@ -885,7 +935,7 @@ export const QuizDialog = ({
   // Desktop: Dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[560px] h-[85vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2 shrink-0">
           <DialogTitle className="text-lg">Add Quiz Block</DialogTitle>
           <p className="text-sm text-muted-foreground">
