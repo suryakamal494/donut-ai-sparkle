@@ -229,6 +229,17 @@ export const docsNavigation: DocSection[] = [
               { title: "Students QA", path: "06-testing-scenarios/inter-login-tests/teacher-reports-students-qa" },
             ],
           },
+          {
+            title: "Student Reports QA",
+            path: "06-testing-scenarios/inter-login-tests/student-reports-setup-and-preconditions-qa",
+            children: [
+              { title: "Setup & Preconditions", path: "06-testing-scenarios/inter-login-tests/student-reports-setup-and-preconditions-qa" },
+              { title: "Overview Tab QA", path: "06-testing-scenarios/inter-login-tests/student-progress-overview-qa" },
+              { title: "Subjects Tab QA", path: "06-testing-scenarios/inter-login-tests/student-progress-subjects-qa" },
+              { title: "Exams Tab QA", path: "06-testing-scenarios/inter-login-tests/student-progress-exams-qa" },
+              { title: "Insights Tab QA", path: "06-testing-scenarios/inter-login-tests/student-progress-insights-qa" },
+            ],
+          },
         ],
       },
     ],
