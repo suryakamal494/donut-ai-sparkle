@@ -45,6 +45,32 @@ const TITLE_TEMPLATES: Record<ContentItem["type"], string[]> = {
 
 const DURATIONS = ["8 mins", "12 mins", "15 mins", "20 mins", "25 mins"];
 
+// Public sample URLs used purely for previewing each content type in mocks.
+const PREVIEW_URLS: Record<ContentItem["type"], string[]> = {
+  video: [
+    "https://www.youtube.com/embed/ZM8ECpBuQYE",
+    "https://www.youtube.com/embed/Y6Sj3myr3WI",
+    "https://www.youtube.com/embed/kw-bXBjz9Mg",
+  ],
+  ppt: [
+    "https://docs.google.com/presentation/d/e/2PACX-1vQHE-zJ7s3JUgGmZk9k7CqVH9Iu0iI4Z6dQy8VtO_eS6N6r1bZ4kSHl0wF1JfKZQw/embed?start=false&loop=false",
+    "https://view.officeapps.live.com/op/embed.aspx?src=https%3A%2F%2Fscholar.harvard.edu%2Ffiles%2Ftorman_personal%2Ffiles%2Fsamplepptx.pptx",
+  ],
+  pdf: [
+    "https://www.africau.edu/images/default/sample.pdf",
+    "https://www.orimi.com/pdf-test.pdf",
+  ],
+  animation: [
+    "https://phet.colorado.edu/sims/html/forces-and-motion-basics/latest/forces-and-motion-basics_en.html",
+    "https://phet.colorado.edu/sims/html/build-a-fraction/latest/build-a-fraction_en.html",
+  ],
+  image: [
+    "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=1200&q=80",
+    "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200&q=80",
+    "https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=1200&q=80",
+  ],
+};
+
 const hashString = (s: string): number => {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
@@ -65,6 +91,8 @@ const generateChapterContent = (
     const variantIdx = Math.floor(i / TYPE_CYCLE.length) % templates.length;
     const title = templates[variantIdx].replace("{chapter}", chapterName);
     const id = `mock-${hashString(`${chapterName}-${type}-${i}`)}-${i}`;
+    const previews = PREVIEW_URLS[type];
+    const previewUrl = previews[(seed + i) % previews.length];
     items.push({
       id,
       title,
@@ -85,6 +113,7 @@ const generateChapterContent = (
         type === "video"
           ? DURATIONS[(seed + i) % DURATIONS.length]
           : undefined,
+      thumbnail: previewUrl,
     });
   }
   return items;
