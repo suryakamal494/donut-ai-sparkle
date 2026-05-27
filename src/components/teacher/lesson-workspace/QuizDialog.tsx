@@ -492,66 +492,370 @@ export const QuizDialog = ({
         </TabsContent>
         
         {/* AI Generate Tab */}
-        <TabsContent value="ai" className="mt-0 p-4 space-y-4">
-          {/* Question Count */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              How many questions?
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {[3, 5, 10, 15].map((count) => (
+        <TabsContent value="ai" className="mt-0 flex-1 flex flex-col min-h-0 overflow-hidden">
+          {aiStep === 'configure' && (
+            <>
+              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[55vh]" : "h-[400px]")}>
+                <div className="p-4 space-y-4">
+                  {(subject || chapter) && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">Context:</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {[subject, chapter].filter(Boolean).join(' • ')}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Topics */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Topics <span className="text-destructive">*</span>
+                    </label>
+                    {topicSuggestions.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        {topicSuggestions.map((t) => {
+                          const active = aiTopics.includes(t);
+                          return (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => toggleTopic(t)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
+                                active
+                                  ? "bg-primary/10 text-primary border-primary/30"
+                                  : "bg-background hover:bg-muted border-border/60",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add another topic..."
+                        value={topicDraft}
+                        onChange={(e) => setTopicDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addTopicDraft();
+                          }
+                        }}
+                        className="h-8 text-xs"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1"
+                        onClick={addTopicDraft}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add
+                      </Button>
+                    </div>
+                    {aiTopics.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap pt-1">
+                        {aiTopics.map((t) => (
+                          <Badge
+                            key={t}
+                            variant="outline"
+                            className="text-xs gap-1 bg-primary/5 border-primary/30 text-primary"
+                          >
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => toggleTopic(t)}
+                              className="hover:text-foreground"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cognitive types */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Cognitive types <span className="text-destructive">*</span>
+                    </label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {(Object.keys(cognitiveTypeConfig) as CognitiveType[]).map((c) => {
+                        const active = aiCognitive.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => toggleCognitive(c)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-full text-xs border transition-colors",
+                              active
+                                ? cognitiveTypeConfig[c].className
+                                : "bg-background hover:bg-muted border-border/60 text-muted-foreground",
+                            )}
+                          >
+                            {cognitiveTypeConfig[c].label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Question type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Question type</label>
+                    <Select value={aiQType} onValueChange={(v) => setAiQType(v as QuestionType)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {(Object.keys(questionTypeLabels) as QuestionType[]).map((t) => (
+                          <SelectItem key={t} value={t} className="text-xs">
+                            {questionTypeLabels[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Number of questions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Number of questions</label>
+                      <Badge variant="secondary" className="text-xs font-mono">
+                        {questionCount}
+                      </Badge>
+                    </div>
+                    <Slider
+                      min={1}
+                      max={20}
+                      step={1}
+                      value={[questionCount]}
+                      onValueChange={(v) => setCount(v[0])}
+                    />
+                  </div>
+
+                  {/* Difficulty mix */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Difficulty mix</label>
+                      <span
+                        className={cn(
+                          "text-xs",
+                          totalMix === questionCount ? "text-muted-foreground" : "text-destructive",
+                        )}
+                      >
+                        {totalMix} / {questionCount}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["easy", "medium", "hard"] as QuestionDifficulty[]).map((d) => (
+                        <div key={d} className="space-y-1">
+                          <span className={cn("text-[10px] uppercase tracking-wide block text-center", difficultyConfig[d].className, "rounded px-1 py-0.5 border")}>
+                            {difficultyConfig[d].label}
+                          </span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={questionCount}
+                            value={aiDiffMix[d]}
+                            onChange={(e) => updateMix(d, parseInt(e.target.value || '0', 10))}
+                            className="h-8 text-center text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Prompt */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Specific requirements (optional)</label>
+                    <Textarea
+                      placeholder={`e.g., "Focus on real-world application problems, avoid formula recall..."`}
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      className="min-h-[80px] text-sm resize-none"
+                    />
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <div className="p-4 border-t shrink-0">
                 <Button
-                  key={count}
-                  variant={questionCount === count ? 'default' : 'outline'}
-                  size="sm"
-                  className={cn("h-9 px-4", questionCount === count && "gradient-button")}
-                  onClick={() => setQuestionCount(count)}
+                  className="w-full gradient-button gap-2"
+                  onClick={runGenerate}
+                  disabled={!configValid}
                 >
-                  {count}
+                  <Sparkles className="w-4 h-4" />
+                  Generate {questionCount} Question{questionCount !== 1 ? 's' : ''}
                 </Button>
-              ))}
-            </div>
-          </div>
-          
-          {/* Topic Input */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Topic or specific focus (optional)
-            </label>
-            <Textarea
-              placeholder={`e.g., "Focus on numerical problems about force calculation..."`}
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              className="min-h-[100px] text-sm resize-none"
-            />
-          </div>
-          
-          {chapter && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Context:</span>
-              <Badge variant="secondary" className="text-xs">
-                {subject} • {chapter}
-              </Badge>
+                {!configValid && (
+                  <p className="text-[11px] text-muted-foreground text-center mt-2">
+                    Pick at least one topic and one cognitive type to continue.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {aiStep === 'generating' && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+              <p className="text-sm font-medium">Drafting {questionCount} questions…</p>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                {aiTopics.length > 0
+                  ? `Topics: ${aiTopics.slice(0, 3).join(', ')}${aiTopics.length > 3 ? '…' : ''}`
+                  : 'Working with your context'}
+              </p>
             </div>
           )}
-          
-          <Button
-            className="w-full gradient-button gap-2"
-            onClick={handleAIGenerate}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Generate {questionCount} Questions
-              </>
-            )}
-          </Button>
+
+          {aiStep === 'review' && (
+            <>
+              <div className="px-4 py-3 border-b shrink-0 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {aiResults.length} question{aiResults.length !== 1 ? 's' : ''} generated
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {aiSelected.size} selected
+                  </p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => setAiStep('configure')}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Edit settings
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={regenerateAll}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Regenerate all
+                  </Button>
+                </div>
+              </div>
+
+              <ScrollArea className={cn("flex-1 min-h-0", isMobile ? "h-[45vh]" : "h-[320px]")}>
+                <div className="p-3 space-y-2">
+                  {aiResults.map((q, i) => {
+                    const selected = aiSelected.has(q.id);
+                    const isRegen = regeneratingId === q.id;
+                    return (
+                      <div
+                        key={q.id}
+                        className={cn(
+                          "rounded-lg border transition-all",
+                          selected ? "bg-primary/5 border-primary/30" : "bg-background border-border/50",
+                          isRegen && "opacity-60",
+                        )}
+                      >
+                        <div className="p-3">
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={selected}
+                              onCheckedChange={() => toggleAiSelect(q.id)}
+                              className="mt-1 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-mono text-muted-foreground">{q.questionId}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[10px] px-1.5 py-0.5 h-5", difficultyConfig[q.difficulty].className)}
+                                >
+                                  {difficultyConfig[q.difficulty].label}
+                                </Badge>
+                                {q.cognitiveType && (
+                                  <Badge
+                                    variant="outline"
+                                    className={cn("text-[10px] px-1.5 py-0.5 h-5", cognitiveTypeConfig[q.cognitiveType].className)}
+                                  >
+                                    {cognitiveTypeConfig[q.cognitiveType].label}
+                                  </Badge>
+                                )}
+                                <span className="text-[10px] text-muted-foreground">{q.topic}</span>
+                              </div>
+                              <p className="text-sm leading-relaxed line-clamp-2">{q.questionText}</p>
+                              {q.options && q.options.length > 0 && (
+                                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                  {q.options.slice(0, 4).map((opt, idx) => (
+                                    <span
+                                      key={opt.id}
+                                      className={cn(
+                                        "text-xs",
+                                        opt.isCorrect ? "text-success font-medium" : "text-muted-foreground",
+                                      )}
+                                    >
+                                      {String.fromCharCode(65 + idx)}. {opt.text.slice(0, 18)}{opt.text.length > 18 ? '…' : ''}
+                                      {opt.isCorrect && ' ✓'}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-border/40">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => regenerateOne(q, i)}
+                              disabled={isRegen}
+                            >
+                              {isRegen ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                              Regenerate
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+                              onClick={() => deleteOne(q.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {aiResults.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <Sparkles className="w-10 h-10 mb-3 opacity-50" />
+                      <p className="text-sm font-medium">All questions removed</p>
+                      <p className="text-xs">Regenerate or edit settings to start over</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="p-4 border-t shrink-0 flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={resetAiFlow}>
+                  Start over
+                </Button>
+                <Button
+                  className="flex-1 gradient-button gap-2"
+                  onClick={handleAddAiSelected}
+                  disabled={aiSelected.size === 0}
+                >
+                  <Check className="w-4 h-4" />
+                  Add {aiSelected.size || ''} to Quiz
+                </Button>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
