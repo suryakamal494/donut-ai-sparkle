@@ -1,75 +1,50 @@
+## Goal
 
-## What I understood
+Make Inclusions truly modular so a SuperAdmin can build a package with **any combination** of slots — including tests-only packages with no lesson plans, or content-only packages with no tests.
 
-You're inside `/superadmin/packages/:id/lesson/new?grade&subject&chapter`. At this point Curriculum → Class → Subject → Chapter are already locked by the URL, so the composer should not behave like the teacher workspace (which builds plans from scratch with 4 block types).
+Today the Inclusions step only toggles test-style slots (Chapter Tests, Grand Tests, PYPs). Lesson plans are always-on and the editor forces ≥1 lesson plan before publishing. We'll add a **Lesson Plans (Content)** inclusion alongside the test toggles and gate the editor + publish rule accordingly.
 
-For SuperAdmin Packages the job is **assembly, not authoring**:
-- Content already exists in the library (PPTs, PDFs, videos, animations, images).
-- A package lesson plan is just an **ordered list of references** to that content, optionally with one or more Quiz blocks attached.
-- The picker must be **scoped** to the current chapter — not the whole library — and there must be a tiny "quick add" path so the admin doesn't have to bounce to Content Library, upload, come back.
+## Changes
 
-### Your two points — are they valid?
+### 1. Type — `src/types/packages.ts`
+Add `lessonPlans: boolean` to `PackageInclusions`.
 
-1. **Remove Homework + Demonstrate, keep only Quiz, drop Explain too; merge everything into one "Add Content" affordance.** ✅ Valid. Inside Packages the distinction between Explain/Demonstrate is teacher-pedagogy and doesn't carry weight for an admin assembling reusable content. One generic "Content" item (typed by what it actually is — PPT / PDF / Video / Animation / Image) + "Quiz" is enough.
-2. **Picker should be chapter-scoped, with inline "quick add new content" without leaving the page.** ✅ Valid and correct. Anything else creates friction at scale (180+ lesson plans).
+### 2. Create wizard — `src/pages/packages/CreatePackage.tsx` (Step 3)
+- Default `inclusions` to `{ lessonPlans: true, chapterTests: true, grandTests: false, previousYearPapers: false }`.
+- Add a new toggle row at the top of the Inclusions list:
+  - **Lesson Plans (Content)** — "Author lesson plans with videos, PDFs, slides, and quizzes per chapter." (BookOpen icon)
+- Add validation on Create: at least one inclusion must be enabled, otherwise disable the Create button with a small inline hint ("Enable at least one slot to continue").
 
-### One suggestion I'd add
+### 3. Settings sheet — `src/components/packages/editor/PackageSettingsSheet.tsx`
+Add the same "Lesson Plans (Content)" row at the top of the Inclusions section so it can be toggled later. Same "at least one enabled" guard before persisting.
 
-Keep the **block model** (`LessonPlanBlock`) as-is in the underlying type, but in the Packages composer collapse the toolbar to **two actions only**:
-- **+ Add content** → opens a chapter-scoped sheet
-- **+ Add quiz** → opens existing QuizDialog
+### 4. Editor — `src/pages/packages/PackageEditor.tsx`
+- Pass `lessons: pkg.inclusions.lessonPlans` into `ChapterAccordion`'s `inclusionsEnabled`.
+- **Publish rule:** replace `lessonCount > 0` with a content-aware rule:
+  - If `inclusions.lessonPlans` → need ≥1 lesson plan.
+  - Else if any test inclusion enabled → need ≥1 attachment across chapters or grand tests.
+  - Else (shouldn't happen due to guard) → block.
+  - Update tooltip copy accordingly ("Add a lesson plan or attach at least one test to publish.").
 
-The sheet has two tabs:
-- **Library** — only items where `subject == currentSubject && chapter == currentChapter` (filtered out of `mockContentLibrary`). Multi-select + Add.
-- **Quick add** — title + type (PPT/PDF/Video/Animation/Image) + URL/file. Saves to the library tagged with the locked curriculum/subject/chapter, then immediately attaches to the lesson. No navigation away.
+### 5. Chapter accordion — `src/components/packages/editor/ChapterAccordion.tsx`
+- Extend `inclusionsEnabled` with `lessons: boolean`.
+- Hide the **Add lesson plan** button and rendered lesson rows when `lessons === false`.
+- If a chapter has neither lesson plans nor attachments AND no inclusions are enabled for that chapter, keep the "Nothing added yet" message contextual ("Attach a test to this chapter." / "Add a lesson plan." / both).
 
-This way the admin never has to "create new content" as a separate trip, and the path (CBSE → Math → Knowing Our Numbers) is pre-filled and non-editable in the quick-add form.
+### 6. Backfill mock data — `src/data/packages/mockPackages.ts`
+Every seeded package's `inclusions` object needs `lessonPlans: true` so existing mocks behave unchanged.
 
----
+### 7. Optional polish (small)
+- In `PackageWorkspaceToolbar` no change needed — that toolbar lives inside the lesson composer which is only reachable when `lessonPlans` is on.
 
-## Implementation plan
+## Out of scope
+- No changes to attachments data layer, AttachTestSheet, or grand-test section logic.
+- No backend/migration work (mock data only).
 
-### 1. New chapter-scoped content sheet
-`src/components/packages/editor/ChapterContentSheet.tsx`
-- Props: `open`, `onOpenChange`, `subjectName`, `chapterName`, `curriculumOrCourse`, `onAttach(items)`.
-- Tabs: **Library** | **Quick add**.
-- **Library tab**: search + type filter (All / PPT / PDF / Video / Animation / Image), list filtered by `subject` + `chapter` from `mockContentLibrary`. Checkbox multi-select. "Add N items" footer button.
-- **Quick add tab**: shows the locked path as a read-only breadcrumb chip (e.g. `CBSE › Mathematics › Class 6 › Knowing Our Numbers`). Fields: Title, Type (segmented), URL (or "paste link / upload" — for now URL field is fine since everything is mock). Submit → pushes a new ContentItem into the in-memory library and attaches.
-
-### 2. New helper for chapter-scoped library
-`src/data/contentLibraryHelpers.ts` (new)
-- `getContentForChapter(subjectName, chapterName)` — returns filtered items.
-- `addContentToLibrary(item)` — mutates the in-memory array (consistent with how other mock stores work).
-
-### 3. Simplified composer toolbar (Packages only)
-Create `src/components/packages/editor/PackageWorkspaceToolbar.tsx` — do **not** reuse `WorkspaceToolbar` (which has 4 block types and AI assist tied to teacher flows).
-- Two big primary buttons: **+ Add content** and **+ Add quiz**.
-- Removes Explain / Demonstrate / Homework / AI Assist.
-
-### 4. Update `PackageLessonComposer.tsx`
-- Replace `<WorkspaceToolbar … />` with `<PackageWorkspaceToolbar … />`.
-- Wire **Add content** → opens new `ChapterContentSheet`. On attach, each picked/created item becomes one block of type `explain` under the hood (kept for type compatibility) but rendered generically — `title`, `attachmentUrl`/`embedUrl`, `linkType` derived from item type.
-- Wire **Add quiz** → existing `QuizDialog` flow (already in `lesson-workspace`).
-- Remove AI dialog wiring; keep header (breadcrumb + title + Save) and canvas as-is.
-- Keep block reordering, delete, and add-between (between-block + menu shows only the two options).
-
-### 5. Update `WorkspaceCanvas` "add between" menu (Packages-only path)
-Two options: Add content / Add quiz. Easiest path: pass a `mode="packages"` prop to `WorkspaceCanvas` to restrict the menu — small, scoped change, doesn't affect teacher flow.
-
-### 6. Block rendering
-`WorkspaceBlock` already renders attachments/links/quizzes generically based on `attachmentUrl`/`embedUrl`/`questions`, so no changes needed there.
-
----
-
-## Technical notes
-
-- No schema changes. `LessonPlanBlock.type` stays as `'explain' | 'demonstrate' | 'quiz' | 'homework'` because teacher workspace still uses all four; the Packages composer just never produces `demonstrate`/`homework` and tags every library/quick-add item as `explain` with `source: 'library'`.
-- `mockContentLibrary` is mutated in-memory; no Supabase work in this phase.
-- The Packages composer becomes a true *assembly* surface; teacher lesson workspace is untouched.
-- File touch list: 1 new sheet, 1 new helpers file, 1 new toolbar, edits to `PackageLessonComposer.tsx` and `WorkspaceCanvas.tsx`.
-
----
-
-## Open question
-
-For **Quick add**, do you want a real file-upload affordance now (we'd stub it as a fake URL), or is a single "URL / link" field enough for mock parity? My recommendation: URL field only for now — matches how the rest of the mock content layer works and keeps the sheet light.
+## Files touched
+- `src/types/packages.ts`
+- `src/pages/packages/CreatePackage.tsx`
+- `src/components/packages/editor/PackageSettingsSheet.tsx`
+- `src/pages/packages/PackageEditor.tsx`
+- `src/components/packages/editor/ChapterAccordion.tsx`
+- `src/data/packages/mockPackages.ts`

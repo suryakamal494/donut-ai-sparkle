@@ -106,7 +106,25 @@ const PackageEditor = () => {
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
-  const canPublish = lessonCount > 0 && pkg.status !== "published";
+  const anyTestInclusion =
+    pkg.inclusions.chapterTests ||
+    pkg.inclusions.grandTests ||
+    pkg.inclusions.previousYearPapers;
+  const lessonsRequirementMet =
+    !pkg.inclusions.lessonPlans || lessonCount > 0;
+  const hasAnyInclusion = pkg.inclusions.lessonPlans || anyTestInclusion;
+  const canPublish =
+    hasAnyInclusion &&
+    lessonsRequirementMet &&
+    pkg.status !== "published";
+  const publishBlockReason =
+    pkg.status === "published"
+      ? "Package is already published."
+      : !hasAnyInclusion
+      ? "Enable at least one inclusion in settings."
+      : pkg.inclusions.lessonPlans
+      ? "Add at least one lesson plan to publish."
+      : "Attach at least one test to publish.";
 
   return (
     <div className="flex flex-col h-full">
@@ -166,11 +184,7 @@ const PackageEditor = () => {
               </span>
             </TooltipTrigger>
             {!canPublish && (
-              <TooltipContent side="bottom">
-                {pkg.status === "published"
-                  ? "Package is already published."
-                  : "Add at least one lesson plan to publish."}
-              </TooltipContent>
+              <TooltipContent side="bottom">{publishBlockReason}</TooltipContent>
             )}
           </Tooltip>
         </TooltipProvider>
@@ -200,6 +214,7 @@ const PackageEditor = () => {
           subjectId={activeSubject}
           chapters={chapters}
           inclusionsEnabled={{
+            lessons: pkg.inclusions.lessonPlans,
             tests: pkg.inclusions.chapterTests,
             grand: pkg.inclusions.grandTests,
             pyp: pkg.inclusions.previousYearPapers,

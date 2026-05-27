@@ -18,6 +18,7 @@ export interface PackageShapeEntry {
 
 /** Which assessment slots the editor exposes for this package. */
 export interface PackageInclusions {
+  lessonPlans: boolean;
   chapterTests: boolean;
   grandTests: boolean;
   previousYearPapers: boolean;

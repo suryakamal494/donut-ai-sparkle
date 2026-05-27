@@ -245,6 +245,7 @@ const PackageSettingsSheet = ({ open, onOpenChange, pkg, onChange, onArchived }:
                 Inclusions
               </h3>
               {[
+                { key: "lessonPlans", label: "Lesson Plans (Content)", hint: "Author lesson plans with videos, PDFs, slides, and quizzes per chapter." },
                 { key: "chapterTests", label: "Chapter Tests", hint: "Attach quick chapter assessments per chapter." },
                 { key: "grandTests", label: "Grand Tests", hint: "Package-wide tests not tied to a chapter." },
                 { key: "previousYearPapers", label: "Previous Year Papers", hint: "Attach PYPs from the exam library." },
@@ -256,9 +257,13 @@ const PackageSettingsSheet = ({ open, onOpenChange, pkg, onChange, onArchived }:
                   </div>
                   <Switch
                     checked={(inclusions as any)[row.key]}
-                    onCheckedChange={(v) =>
-                      setInclusions((prev) => ({ ...prev, [row.key]: v }))
-                    }
+                    onCheckedChange={(v) => {
+                      const next = { ...inclusions, [row.key]: v };
+                      if (!next.lessonPlans && !next.chapterTests && !next.grandTests && !next.previousYearPapers) {
+                        return; // require at least one
+                      }
+                      setInclusions(next);
+                    }}
                   />
                 </div>
               ))}

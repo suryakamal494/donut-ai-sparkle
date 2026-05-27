@@ -19,7 +19,7 @@ interface Props {
   gradeId: string;
   subjectId: string;
   chapters: EditorChapter[];
-  inclusionsEnabled: { tests: boolean; grand: boolean; pyp: boolean };
+  inclusionsEnabled: { lessons: boolean; tests: boolean; grand: boolean; pyp: boolean };
 }
 
 const ChapterAccordion = ({
@@ -59,7 +59,8 @@ const ChapterAccordion = ({
         const isOpen = openId === ch.id;
         const lessons = getLessonPlansForChapter(packageId, ch.id);
         const attachments = getAttachmentsForChapter(packageId, ch.id);
-        const blockCount = lessons.reduce((s, lp) => s + lp.blocks.length, 0);
+        const visibleLessons = inclusionsEnabled.lessons ? lessons : [];
+        const blockCount = visibleLessons.reduce((s, lp) => s + lp.blocks.length, 0);
         return (
           <div key={ch.id} className="bg-background">
             <button
@@ -78,10 +79,12 @@ const ChapterAccordion = ({
                 </p>
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                <span className="inline-flex items-center gap-1">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  {lessons.length}
-                </span>
+                {inclusionsEnabled.lessons && (
+                  <span className="inline-flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {lessons.length}
+                  </span>
+                )}
                 {blockCount > 0 && (
                   <span className="hidden sm:inline-flex items-center gap-1">
                     <Layers className="w-3.5 h-3.5" />
@@ -97,12 +100,12 @@ const ChapterAccordion = ({
 
             {isOpen && (
               <div className="px-4 md:px-6 pb-4 pl-11 space-y-2">
-                {lessons.length === 0 && attachments.length === 0 && (
+                {visibleLessons.length === 0 && attachments.length === 0 && (
                   <p className="text-xs text-muted-foreground py-2">
-                    Nothing added yet. Add a lesson plan or attach a test.
+                    Nothing added yet.
                   </p>
                 )}
-                {lessons.map((lp) => (
+                {visibleLessons.map((lp) => (
                   <button
                     key={lp.id}
                     onClick={() =>
@@ -140,18 +143,20 @@ const ChapterAccordion = ({
                   </div>
                 ))}
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5"
-                    onClick={() =>
-                      navigate(
-                        `/superadmin/packages/${packageId}/lesson/new?grade=${gradeId}&subject=${subjectId}&chapter=${ch.id}`,
-                      )
-                    }
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add lesson plan
-                  </Button>
+                  {inclusionsEnabled.lessons && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() =>
+                        navigate(
+                          `/superadmin/packages/${packageId}/lesson/new?grade=${gradeId}&subject=${subjectId}&chapter=${ch.id}`,
+                        )
+                      }
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add lesson plan
+                    </Button>
+                  )}
                   {inclusionsEnabled.tests && (
                     <Button
                       size="sm"
