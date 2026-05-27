@@ -15,7 +15,7 @@ export const mockPackages: Package[] = [
     sourceType: "curriculum",
     sourceId: "cbse",
     shape: [
-      { gradeId: "class-7", subjectIds: ["science"] },
+      { gradeId: "class-7", subjectIds: ["3"] }, // Mathematics
     ],
     inclusions: {
       chapterTests: true,
@@ -33,9 +33,9 @@ export const mockPackages: Package[] = [
     sourceType: "curriculum",
     sourceId: "cbse",
     shape: [
-      { gradeId: "class-7", subjectIds: ["science", "maths"] },
-      { gradeId: "class-8", subjectIds: ["science", "maths"] },
-      { gradeId: "class-9", subjectIds: ["physics", "chemistry", "biology"] },
+      { gradeId: "class-7", subjectIds: ["1", "3"] }, // Physics, Math
+      { gradeId: "class-8", subjectIds: ["1", "3"] },
+      { gradeId: "class-9", subjectIds: ["1", "2", "4"] }, // Physics, Chem, Bio
     ],
     inclusions: {
       chapterTests: true,
@@ -53,8 +53,8 @@ export const mockPackages: Package[] = [
     sourceType: "course",
     sourceId: "jee-mains",
     shape: [
-      { gradeId: "class-11", subjectIds: ["physics"] },
-      { gradeId: "class-12", subjectIds: ["physics"] },
+      { gradeId: "class-11", subjectIds: ["1"] }, // Physics
+      { gradeId: "class-12", subjectIds: ["1"] },
     ],
     inclusions: {
       chapterTests: true,
