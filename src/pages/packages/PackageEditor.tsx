@@ -260,33 +260,90 @@ const PackageEditor = () => {
         onChange={setActiveSubject}
       />
 
-      {/* Chapters canvas — owns the scroll */}
-      <main className="flex-1 overflow-y-auto">
-        <ChapterAccordion
-          packageId={pkg.id}
-          gradeId={activeGrade}
-          subjectId={activeSubject}
-          chapters={chapters}
-          inclusionsEnabled={{
-            lessons: pkg.inclusions.lessonPlans,
-            tests: pkg.inclusions.chapterTests,
-            grand: pkg.inclusions.grandTests,
-            pyp: pkg.inclusions.previousYearPapers,
-          }}
-        />
+      {/* Summary */}
+      <PackageSummaryStrip
+        chaptersPopulated={chaptersPopulated}
+        chaptersTotal={railItems.length}
+        lessonCount={lessonCount}
+        blockCount={totalBlocks}
+        testCount={totalTests}
+      />
 
-        {pkg.inclusions.grandTests && (
-          <GrandTestsSection
-            packageId={pkg.id}
-            gradeId={activeGrade}
-            subjectId={activeSubject}
-            onOpenSheet={() => setGrandSheetOpen(true)}
-            onRemove={(id) => {
-              removeAttachment(id);
-              refresh();
-            }}
+      {/* Mobile rail trigger */}
+      <div className="md:hidden border-b bg-background px-3 py-2">
+        <Sheet open={railOpen} onOpenChange={setRailOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 min-h-[40px]">
+              <Menu className="w-4 h-4" />
+              <span className="font-semibold truncate">
+                {view.kind === "grand"
+                  ? "Grand Tests"
+                  : activeChapter
+                  ? `${activeChapterIndex + 1}. ${activeChapter.name}`
+                  : "Select a chapter"}
+              </span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-80">
+            <ChapterRail
+              items={railItems}
+              selected={view}
+              onSelectChapter={(id) => {
+                setView({ kind: "chapter", id });
+                setRailOpen(false);
+              }}
+              onSelectGrand={() => {
+                setView({ kind: "grand" });
+                setRailOpen(false);
+              }}
+              grandTestsEnabled={pkg.inclusions.grandTests}
+              grandTestCount={grandTestItems.length}
+            />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Master-detail body */}
+      <main className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] overflow-hidden">
+        <aside className="hidden md:block min-h-0 overflow-hidden">
+          <ChapterRail
+            items={railItems}
+            selected={view}
+            onSelectChapter={(id) => setView({ kind: "chapter", id })}
+            onSelectGrand={() => setView({ kind: "grand" })}
+            grandTestsEnabled={pkg.inclusions.grandTests}
+            grandTestCount={grandTestItems.length}
           />
-        )}
+        </aside>
+        <section className="min-h-0 overflow-y-auto bg-background">
+          {view.kind === "grand" && pkg.inclusions.grandTests ? (
+            <GrandTestsPane
+              packageId={pkg.id}
+              onAttachClick={() => setGrandSheetOpen(true)}
+              onChange={refresh}
+            />
+          ) : activeChapter ? (
+            <ChapterDetailPane
+              packageId={pkg.id}
+              gradeId={activeGrade}
+              subjectId={activeSubject}
+              chapter={activeChapter}
+              chapterIndex={activeChapterIndex}
+              inclusionsEnabled={{
+                lessons: pkg.inclusions.lessonPlans,
+                tests: pkg.inclusions.chapterTests,
+                pyp: pkg.inclusions.previousYearPapers,
+              }}
+              onChange={refresh}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center px-6">
+              <p className="text-sm text-muted-foreground text-center">
+                No chapters in master data for this grade + subject yet.
+              </p>
+            </div>
+          )}
+        </section>
       </main>
 
       {pkg.inclusions.grandTests && (
