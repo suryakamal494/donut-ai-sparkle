@@ -906,6 +906,9 @@ export const subjects = [
   { id: "4", name: "Biology" },
   { id: "5", name: "History" },
   { id: "6", name: "Hindi" },
+  { id: "7", name: "English" },
+  { id: "8", name: "Geography" },
+  { id: "9", name: "Sanskrit" },
 ];
 
 // Get subject by ID

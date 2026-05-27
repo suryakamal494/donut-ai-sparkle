@@ -17,8 +17,8 @@ export const mockPackages: Package[] = [
     sourceType: "curriculum",
     sourceId: "cbse",
     shape: [
-      { gradeId: "class-6", subjectIds: ["3"] }, // Math
-      { gradeId: "class-7", subjectIds: ["3"] }, // Math
+      { gradeId: "class-6", subjectIds: ["3", "1", "2", "4", "6", "7", "8"] }, // 7 subjects — stress test
+      { gradeId: "class-7", subjectIds: ["3", "1", "2", "4", "6", "7", "8", "9"] }, // 8 subjects
       { gradeId: "class-11", subjectIds: ["1", "2"] }, // Physics, Chemistry
       { gradeId: "class-12", subjectIds: ["1", "2"] },
     ],
