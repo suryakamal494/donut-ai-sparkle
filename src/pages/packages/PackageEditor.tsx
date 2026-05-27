@@ -1,24 +1,30 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Settings, CheckCircle2, ClipboardList, X, Plus } from "lucide-react";
+import { ArrowLeft, Settings, CheckCircle2, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getPackageById,
   getGrandTestsForPackage,
   attachExamsToPackage,
-  removeAttachment,
   getLessonPlansForPackage,
+  getLessonPlansForChapter,
+  getAttachmentsForChapter,
   publishPackage,
 } from "@/data/packages";
 import { curriculums, courses } from "@/data/masterData";
-import { teacherExams } from "@/data/teacher/exams";
 import GradeSwitcher from "@/components/packages/editor/GradeSwitcher";
 import SubjectTabs from "@/components/packages/editor/SubjectTabs";
-import ChapterAccordion from "@/components/packages/editor/ChapterAccordion";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
 import AttachTestSheet from "@/components/packages/editor/AttachTestSheet";
 import PackageSettingsSheet from "@/components/packages/editor/PackageSettingsSheet";
+import PackageSummaryStrip from "@/components/packages/editor/PackageSummaryStrip";
+import ChapterRail, {
+  type ChapterRailItem,
+} from "@/components/packages/editor/ChapterRail";
+import ChapterDetailPane from "@/components/packages/editor/ChapterDetailPane";
+import GrandTestsPane from "@/components/packages/editor/GrandTestsPane";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -64,6 +70,10 @@ const PackageEditor = () => {
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
   const { toast } = useToast();
+  const [view, setView] = useState<{ kind: "chapter"; id: string } | { kind: "grand" }>(
+    { kind: "chapter", id: "" },
+  );
+  const [railOpen, setRailOpen] = useState(false);
 
   // When grade changes, snap subject to first available for that grade.
   useEffect(() => {
@@ -82,6 +92,15 @@ const PackageEditor = () => {
       activeSubject,
     );
   }, [pkg, activeGrade, activeSubject]);
+
+  // Keep selection in sync with available chapters.
+  useEffect(() => {
+    if (view.kind === "grand") return;
+    if (chapters.length === 0) return;
+    if (!chapters.some((c) => c.id === view.id)) {
+      setView({ kind: "chapter", id: chapters[0].id });
+    }
+  }, [chapters, view]);
 
   if (!pkg) {
     return (
@@ -106,6 +125,41 @@ const PackageEditor = () => {
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
+
+  // Per-chapter aggregates for the rail + summary strip.
+  const railItems: ChapterRailItem[] = chapters.map((c) => {
+    const lessons = pkg.inclusions.lessonPlans
+      ? getLessonPlansForChapter(pkg.id, c.id)
+      : [];
+    const attachments = getAttachmentsForChapter(pkg.id, c.id).filter(
+      (a) => a.kind !== "grand-test",
+    );
+    return {
+      ...c,
+      lessonCount: lessons.length,
+      testCount: attachments.length,
+      progress: 0,
+    };
+  });
+  const maxLessons = Math.max(1, ...railItems.map((r) => r.lessonCount));
+  railItems.forEach((r) => {
+    r.progress = r.lessonCount / maxLessons;
+  });
+  const chaptersPopulated = railItems.filter(
+    (r) => r.lessonCount > 0 || r.testCount > 0,
+  ).length;
+  const totalBlocks = railItems.reduce((sum, r) => {
+    const lessons = getLessonPlansForChapter(pkg.id, r.id);
+    return sum + lessons.reduce((s, lp) => s + lp.blocks.length, 0);
+  }, 0);
+  const chapterTestTotal = railItems.reduce((s, r) => s + r.testCount, 0);
+  const grandTestItems = getGrandTestsForPackage(pkg.id);
+  const totalTests = chapterTestTotal + grandTestItems.length;
+  const activeChapterIndex =
+    view.kind === "chapter" ? chapters.findIndex((c) => c.id === view.id) : -1;
+  const activeChapter =
+    activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
+
   const anyTestInclusion =
     pkg.inclusions.chapterTests ||
     pkg.inclusions.grandTests ||
@@ -206,33 +260,90 @@ const PackageEditor = () => {
         onChange={setActiveSubject}
       />
 
-      {/* Chapters canvas — owns the scroll */}
-      <main className="flex-1 overflow-y-auto">
-        <ChapterAccordion
-          packageId={pkg.id}
-          gradeId={activeGrade}
-          subjectId={activeSubject}
-          chapters={chapters}
-          inclusionsEnabled={{
-            lessons: pkg.inclusions.lessonPlans,
-            tests: pkg.inclusions.chapterTests,
-            grand: pkg.inclusions.grandTests,
-            pyp: pkg.inclusions.previousYearPapers,
-          }}
-        />
+      {/* Summary */}
+      <PackageSummaryStrip
+        chaptersPopulated={chaptersPopulated}
+        chaptersTotal={railItems.length}
+        lessonCount={lessonCount}
+        blockCount={totalBlocks}
+        testCount={totalTests}
+      />
 
-        {pkg.inclusions.grandTests && (
-          <GrandTestsSection
-            packageId={pkg.id}
-            gradeId={activeGrade}
-            subjectId={activeSubject}
-            onOpenSheet={() => setGrandSheetOpen(true)}
-            onRemove={(id) => {
-              removeAttachment(id);
-              refresh();
-            }}
+      {/* Mobile rail trigger */}
+      <div className="md:hidden border-b bg-background px-3 py-2">
+        <Sheet open={railOpen} onOpenChange={setRailOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 min-h-[40px]">
+              <Menu className="w-4 h-4" />
+              <span className="font-semibold truncate">
+                {view.kind === "grand"
+                  ? "Grand Tests"
+                  : activeChapter
+                  ? `${activeChapterIndex + 1}. ${activeChapter.name}`
+                  : "Select a chapter"}
+              </span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-80">
+            <ChapterRail
+              items={railItems}
+              selected={view}
+              onSelectChapter={(id) => {
+                setView({ kind: "chapter", id });
+                setRailOpen(false);
+              }}
+              onSelectGrand={() => {
+                setView({ kind: "grand" });
+                setRailOpen(false);
+              }}
+              grandTestsEnabled={pkg.inclusions.grandTests}
+              grandTestCount={grandTestItems.length}
+            />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Master-detail body */}
+      <main className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] overflow-hidden">
+        <aside className="hidden md:block min-h-0 overflow-hidden">
+          <ChapterRail
+            items={railItems}
+            selected={view}
+            onSelectChapter={(id) => setView({ kind: "chapter", id })}
+            onSelectGrand={() => setView({ kind: "grand" })}
+            grandTestsEnabled={pkg.inclusions.grandTests}
+            grandTestCount={grandTestItems.length}
           />
-        )}
+        </aside>
+        <section className="min-h-0 overflow-y-auto bg-background">
+          {view.kind === "grand" && pkg.inclusions.grandTests ? (
+            <GrandTestsPane
+              packageId={pkg.id}
+              onAttachClick={() => setGrandSheetOpen(true)}
+              onChange={refresh}
+            />
+          ) : activeChapter ? (
+            <ChapterDetailPane
+              packageId={pkg.id}
+              gradeId={activeGrade}
+              subjectId={activeSubject}
+              chapter={activeChapter}
+              chapterIndex={activeChapterIndex}
+              inclusionsEnabled={{
+                lessons: pkg.inclusions.lessonPlans,
+                tests: pkg.inclusions.chapterTests,
+                pyp: pkg.inclusions.previousYearPapers,
+              }}
+              onChange={refresh}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center px-6">
+              <p className="text-sm text-muted-foreground text-center">
+                No chapters in master data for this grade + subject yet.
+              </p>
+            </div>
+          )}
+        </section>
       </main>
 
       {pkg.inclusions.grandTests && (
@@ -294,60 +405,3 @@ const PackageEditor = () => {
 };
 
 export default PackageEditor;
-
-interface GrandTestsSectionProps {
-  packageId: string;
-  gradeId: string;
-  subjectId: string;
-  onOpenSheet: () => void;
-  onRemove: (id: string) => void;
-}
-
-const GrandTestsSection = ({
-  packageId,
-  onOpenSheet,
-  onRemove,
-}: GrandTestsSectionProps) => {
-  const items = getGrandTestsForPackage(packageId);
-  const examName = (id: string) =>
-    teacherExams.find((e) => e.id === id)?.name ?? id;
-  return (
-    <section className="border-t bg-muted/20 px-4 md:px-6 py-4">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Grand Tests</h2>
-          <p className="text-xs text-muted-foreground">
-            Package-wide assessments not tied to a specific chapter.
-          </p>
-        </div>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={onOpenSheet}>
-          <Plus className="w-3.5 h-3.5" /> Attach grand test
-        </Button>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">
-          No grand tests attached yet.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((a) => (
-            <li
-              key={a.id}
-              className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-background border text-sm"
-            >
-              <ClipboardList className="w-3.5 h-3.5 text-violet-600 shrink-0" />
-              <span className="flex-1 truncate">{examName(a.examId)}</span>
-              <button
-                onClick={() => onRemove(a.id)}
-                className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-muted"
-                aria-label="Remove grand test"
-              >
-                <X className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-};
