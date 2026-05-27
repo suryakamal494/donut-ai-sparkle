@@ -222,13 +222,25 @@ export const ChapterContentSheet = ({
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{item.title}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               <Badge variant="outline" className="h-4 text-[10px] px-1.5">
                                 {meta.label}
                               </Badge>
                               {item.duration && (
                                 <span className="text-[10px] text-muted-foreground">{item.duration}</span>
                               )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setPreviewItem(item);
+                                }}
+                                className="ml-auto inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[10px] font-medium text-primary bg-primary/10 hover:bg-primary/15 transition-colors"
+                              >
+                                <Eye className="w-3 h-3" />
+                                Preview
+                              </button>
                             </div>
                             {item.description && (
                               <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">
@@ -237,19 +249,6 @@ export const ChapterContentSheet = ({
                             )}
                           </div>
                         </button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewItem(item);
-                          }}
-                          className="h-7 px-2 shrink-0 gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          Preview
-                        </Button>
                       </div>
                     );
                   })
