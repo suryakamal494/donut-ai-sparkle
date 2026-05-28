@@ -1,109 +1,132 @@
 ## Goal
 
-Rewrite `docs/06-testing-scenarios/inter-login-tests/packages-qa.md` so a brand-new intern — someone who has never opened the Packages module before — can read it top-to-bottom and know **exactly** what to click, what to look at, what counts as a bug, and how bad that bug is. The current version is a terse 4-column table that assumes the reader already knows the product. We will replace it with the same narrative style used in `student-progress-overview-qa.md` (Why this matters → Scenarios in plain English → What to try → Expected → Severity).
+1. SA assigns whole packages to an institute (via the curriculum/course assignment dialog, as a second step).
+2. Institute sees those packages in a new "Packages" section, reorganises chapters/lessons/blocks locally, and **assigns each package to one or more of its batches** from inside the package detail itself.
+3. Once a package is bound to a batch, every student in that batch implicitly gains access. (Actual student/teacher surfacing is out of scope here — we only persist the binding.)
 
-No code changes. Documentation-only edit. Same file path, same scenario IDs (`PKG-LIST-001` etc.) preserved so anyone already tracking bugs against them stays anchored.
+## Key UX decision — batch assignment inside the package
 
-## What changes for the reader
+Lives **inside the package detail page** as a dedicated "Batches" tab (not a separate module). Reason: the question "which of my batches uses this package?" is always asked while looking at a package. Batches list is short (3–10 per institute typically), so this stays light.
 
-For each existing scenario we expand the single table row into a short narrative block that answers six questions a tester always needs:
-
-1. **Why this matters** — one sentence on the user-visible impact of a bug here, so the intern understands the stakes (e.g. "If the class dropdown forgets the active grade, every teacher loading this package sees the wrong subjects on day one").
-2. **Setup** — the exact precondition (which seeded package to open, which viewport, which toggle state). No "assume you have…" hand-waving.
-3. **Steps** — numbered, click-by-click, naming the actual button labels and routes the user will see (e.g. "Click the ⚙ gear icon in the top-right of `/superadmin/packages/cbse-comprehensive-foundation`").
-4. **What to look for** — the observable signals (header text, toast wording, URL change, console quiet, count on the card).
-5. **Pass vs Fail examples** — one concrete "looks like this = pass" and one "looks like this = bug" line.
-6. **Severity** — P0 / P1 / P2 with a one-line reason, matching the convention already used in the student-progress docs.
-
-## New structure of the document
+Layout per package, "Batches" tab:
 
 ```text
-1. Before You Begin
-   1a. Who this guide is for (interns, first-time testers)
-   1b. How to read a scenario (the 6-part pattern above, explained once)
-   1c. Severity legend (P0 = blocks release, P1 = ship-blocker for the
-       module, P2 = polish; with one example each)
-   1d. Domain Glossary (kept, lightly reworded for plain English)
-   1e. Where to find things (kept)
-   1f. Prerequisites (kept, but each item explains *why* you need it)
+Package: JEE Foundation 2025  (Class 9–12)
 
-2. How a Package is Structured
-   - Keep ASCII diagram
-   - Add a "Read this diagram like a tester" paragraph that walks the
-     intern through each level and points out where bugs usually hide
-
-3. Twelve scenario groups (PKG-LIST, PKG-CREATE, PKG-HDR, PKG-SUBJECTS,
-   PKG-CHAPTERS, PKG-LESSONS, PKG-BLOCKS, PKG-ATTACH, PKG-LIFECYCLE,
-   PKG-RESPONSIVE, PKG-EDGE, PKG-DATA)
-   - Group intro: 2-3 sentences explaining what surface this covers and
-     the single most common bug class here.
-   - Each scenario rewritten in the 6-part narrative pattern above.
-   - Scenario IDs unchanged so existing bug tickets keep linking.
-
-4. Known Limitations & Out of Scope (kept)
+Class 9
+  ☐ Batch A — Morning      ☐ Batch B — Evening
+Class 10
+  ☑ Batch C — Foundation A  ☑ Batch D — Foundation B
+Class 11
+  ☑ Batch E — Advanced      ☐ Batch F — Drop-out
+Class 12
+  ☐ Batch G — Repeaters
 ```
 
-## Example: before vs after
+- Grades come from the package's shape; rows are skipped if the institute has no batch in that grade.
+- Each row lists the institute's batches in that grade as toggleable chips (44px touch targets).
+- A bulk "Select all in this grade" link sits on each row.
+- Saving writes `(instituteId, packageId, batchId)` rows to a binding store.
+- The top-vs-bottom-batch scenario is solved naturally: pick package P1 for Batches C+D, switch to P2 and pick Batches E+F.
+- A batch may be bound to several packages (different subjects covered by different packages). No exclusivity enforcement in this phase — a conflict-resolution UX is deferred to the batch-binding follow-up build.
 
-**Before (current row):**
+Inside the package list view, each card shows a small "Assigned to 3 of 5 batches" footer chip so the institute can see assignment health at a glance.
 
-```
-| PKG-HDR-004 | Switching class via dropdown | Pick Class 11 from the
-dropdown | Subject tabs reset to Physics; chapter rail reloads; URL
-grade param (if any) updates |
-```
+## Out of scope (explicit)
 
-**After (new format):**
+- Teacher-facing and student-facing surfacing of packages.
+- Per-subject conflict resolution when two packages cover the same batch+subject.
+- Per-grade masking inside a package (whole package goes; institute ignores what they don't teach).
+- Hiding individual lessons/blocks (only reorder).
+- DB persistence — all stores stay in-memory.
 
-```
-### PKG-HDR-004 — Switching class via the dropdown
-**Why this matters:** The class dropdown was added specifically to stop
-the toolbar from cramping when a package covers 5+ grades. If the
-switch leaves stale subjects or chapters on screen, an author will
-edit the wrong grade without realising it.
+---
 
-**Setup:** Open `/superadmin/packages/cbse-comprehensive-foundation`.
-The header should show "Class 6" as the active class on first load.
+## Phase 1 — Data layer & helpers (no UI)
 
-**Steps:**
-1. Click the "Class 6" pill in the header — a dropdown opens listing
-   Class 6, 7, 11, 12 (the four grades in this package's shape).
-2. Click "Class 11".
+Land the contracts first so every later phase has stable types.
 
-**What to look for:**
-- The pill now reads "Class 11" with a check mark next to it in the
-  open dropdown.
-- The subject chip row directly below resets to the first subject of
-  Class 11's shape — in the seeded pack this is "Physics".
-- The chapter rail on the left reloads with Class 11 Physics chapters
-  (e.g. "Electrostatics", "Current Electricity"), not the Class 6
-  Maths chapters that were there before.
-- No red errors in the browser console (open DevTools → Console).
+**New** `src/data/institute/institutePackages.ts`:
+- `assignPackagesToInstitute(instituteId, packageIds[])`
+- `getPackagesForInstitute(instituteId): Package[]`
+- `removePackageFromInstitute(instituteId, packageId)`
 
-**Pass example:** Header = "Class 11", active chip = "Physics",
-chapter rail shows Physics chapters, console clean.
+**New** `src/data/institute/institutePackageOrders.ts` (local reorder overrides):
+- `getInstituteChapterOrder/setInstituteChapterOrder`
+- `getInstituteLessonOrder/setInstituteLessonOrder`
+- `getInstituteBlockOrder/setInstituteBlockOrder`
+- `resetOrder(instituteId, packageId, scope)`
+- Keys: `${instituteId}:${packageId}:${gradeId}:${subjectId}[:chapterId[:lessonId]]`
+- Falls back to SA's `order` field when no override exists.
 
-**Bug example:** Header switches to "Class 11" but the chip row still
-shows "Maths" (Class 11 doesn't even include Maths) — file as **P0**:
-authors will silently edit the wrong cell.
+**New** `src/data/institute/institutePackageBatches.ts`:
+- `getBatchesForPackage(instituteId, packageId): { gradeId, batchIds }[]`
+- `setBatchesForPackage(instituteId, packageId, gradeId, batchIds[])`
+- `getPackagesForBatch(instituteId, batchId): Package[]` (used by future student/teacher panels)
 
-**Severity if it fails:** P0 — stale cell after grade switch is a
-data-integrity bug, every edit downstream is suspect.
-```
+**Edit** `src/data/packages/helpers.ts` — add `getEligiblePackagesForAssignment(curriculumIds, courseIds)`.
 
-We do this expansion for every existing PKG-* scenario. Group intros are added so the intern always knows which surface they are about to test.
+Verification: write a one-off scratch test in `/tmp` calling each helper to confirm round-trip works.
 
-## Length & file size
+## Phase 2 — SA: add packages step to the assignment dialog
 
-Expanding ~75 rows × ~6 short paragraphs each lands the file around 1,500–1,800 lines. That is in line with the longest existing QA docs (`student-progress-*-qa.md`). No split needed — keeping it one file matches the entry already in `docs/06-testing-scenarios/README.md` and how the user has been referring to it.
+**Edit** `src/components/institutes/AssignCurriculumCourseDialog.tsx`:
+- Convert single-screen dialog to a 2-step wizard:
+  - **Step 1** (existing) — curriculums + courses
+  - **Step 2** (new) — eligible packages, grouped by source (CBSE / JEE / etc.), with search and source badges
+- Footer: Back / Next / Save
+- On Save: call `assignPackagesToInstitute` with selected IDs in addition to current curriculum/course save.
 
-## Out of scope
+**New** `src/components/institutes/AssignPackagesStep.tsx` — the Step 2 body, reusing `PackageCard` (compact variant) for each row.
 
-- No changes to source code, routes, components, or seed data.
-- No changes to scenario IDs.
-- No new screenshots (we describe what to look for in words, matching the rest of the QA library).
-- No changes to `README.md` (the link is already correct).
+Verification: open SA → Institutes → Assign → Step 2 lists only packages whose `sourceId` matches Step 1 selection; Save persists.
 
-## Deliverable
+## Phase 3 — Institute: Packages list view
 
-A single replaced file: `docs/06-testing-scenarios/inter-login-tests/packages-qa.md`, rewritten in the intern-friendly narrative style above, every scenario covering: Why this matters, Setup, Steps, What to look for, Pass/Bug examples, Severity.
+**New** `src/pages/institute/packages/InstitutePackages.tsx` — grid of `PackageCard` (with new `mode="institute"` prop) for everything `getPackagesForInstitute(instituteId)` returns. Each card shows source badge, shape summary, lesson/test counts, and "Assigned to X of Y batches".
+
+**Edit** `src/components/packages/PackageCard.tsx` — add `mode: "superadmin" | "institute"`. In institute mode: hide edit/archive/draft chips, only "View" CTA, append batch-assignment footer.
+
+**Edit** sidebar + routes (`src/components/layout/Sidebar.tsx` institute section, institute routes file) — register `/institute/packages` and `/institute/packages/:packageId`.
+
+Verification: institute portal sidebar has Packages; list reflects SA assignments; empty state when none assigned.
+
+## Phase 4 — Institute: Packages detail (read-only content + local reorder)
+
+**New** `src/pages/institute/packages/InstitutePackageDetail.tsx` — reuses the SA package editor layout with three top tabs:
+- **Content** (default)
+- **Tests** (chapter tests, grand tests, PYPs — read-only list)
+- **Batches** (Phase 5)
+
+**Edit** `src/components/packages/editor/ChapterRail.tsx`,
+`ChapterAccordion.tsx`,
+`ChapterDetailPane.tsx`,
+`PackageWorkspaceToolbar.tsx` — add `mode` prop. In `institute` mode:
+- All create / edit / delete / publish / archive controls hidden.
+- Drag handles enabled on chapters, lesson plans, and content blocks; persist via `institutePackageOrders`.
+- "Reset order" button per scope when an override exists.
+- Reads order with this precedence: institute override → SA `order` → array index.
+
+Verification: drag a chapter, refresh — order persists. Open same package in SA — SA's order untouched. Reset clears override.
+
+## Phase 5 — Institute: assign package to batches
+
+**New** `src/components/institute/packages/PackageBatchAssignmentPanel.tsx` — the "Batches" tab body described above. Pulls institute batches from existing data, groups by grade, intersects with the package's shape, and renders toggle chips. Save writes via `setBatchesForPackage`.
+
+Wire `PackageCard` footer ("Assigned to X of Y batches") to the same store so list and detail stay in sync.
+
+Verification: scenario test — package with grades 10–12, four batches (two in 10, two in 11). Bind the package to one Class 10 batch + one Class 11 batch; reopen, state intact; `getPackagesForBatch` returns the package for those two batches only.
+
+## Phase 6 — Docs
+
+- `docs/02-institute/packages.md` — model, visibility rules, reorder semantics, batch assignment.
+- `docs/05-cross-login-flows/package-flow.md` — SA assigns → Institute assigns to batches → (future) Teacher/Student see it.
+- Update `docs/06-testing-scenarios/inter-login-tests/packages-qa.md` (existing) with a new "Institute view + batch assignment" section, narrative style, same severity scheme already in use.
+
+## Verification across phases
+
+- SA dialog Step 2 lists only source-matching packages.
+- Institute Packages page shows exactly what SA assigned.
+- Reorder in institute view never mutates SA's order.
+- Batch toggles per grade row, multi-select, persisted, reflected in card footer.
+- `getPackagesForBatch` returns correct packages — confirms the contract that future student/teacher panels will rely on, without us building those panels here.

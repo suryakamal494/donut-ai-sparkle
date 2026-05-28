@@ -155,3 +155,20 @@ export const summarizeCounts = (
     pyp: atts.filter((a) => a.kind === "pyp").length,
   };
 };
+
+/**
+ * Published packages whose sourceId is in the supplied curriculum or course
+ * lists. Used by the SA "assign packages to institute" wizard step.
+ */
+export const getEligiblePackagesForAssignment = (
+  curriculumIds: string[],
+  courseIds: string[],
+): Package[] => {
+  const cur = new Set(curriculumIds);
+  const cou = new Set(courseIds);
+  return packages.filter((p) => {
+    if (p.status !== "published") return false;
+    if (p.sourceType === "curriculum") return cur.has(p.sourceId);
+    return cou.has(p.sourceId);
+  });
+};

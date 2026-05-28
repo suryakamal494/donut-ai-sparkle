@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ClipboardList, MoreHorizontal } from "lucide-react";
+import { BookOpen, ClipboardList, MoreHorizontal, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { curriculums, courses } from "@/data/masterData";
 import { summarizeShape, summarizeCounts } from "@/data/packages";
 import type { Package } from "@/types/packages";
+import { countBoundBatches } from "@/data/institute/institutePackageBatches";
 
 const statusStyles: Record<Package["status"], string> = {
   draft: "bg-amber-100 text-amber-800 border-amber-200",
@@ -11,17 +12,33 @@ const statusStyles: Record<Package["status"], string> = {
   archived: "bg-muted text-muted-foreground border-border",
 };
 
-const PackageCard = ({ pkg }: { pkg: Package }) => {
+interface Props {
+  pkg: Package;
+  mode?: "superadmin" | "institute";
+  instituteId?: string;
+  totalBatches?: number;
+}
+
+const PackageCard = ({ pkg, mode = "superadmin", instituteId, totalBatches }: Props) => {
   const navigate = useNavigate();
   const source =
     pkg.sourceType === "curriculum"
       ? curriculums.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
   const counts = summarizeCounts(pkg);
+  const boundBatches =
+    mode === "institute" && instituteId
+      ? countBoundBatches(instituteId, pkg.id)
+      : 0;
+
+  const targetHref =
+    mode === "institute"
+      ? `/institute/packages/${pkg.id}`
+      : `/superadmin/packages/${pkg.id}`;
 
   return (
     <button
-      onClick={() => navigate(`/superadmin/packages/${pkg.id}`)}
+      onClick={() => navigate(targetHref)}
       className="group text-left rounded-2xl border bg-card p-4 flex flex-col gap-3 transition-all hover:border-primary/40 hover:shadow-md"
     >
       {/* Header row: source chip + status */}
@@ -29,14 +46,16 @@ const PackageCard = ({ pkg }: { pkg: Package }) => {
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted text-xs font-medium text-foreground/80">
           {pkg.sourceType === "curriculum" ? "Curriculum" : "Course"} · {source}
         </span>
-        <span
-          className={cn(
-            "inline-flex px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide",
-            statusStyles[pkg.status],
-          )}
-        >
-          {pkg.status}
-        </span>
+        {mode === "superadmin" && (
+          <span
+            className={cn(
+              "inline-flex px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide",
+              statusStyles[pkg.status],
+            )}
+          >
+            {pkg.status}
+          </span>
+        )}
       </div>
 
       {/* Title + shape */}
@@ -71,6 +90,22 @@ const PackageCard = ({ pkg }: { pkg: Package }) => {
         </div>
         <MoreHorizontal className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
       </div>
+
+      {mode === "institute" && (
+        <div className="flex items-center gap-1.5 -mt-1 text-[11px] font-medium text-muted-foreground">
+          <Users className="w-3.5 h-3.5" />
+          {boundBatches === 0 ? (
+            <span className="text-amber-700">Not assigned to any batch yet</span>
+          ) : (
+            <span>
+              Assigned to{" "}
+              <span className="font-semibold text-foreground">{boundBatches}</span>
+              {typeof totalBatches === "number" ? ` of ${totalBatches}` : ""} batch
+              {boundBatches === 1 ? "" : "es"}
+            </span>
+          )}
+        </div>
+      )}
     </button>
   );
 };
