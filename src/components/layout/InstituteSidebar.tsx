@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
+import { Package as PackageIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import DonutLogo from "@/components/shared/DonutLogo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -72,6 +73,7 @@ const navItems: NavItem[] = [
   },
   { title: "Question Bank", icon: FileQuestion, href: "/institute/questions" },
   { title: "Content Library", icon: Library, href: "/institute/content" },
+  { title: "Packages", icon: PackageIcon, href: "/institute/packages" },
   { title: "Exams", icon: ClipboardList, href: "/institute/exams" },
   {
     title: "Reports",
