@@ -39,8 +39,8 @@ Rules:
 | Package detail | `/institute/packages/:packageId` |
 
 The detail page has three tabs:
-- **Content** — read-only preview of chapters, lessons, and content blocks (reuses the SA editor in `mode="institute"`).
-- **Reorder** — local drag/move controls (see below).
+The detail page has two tabs:
+- **Content** — read-only preview of chapters, lessons, and content blocks. Reorder happens **inline** here: drag the grip handle in the Chapter Index rail to reorder chapters; drag the grip handle on a lesson row to reorder lesson plans inside that chapter. A "Reset" link appears in each scope when a local override is active.
 - **Batches** — assign the package to one or more batches per grade.
 
 ---
@@ -60,7 +60,9 @@ Read precedence at render time:
 2. SA's `order` field
 3. Array index fallback
 
-If SA later adds or removes items, the override gracefully tolerates the change — known IDs follow the override, new IDs are appended in SA's order. A per-scope **Reset** action clears the override and falls back to SA's order.
+If SA later adds or removes items, the override gracefully tolerates the change — known IDs follow the override, new IDs are appended in SA's order. Each scope has a **Reset** link (next to the Chapter Index title and next to the Lesson plans heading) that clears the override and falls back to SA's order.
+
+Drag-and-drop uses `@dnd-kit` with pointer, touch (200ms long-press), and keyboard sensors so the reorder works on desktop and tablet.
 
 **SA's master order is never mutated by an institute action.**
 
