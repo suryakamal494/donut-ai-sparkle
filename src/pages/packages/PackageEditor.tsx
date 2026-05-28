@@ -18,7 +18,6 @@ import SubjectTabs from "@/components/packages/editor/SubjectTabs";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
 import AttachTestSheet from "@/components/packages/editor/AttachTestSheet";
 import PackageSettingsSheet from "@/components/packages/editor/PackageSettingsSheet";
-import PackageSummaryStrip from "@/components/packages/editor/PackageSummaryStrip";
 import ChapterRail, {
   type ChapterRailItem,
 } from "@/components/packages/editor/ChapterRail";
@@ -178,7 +177,7 @@ const PackageEditor = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar — package name + status + actions */}
-      <header className="h-14 flex items-center gap-2 px-3 md:px-6 border-b bg-background">
+      <header className="flex items-center gap-2 px-3 md:px-6 py-2 border-b bg-background">
         <Button
           variant="ghost"
           size="icon"
@@ -193,6 +192,24 @@ const PackageEditor = () => {
           <h1 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight">
             {pkg.name}
           </h1>
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5 tabular-nums">
+            <span className="font-semibold text-foreground">{chaptersPopulated}</span>
+            <span className="text-muted-foreground">/{railItems.length}</span> chapters
+            <span className="mx-1.5 opacity-40">·</span>
+            <span className="font-semibold text-foreground">{lessonCount}</span> plans
+            <span className="mx-1.5 opacity-40">·</span>
+            <span className="font-semibold text-foreground">{totalBlocks}</span> blocks
+            <span className="mx-1.5 opacity-40">·</span>
+            <span className="font-semibold text-foreground">{totalTests}</span> tests
+          </p>
+        </div>
+        <div className="hidden sm:flex items-center mr-1">
+          <GradeSwitcher
+            gradeIds={gradeIds}
+            activeId={activeGrade}
+            onChange={setActiveGrade}
+            variant="compact"
+          />
         </div>
         <span
           className={cn(
@@ -239,8 +256,8 @@ const PackageEditor = () => {
         </TooltipProvider>
       </header>
 
-      {/* Grade switcher */}
-      <div className="border-b bg-background/60">
+      {/* Mobile grade switcher (sm+ lives in the header) */}
+      <div className="sm:hidden border-b bg-background/60">
         <GradeSwitcher
           gradeIds={gradeIds}
           activeId={activeGrade}
@@ -253,15 +270,6 @@ const PackageEditor = () => {
         subjectIds={activeRow?.subjectIds ?? []}
         activeId={activeSubject}
         onChange={setActiveSubject}
-      />
-
-      {/* Summary */}
-      <PackageSummaryStrip
-        chaptersPopulated={chaptersPopulated}
-        chaptersTotal={railItems.length}
-        lessonCount={lessonCount}
-        blockCount={totalBlocks}
-        testCount={totalTests}
       />
 
       {/* Mobile rail trigger */}

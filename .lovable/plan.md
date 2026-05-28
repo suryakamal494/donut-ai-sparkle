@@ -1,68 +1,77 @@
-## Goal
+# Compact the Package Editor header
 
-Replace the current vertical accordion in the Package Editor with the master-detail layout you picked. The top Class chips and Subject tabs stay exactly as they are — only the area below changes.
+## Problem
 
-## What changes
+Today the editor stacks 4 horizontal bars before content:
 
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│  Back  ·  CBSE Comprehensive Foundation Pack   [Settings][Pub] │
-├────────────────────────────────────────────────────────────────┤
-│  [Class 6] [Class 7] [Class 11] [Class 12]                     │  ← unchanged
-│  Mathematics  Physics  Chemistry  Biology  …                   │  ← unchanged
-├────────────────────────────────────────────────────────────────┤
-│  Summary strip: 14/20 Chapters · 84 Lessons · 42h · 18 Tests   │  ← NEW
-├──────────────────┬─────────────────────────────────────────────┤
-│ CHAPTER INDEX    │  CH-01 · Knowing Our Numbers                │
-│ ┌──────────────┐ │  5 plans · 40 blocks · 1 chapter test       │
-│ │1. Knowing…  ●│ │                       [+ Lesson] [+ Test]   │
-│ │  ▓▓▓▓░ 65%   │ │  ┌─────────────────────────────────────┐    │
-│ └──────────────┘ │  │ 01  Introduction & Hook             │    │
-│ 2. Whole Nums    │  │     8 blocks · ~15 min  [Preview]▶  │    │
-│ 3. Playing w/ N. │  ├─────────────────────────────────────┤    │
-│ …                │  │ 02  Core Concepts                   │    │
-│ ── Global ──     │  │     12 blocks · ~45 min             │    │
-│ ◎ Grand Tests    │  └─────────────────────────────────────┘    │
-│                  │  ┌── Chapter Test (indigo) ────────────┐    │
-│                  │  │ Laws of Motion – Unit Test          │    │
-│                  │  └─────────────────────────────────────┘    │
-└──────────────────┴─────────────────────────────────────────────┘
+Row 1  Header           ~64px   back · title · status · Settings · Published
+Row 2  Class chips      ~56px   Class 6 / 7 / 11 / 12
+Row 3  Subject tabs     ~48px   Mathematics · Physics · …
+Row 4  Summary strip    ~48px   Chapters 5/14 · Lessons 150 · Blocks 200 · Tests 8
+                       ─────
+                       ~216px (≈32% of a 672px viewport, ≈40% with browser chrome)
 ```
 
-### Left rail — Chapter Index
-- One row per chapter: number + title, right-aligned counter (lessons/total or just lesson count), thin progress bar under the title showing population (lessons present ÷ expected lessons).
-- Active chapter highlighted with the orange selection card from the mockup; empty chapters dimmed.
-- Pinned section header "Global" with a single entry "Grand Tests" (icon + label) that swaps the right pane to the Grand Tests view.
-- Scrolls independently; rail width ~300px on desktop, collapses to a top dropdown on mobile/tablet.
+Chapter 01 content only starts at ~y=410. The chapter rail is fine, but the right pane is starved.
 
-### Right pane — Chapter detail
-- Header block: chapter tag + title + meta dots (plans, blocks, chapter test status) + actions (`Add lesson plan`, `Attach chapter test`).
-- Lesson plan list: clean rows in a single card stack, numbered tile on the left, title + small "N blocks · ~Xm" line, hover reveals `Preview` + `Edit plan`. Clicking the row still navigates to the existing lesson composer route (no change there).
-- Chapter test rendered as a distinct indigo dashed-border card under the lesson list (clearly different from lesson rows).
-- Empty state when chapter has no lessons: single primary "Add the first lesson plan" CTA + secondary "Attach chapter test".
+## Goal
 
-### Right pane — Grand Tests view
-- Same right-pane shell, but the body lists Grand Tests as indigo cards and shows the `Attach grand test` action in the header. No "lesson plans" section here.
+Collapse to **2 rows** of chrome (~104px total) without losing any function. Everything currently in those 4 bars stays accessible — just denser, smarter placement.
 
-### Summary strip (above the split)
-- Compact dark bar: `Chapters X/Y`, `Total lessons`, `Content volume` (sum of estimated minutes), `Tests`. Pure read-out from existing data — no new persistence.
+## Proposed layout
 
-## Technical plan
+```text
+Row 1  Unified header              ~56px
+       ← │ Curriculum · CBSE                                       [Class 6 ▾] [⚙] [Published]
+           CBSE Comprehensive Foundation Pack
+           5/14 chapters · 150 plans · 200 blocks · 8 tests   ← metrics as a small muted line
 
-New components under `src/components/packages/editor/`:
-- `PackageSummaryStrip.tsx` — reads the same chapter list + lessons/tests already loaded and shows the 4 stats.
-- `ChapterRail.tsx` — replaces the vertical-list role of `ChapterAccordion`. Pure presentational + `selectedId`/`onSelect`. Includes the "Grand Tests" entry.
-- `ChapterDetailPane.tsx` — header, lesson-plan list, chapter-test card, empty state. Reuses existing handlers from `PackageEditor.tsx` (add lesson plan, attach test, open composer).
-- `GrandTestsPane.tsx` — extracted from the current bottom Grand Tests block in `PackageEditor.tsx`; opens `AttachTestSheet` in grand mode.
+Row 2  Subject tabs                ~48px
+       Mathematics · Physics · Chemistry · Biology · Hindi · English · Geography
+       ─────────────────────────────────────────────────────────────────────────
+Body   Chapter Rail │ Chapter Detail Pane            ← starts at ~104px instead of ~216px
+```
 
-Edits:
-- `src/pages/packages/PackageEditor.tsx`: stop rendering `ChapterAccordion` + bottom Grand Tests section. Add `selectedChapterId` state (default = first chapter) and a `view: "chapter" | "grand"` toggle driven by the rail. Layout becomes `grid grid-cols-[300px_1fr]` (md+) with a `Sheet`-based rail on small screens.
-- `ChapterAccordion.tsx`: keep file for now but unused; can be deleted in a follow-up once the new layout is verified.
-- Mobile/tablet (<768px): rail becomes a top "Chapter ▾" dropdown button that opens the same list in a Sheet. Right pane is full width. Summary strip wraps to 2×2.
+### Changes per row
 
-No changes to: data layer (`@/data/packages`), routing, `AttachTestSheet`, `PackageSettingsSheet`, lesson composer page, sidebar, header, class chips, or subject tabs.
+1. **Header (`PackageEditor.tsx` header)**
+   - Keep back arrow, breadcrumb (`Curriculum · CBSE`), title, status pill, Settings, Published.
+   - Move the **Class switcher into the header right side** as a compact `Select` / dropdown (`Class 6 ▾`). On ≥lg screens it can render as a small segmented control if there are ≤4 classes; otherwise it collapses to a dropdown. This kills Row 2 entirely.
+   - Replace the standalone **summary strip** with a single muted metrics line directly under the title: `5/14 chapters · 150 lesson plans · 200 blocks · 8 tests`. Same data, ~20px instead of 48px, and visually anchored to the package it describes.
+   - Delete `PackageSummaryStrip.tsx` usage from the editor (keep the file for now in case we want it elsewhere, or remove if unused — confirm during build).
 
-## Out of scope
-- No new fields persisted (status badges, complexity dots, avatars, "last synced" shown in the mockup are decorative — we will show only what real data already supports: title, lesson count, block count, test count, estimated minutes if available; we will not invent statuses).
-- No backend / schema changes.
-- Other package routes (`/packages`, `/packages/new`, lesson composer) are untouched.
+2. **Subject tabs (`SubjectTabs.tsx`)**
+   - Keep as-is — this is the most frequently used switcher and deserves its own row.
+   - Reduce vertical padding from `py-2` to `py-1.5` and tighten chip height from `py-1.5` → `py-1` to shave ~8px.
+
+3. **No change to chapter rail / detail pane** — they just get more height.
+
+### Responsive behavior
+
+- **≥1024px (desktop):** class switcher as segmented pills inline in header right cluster.
+- **640–1023px (tablet):** class switcher collapses to a `Select` dropdown next to Settings.
+- **<640px (mobile):** existing mobile sheet pattern stays; class switcher renders as a dropdown in the header. Metrics line wraps or truncates to `5/14 ch · 150 plans · 8 tests`.
+
+### Files to touch
+
+- `src/pages/packages/PackageEditor.tsx` — restructure header JSX, drop `<PackageSummaryStrip>` and the standalone class-chip row, render new inline metrics + class control.
+- `src/components/packages/editor/GradeSwitcher.tsx` — add a `variant: "pills" | "dropdown"` prop (or a new compact rendering) so it can live inside the header.
+- `src/components/packages/editor/SubjectTabs.tsx` — small padding tweak only.
+- `src/components/packages/editor/PackageSummaryStrip.tsx` — stop rendering in editor; keep the file (unused) or delete based on usage check.
+
+### What stays exactly the same
+
+- All data, routes, IDs, mock seeding, chapter rail, detail pane, attach-test, settings sheet, lesson composer.
+- Status pill, Settings button, Published action — same components, same behavior, just in a tighter row.
+- Mobile sheet for chapter rail.
+
+## Outcome
+
+- Body content starts at ~y=104 instead of ~y=216 → roughly **+110px (~16% of viewport)** returned to the chapter detail pane.
+- One less horizontal divider, less visual noise.
+- Class + subject hierarchy is preserved (class is the "outer" filter, lives in header; subject is the "inner" filter, lives in its own row).
+
+## Open question
+
+Do you want the **metrics line** (`5/14 chapters · 150 plans · 200 blocks · 8 tests`) under the title, or tucked behind a small `i` icon/tooltip near the title so the header is even cleaner? Default in this plan: visible under the title (still saves ~28px vs current strip).
