@@ -165,9 +165,6 @@ const InstitutePackageDetail = () => {
     toast({ title: "Order reset", description: "Restored SuperAdmin's lesson order." });
     refresh();
   };
-    );
-    refresh();
-  };
 
   // ---- Batches tab ----
   const boundBatchIds = getBatchesForPackage(CURRENT_INSTITUTE_ID, pkg.id);
