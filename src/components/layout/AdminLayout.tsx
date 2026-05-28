@@ -1,13 +1,21 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const AdminLayout = () => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const location = useLocation();
+  // Auto-collapse the global nav whenever we are inside a specific package
+  // (editor or lesson composer) so the 3-pane layout gets enough room.
+  const inPackageDetail = /^\/superadmin\/packages\/[^/]+/.test(location.pathname);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(inPackageDetail);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarCollapsed(inPackageDetail);
+  }, [inPackageDetail]);
 
   return (
     <div className="min-h-screen bg-background">
