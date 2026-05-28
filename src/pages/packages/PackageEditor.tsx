@@ -138,12 +138,7 @@ const PackageEditor = () => {
       ...c,
       lessonCount: lessons.length,
       testCount: attachments.length,
-      progress: 0,
     };
-  });
-  const maxLessons = Math.max(1, ...railItems.map((r) => r.lessonCount));
-  railItems.forEach((r) => {
-    r.progress = r.lessonCount / maxLessons;
   });
   const chaptersPopulated = railItems.filter(
     (r) => r.lessonCount > 0 || r.testCount > 0,

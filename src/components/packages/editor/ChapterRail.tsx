@@ -5,8 +5,6 @@ import type { EditorChapter } from "./packageChapterLookup";
 export interface ChapterRailItem extends EditorChapter {
   lessonCount: number;
   testCount: number;
-  /** 0–1 indicator: lessonCount / max(lessonCount across chapters, 1) — pure visual hint */
-  progress: number;
 }
 
 interface Props {
@@ -45,7 +43,7 @@ const ChapterRail = ({
               <button
                 onClick={() => onSelectChapter(c.id)}
                 className={cn(
-                  "w-full text-left rounded-lg px-3 py-2.5 border transition-all min-h-[44px]",
+                  "w-full text-left rounded-lg px-3 py-2 border transition-all min-h-[44px]",
                   isActive
                     ? "bg-background border-primary/40 shadow-sm"
                     : "border-transparent hover:bg-background hover:border-border",
@@ -75,15 +73,6 @@ const ChapterRail = ({
                   >
                     {c.lessonCount}
                   </span>
-                </div>
-                <div className="h-1 mt-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full transition-all",
-                      isActive ? "bg-primary" : "bg-primary/40",
-                    )}
-                    style={{ width: `${Math.round(c.progress * 100)}%` }}
-                  />
                 </div>
               </button>
             </li>

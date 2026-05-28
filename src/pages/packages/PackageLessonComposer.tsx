@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Save, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   WorkspaceCanvas,
   WorkspaceFooter,
@@ -70,6 +71,15 @@ const PackageLessonComposer = () => {
   const [showContentSheet, setShowContentSheet] = useState(false);
   const [showQuizDialog, setShowQuizDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus the title input on new plans so it's obvious it's editable.
+  useEffect(() => {
+    if (isNew) {
+      const t = setTimeout(() => titleRef.current?.focus(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [isNew]);
 
   if (!pkg) {
     return (
@@ -172,12 +182,23 @@ const PackageLessonComposer = () => {
             <ChevronRight className="w-3 h-3 shrink-0" />
             <span className="truncate">{chapterName}</span>
           </p>
-          <Input
-            value={planTitle}
-            onChange={(e) => setPlanTitle(e.target.value)}
-            placeholder={isNew ? "Untitled lesson plan" : "Lesson title"}
-            className="h-7 px-0 border-0 shadow-none text-sm md:text-base font-semibold focus-visible:ring-0"
-          />
+          <div className="group relative flex items-center gap-1.5">
+            <Input
+              ref={titleRef}
+              value={planTitle}
+              onChange={(e) => setPlanTitle(e.target.value)}
+              placeholder={isNew ? "Name this lesson plan…" : "Lesson title"}
+              aria-label="Lesson plan title"
+              className={cn(
+                "h-8 px-2 -ml-2 text-sm md:text-base font-semibold rounded-md transition-colors",
+                "border border-dashed border-muted-foreground/40 bg-transparent",
+                "hover:border-primary/50 hover:bg-muted/30",
+                "focus-visible:border-primary focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-primary/30",
+                "placeholder:text-muted-foreground/70 placeholder:italic",
+              )}
+            />
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0 group-focus-within:opacity-0 transition-opacity pointer-events-none" />
+          </div>
         </div>
         <Button
           size="sm"
