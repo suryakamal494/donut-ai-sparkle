@@ -4,6 +4,7 @@ import { ArrowLeft, Save, ChevronRight, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   WorkspaceCanvas,
   WorkspaceFooter,
