@@ -27,6 +27,7 @@ Quick verification that each page loads and functions:
 Test dependencies within a single portal:
 - Batch creation → Timetable
 - Teacher creation → Batch assignment
+- [Lesson Packages QA (SuperAdmin)](./inter-login-tests/packages-qa.md)
 
 ## Inter-Login Tests
 
