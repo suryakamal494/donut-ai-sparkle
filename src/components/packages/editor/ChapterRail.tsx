@@ -116,18 +116,15 @@ const ChapterRail = ({
         </DndContext>
       ) : (
         <ul className="px-2 pb-2 space-y-1">
-          {items.map((c, idx) => {
-            const isActive = selected.kind === "chapter" && selected.id === c.id;
-            return (
-              <ChapterRow
-                key={c.id}
-                chapter={c}
-                index={idx}
-                isActive={isActive}
-                onSelect={() => onSelectChapter(c.id)}
-              />
-            );
-          })}
+          {items.map((c, idx) => (
+            <StaticChapterRow
+              key={c.id}
+              chapter={c}
+              index={idx}
+              isActive={selected.kind === "chapter" && selected.id === c.id}
+              onSelect={() => onSelectChapter(c.id)}
+            />
+          ))}
         </ul>
       )}
 
@@ -181,15 +178,89 @@ interface RowProps {
   onSelect: () => void;
 }
 
-const ChapterRow = ({ chapter, index, isActive }: RowProps & { onSelect: () => void }) => {
+const RowBody = ({ chapter, index, isActive }: Omit<RowProps, "onSelect">) => {
   const dim = chapter.lessonCount === 0 && chapter.testCount === 0;
   return (
-    <li>
+    <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
+      <span
+        className={cn(
+          "text-sm font-semibold truncate",
+          isActive ? "text-foreground" : dim ? "text-muted-foreground" : "text-foreground/80",
+        )}
+      >
+        <span className="text-muted-foreground font-normal mr-1.5 tabular-nums">
+          {index + 1}.
+        </span>
+        {chapter.name}
+      </span>
+      <span
+        className={cn(
+          "text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0",
+          isActive
+            ? "bg-primary/10 text-primary"
+            : chapter.lessonCount > 0
+            ? "bg-muted text-muted-foreground"
+            : "text-muted-foreground/60",
+        )}
+      >
+        {chapter.lessonCount}
+      </span>
+    </div>
+  );
+};
+
+const StaticChapterRow = ({ chapter, index, isActive, onSelect }: RowProps) => (
+  <li>
+    <button
+      onClick={onSelect}
+      className={cn(
+        "w-full text-left rounded-lg px-3 py-2 border transition-all min-h-[44px]",
+        isActive
+          ? "bg-background border-primary/40 shadow-sm"
+          : "border-transparent hover:bg-background hover:border-border",
+      )}
+    >
+      <RowBody chapter={chapter} index={index} isActive={isActive} />
+    </button>
+  </li>
+);
+
+const SortableChapterRow = ({ chapter, index, isActive, onSelect }: RowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: chapter.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-1 rounded-lg border transition-all min-h-[44px]",
+        isActive
+          ? "bg-background border-primary/40 shadow-sm"
+          : "border-transparent hover:bg-background hover:border-border",
+        isDragging && "opacity-60 shadow-md ring-1 ring-primary/30 bg-background z-10 relative",
+      )}
+    >
       <button
-        onClick={() => (arguments as any)} // unused
-        className="hidden"
-      />
-      <ChapterRowInner chapter={chapter} index={index} isActive={isActive} dim={dim} onSelect={() => undefined} />
+        type="button"
+        className="shrink-0 h-9 w-7 ml-1 flex items-center justify-center text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+        aria-label={`Drag to reorder ${chapter.name}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex-1 min-w-0 text-left pr-3 py-2"
+      >
+        <RowBody chapter={chapter} index={index} isActive={isActive} />
+      </button>
     </li>
   );
 };
