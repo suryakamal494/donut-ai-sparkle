@@ -80,6 +80,7 @@ export const docsNavigation: DocSection[] = [
       { title: "Content Library", path: "02-institute/content-library" },
       { title: "Question Bank", path: "02-institute/question-bank" },
       { title: "Exams", path: "02-institute/exams-new" },
+      { title: "Packages", path: "02-institute/packages" },
       {
         title: "Reports",
         path: "02-institute/reports-overview",
@@ -152,6 +153,7 @@ export const docsNavigation: DocSection[] = [
       { title: "Overview", path: "05-cross-login-flows/README" },
       { title: "Content Propagation", path: "05-cross-login-flows/content-propagation" },
       { title: "Curriculum Flow", path: "05-cross-login-flows/curriculum-course-flow" },
+      { title: "Package Flow", path: "05-cross-login-flows/package-flow" },
       { title: "Question Propagation", path: "05-cross-login-flows/question-propagation" },
       { title: "Batch Student Flow", path: "05-cross-login-flows/batch-student-flow" },
       { title: "Exam Flow", path: "05-cross-login-flows/exam-flow" },
@@ -212,6 +214,7 @@ export const docsNavigation: DocSection[] = [
             ],
           },
           { title: "Curriculum Tests", path: "06-testing-scenarios/inter-login-tests/curriculum-tests" },
+          { title: "Packages QA", path: "06-testing-scenarios/inter-login-tests/packages-qa" },
           { title: "Tier Management Tests", path: "06-testing-scenarios/inter-login-tests/tier-institute-tests" },
           { title: "Question Bank Tests", path: "06-testing-scenarios/inter-login-tests/question-bank-tests" },
           { title: "Roles & Access Tests", path: "06-testing-scenarios/inter-login-tests/roles-access-tests" },
