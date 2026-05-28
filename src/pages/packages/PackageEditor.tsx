@@ -189,9 +189,19 @@ const PackageEditor = () => {
           <p className="text-[11px] text-muted-foreground font-medium truncate">
             {pkg.sourceType === "curriculum" ? "Curriculum" : "Course"} · {sourceName}
           </p>
-          <h1 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight">
-            {pkg.name}
-          </h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight min-w-0">
+              {pkg.name}
+            </h1>
+            <div className="shrink-0">
+              <GradeSwitcher
+                gradeIds={gradeIds}
+                activeId={activeGrade}
+                onChange={setActiveGrade}
+                variant="dropdown"
+              />
+            </div>
+          </div>
           <p className="text-[11px] text-muted-foreground truncate mt-0.5 tabular-nums">
             <span className="font-semibold text-foreground">{chaptersPopulated}</span>
             <span className="text-muted-foreground">/{railItems.length}</span> chapters
@@ -203,22 +213,17 @@ const PackageEditor = () => {
             <span className="font-semibold text-foreground">{totalTests}</span> tests
           </p>
         </div>
-        <div className="hidden sm:flex items-center mr-1">
-          <GradeSwitcher
-            gradeIds={gradeIds}
-            activeId={activeGrade}
-            onChange={setActiveGrade}
-            variant="compact"
-          />
-        </div>
-        <span
-          className={cn(
-            "hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide",
-            statusStyles[pkg.status],
-          )}
-        >
-          {pkg.status}
-        </span>
+        {pkg.status !== "draft" && (
+          <span
+            className={cn(
+              "hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide",
+              statusStyles[pkg.status],
+            )}
+          >
+            {pkg.status === "published" && <CheckCircle2 className="w-3 h-3" />}
+            {pkg.status}
+          </span>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -228,6 +233,7 @@ const PackageEditor = () => {
           <Settings className="w-4 h-4" />
           <span className="hidden md:inline">Settings</span>
         </Button>
+        {pkg.status !== "published" && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -243,9 +249,7 @@ const PackageEditor = () => {
                   }}
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span className="hidden md:inline">
-                    {pkg.status === "published" ? "Published" : "Publish"}
-                  </span>
+                  <span className="hidden md:inline">Publish</span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -254,16 +258,8 @@ const PackageEditor = () => {
             )}
           </Tooltip>
         </TooltipProvider>
+        )}
       </header>
-
-      {/* Mobile grade switcher (sm+ lives in the header) */}
-      <div className="sm:hidden border-b bg-background/60">
-        <GradeSwitcher
-          gradeIds={gradeIds}
-          activeId={activeGrade}
-          onChange={setActiveGrade}
-        />
-      </div>
 
       {/* Subject tabs */}
       <SubjectTabs
