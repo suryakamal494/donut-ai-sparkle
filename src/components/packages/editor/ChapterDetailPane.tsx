@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ClipboardList, Plus, X, FileText, ChevronRight } from "lucide-react";
+import { BookOpen, ClipboardList, Plus, X, FileText, ChevronRight, GripVertical, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +13,24 @@ import { teacherExams } from "@/data/teacher/exams";
 import AttachTestSheet from "./AttachTestSheet";
 import type { PackageAttachmentKind } from "@/types/packages";
 import type { EditorChapter } from "./packageChapterLookup";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
   packageId: string;
@@ -37,6 +55,15 @@ interface Props {
    * institute view to honour local reorder overrides).
    */
   lessonOrderOverride?: string[] | null;
+  /**
+   * Enables drag-and-drop reorder for the lesson plans list within this
+   * chapter. Used by the institute view to let admins arrange teaching order
+   * locally without leaving the Content tab.
+   */
+  lessonReorderable?: boolean;
+  onLessonReorder?: (orderedIds: string[]) => void;
+  onResetLessonOrder?: () => void;
+  isLessonCustomOrdered?: boolean;
 }
 
 const ChapterDetailPane = ({
@@ -50,6 +77,10 @@ const ChapterDetailPane = ({
   readOnly = false,
   lessonHrefBuilder,
   lessonOrderOverride,
+  lessonReorderable = false,
+  onLessonReorder,
+  onResetLessonOrder,
+  isLessonCustomOrdered = false,
 }: Props) => {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<PackageAttachmentKind | null>(null);
@@ -85,6 +116,22 @@ const ChapterDetailPane = ({
         ? lessonHrefBuilder(lessonId)
         : `/superadmin/packages/${packageId}/lesson/${lessonId}`,
     );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleLessonDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onLessonReorder) return;
+    const oldIndex = lessons.findIndex((l) => l.id === active.id);
+    const newIndex = lessons.findIndex((l) => l.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(lessons, oldIndex, newIndex);
+    onLessonReorder(next.map((l) => l.id));
+  };
 
   const addLesson = () =>
     navigate(
@@ -189,35 +236,70 @@ const ChapterDetailPane = ({
           {/* Lesson plans */}
           {lessons.length > 0 && (
             <div className="mt-6">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">
-                Lesson plans
+              <div className="flex items-center justify-between px-1 mb-2 gap-2">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Lesson plans
+                </div>
+                {lessonReorderable && isLessonCustomOrdered && onResetLessonOrder && (
+                  <button
+                    type="button"
+                    onClick={onResetLessonOrder}
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-primary hover:text-primary/80"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Reset order
+                  </button>
+                )}
               </div>
-              <ul className="space-y-2">
-                {lessons.map((lp, i) => (
-                  <li key={lp.id}>
-                    <button
-                      onClick={() => openLesson(lp.id)}
-                      className="group w-full flex items-center gap-4 px-3 sm:px-4 py-3 rounded-xl border bg-background hover:border-primary/40 hover:shadow-sm transition-all text-left min-h-[64px]"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
-                        {String(i + 1).padStart(2, "0")}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {lp.title}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {lp.blocks.length} block{lp.blocks.length === 1 ? "" : "s"}
-                          {lp.blocks.length > 0 && (
-                            <> · ~{Math.max(5, lp.blocks.length * 5)} min</>
-                          )}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              {lessonReorderable && (
+                <p className="px-1 mb-2 text-[11px] text-muted-foreground">
+                  Drag <GripVertical className="inline w-3 h-3 align-text-bottom" /> to reorder lesson plans for this institute.
+                </p>
+              )}
+              {lessonReorderable ? (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
+                  <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+                    <ul className="space-y-2">
+                      {lessons.map((lp, i) => (
+                        <SortableLessonRow
+                          key={lp.id}
+                          id={lp.id}
+                          index={i}
+                          title={lp.title}
+                          blockCount={lp.blocks.length}
+                          onOpen={() => openLesson(lp.id)}
+                        />
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                <ul className="space-y-2">
+                  {lessons.map((lp, i) => (
+                    <li key={lp.id}>
+                      <button
+                        onClick={() => openLesson(lp.id)}
+                        className="group w-full flex items-center gap-4 px-3 sm:px-4 py-3 rounded-xl border bg-background hover:border-primary/40 hover:shadow-sm transition-all text-left min-h-[64px]"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
+                          {String(i + 1).padStart(2, "0")}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {lp.title}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {lp.blocks.length} block{lp.blocks.length === 1 ? "" : "s"}
+                            {lp.blocks.length > 0 && (
+                              <> · ~{Math.max(5, lp.blocks.length * 5)} min</>
+                            )}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
@@ -289,3 +371,58 @@ const ChapterDetailPane = ({
 };
 
 export default ChapterDetailPane;
+
+// ---------------------------------------------------------------------------
+
+interface SortableLessonRowProps {
+  id: string;
+  index: number;
+  title: string;
+  blockCount: number;
+  onOpen: () => void;
+}
+
+const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLessonRowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex items-center gap-1 sm:gap-2 rounded-xl border bg-background hover:border-primary/40 hover:shadow-sm transition-all min-h-[64px]",
+        isDragging && "opacity-60 shadow-lg ring-1 ring-primary/30 z-10 relative",
+      )}
+    >
+      <button
+        type="button"
+        className="shrink-0 h-12 w-8 ml-1 flex items-center justify-center text-muted-foreground/50 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+        aria-label={`Drag to reorder ${title}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pr-3 sm:pr-4 py-3 text-left"
+      >
+        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
+          {String(index + 1).padStart(2, "0")}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{title}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {blockCount} block{blockCount === 1 ? "" : "s"}
+            {blockCount > 0 && <> · ~{Math.max(5, blockCount * 5)} min</>}
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
+      </button>
+    </li>
+  );
+};
