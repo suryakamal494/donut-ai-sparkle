@@ -22,6 +22,21 @@ interface Props {
   chapterIndex: number;
   inclusionsEnabled: { lessons: boolean; tests: boolean; pyp: boolean };
   onChange: () => void;
+  /**
+   * When true, all create/edit/delete controls are hidden so the pane can
+   * be reused in read-only contexts (e.g. institute view).
+   */
+  readOnly?: boolean;
+  /**
+   * Lets the host swap the navigation target for "open lesson" clicks.
+   * Defaults to the SuperAdmin lesson composer.
+   */
+  lessonHrefBuilder?: (lessonId: string) => string;
+  /**
+   * Lets the host inject its own ordering for the lesson list (used by the
+   * institute view to honour local reorder overrides).
+   */
+  lessonOrderOverride?: string[] | null;
 }
 
 const ChapterDetailPane = ({
@@ -32,13 +47,32 @@ const ChapterDetailPane = ({
   chapterIndex,
   inclusionsEnabled,
   onChange,
+  readOnly = false,
+  lessonHrefBuilder,
+  lessonOrderOverride,
 }: Props) => {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<PackageAttachmentKind | null>(null);
 
-  const lessons = inclusionsEnabled.lessons
+  const rawLessons = inclusionsEnabled.lessons
     ? getLessonPlansForChapter(packageId, chapter.id)
     : [];
+  const lessons = (() => {
+    if (!lessonOrderOverride || lessonOrderOverride.length === 0) return rawLessons;
+    const byId = new Map(rawLessons.map((l) => [l.id, l]));
+    const out: typeof rawLessons = [];
+    for (const id of lessonOrderOverride) {
+      const l = byId.get(id);
+      if (l) {
+        out.push(l);
+        byId.delete(id);
+      }
+    }
+    for (const remaining of rawLessons) {
+      if (byId.has(remaining.id)) out.push(remaining);
+    }
+    return out;
+  })();
   const attachments = getAttachmentsForChapter(packageId, chapter.id);
   const testAttachments = attachments.filter((a) => a.kind !== "grand-test");
   const blockCount = lessons.reduce((s, lp) => s + lp.blocks.length, 0);
@@ -46,7 +80,11 @@ const ChapterDetailPane = ({
     teacherExams.find((e) => e.id === id)?.name ?? id;
 
   const openLesson = (lessonId: string) =>
-    navigate(`/superadmin/packages/${packageId}/lesson/${lessonId}`);
+    navigate(
+      lessonHrefBuilder
+        ? lessonHrefBuilder(lessonId)
+        : `/superadmin/packages/${packageId}/lesson/${lessonId}`,
+    );
 
   const addLesson = () =>
     navigate(
@@ -84,6 +122,7 @@ const ChapterDetailPane = ({
             </span>
           </div>
         </div>
+        {!readOnly && (
         <div className="flex flex-wrap gap-2">
           {inclusionsEnabled.lessons && (
             <Button size="sm" variant="outline" className="gap-1.5" onClick={addLesson}>
@@ -110,6 +149,7 @@ const ChapterDetailPane = ({
             </Button>
           )}
         </div>
+        )}
       </div>
 
       {/* Empty state */}
@@ -119,6 +159,8 @@ const ChapterDetailPane = ({
           <p className="text-sm font-semibold text-foreground">
             Nothing in this chapter yet
           </p>
+          {!readOnly && (
+            <>
           <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
             Add a lesson plan to start building content, or attach a chapter test for assessment.
           </p>
@@ -139,6 +181,8 @@ const ChapterDetailPane = ({
               </Button>
             )}
           </div>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -200,6 +244,7 @@ const ChapterDetailPane = ({
                         {a.kind === "pyp" ? "Previous Year Paper" : "Chapter test"}
                       </p>
                     </div>
+                    {!readOnly && (
                     <button
                       onClick={() => {
                         removeAttachment(a.id);
@@ -210,6 +255,7 @@ const ChapterDetailPane = ({
                     >
                       <X className="w-3.5 h-3.5 text-violet-700" />
                     </button>
+                    )}
                   </li>
                 ))}
               </ul>
