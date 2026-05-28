@@ -1,54 +1,109 @@
 ## Goal
 
-Create a tester-friendly QA document for the SuperAdmin **Packages** module, modelled on `curriculum-scope-qa.md`: narrative intro + domain glossary + grouped tables of test scenarios (≈6–8 per group) with a strong emphasis on edge cases (not just happy-path smoke checks).
+Rewrite `docs/06-testing-scenarios/inter-login-tests/packages-qa.md` so a brand-new intern — someone who has never opened the Packages module before — can read it top-to-bottom and know **exactly** what to click, what to look at, what counts as a bug, and how bad that bug is. The current version is a terse 4-column table that assumes the reader already knows the product. We will replace it with the same narrative style used in `student-progress-overview-qa.md` (Why this matters → Scenarios in plain English → What to try → Expected → Severity).
 
-## File to add
+No code changes. Documentation-only edit. Same file path, same scenario IDs (`PKG-LIST-001` etc.) preserved so anyone already tracking bugs against them stays anchored.
 
-`docs/06-testing-scenarios/inter-login-tests/packages-qa.md`
+## What changes for the reader
 
-(Also add a one-line link to it from `docs/06-testing-scenarios/README.md` under Intra-Login Tests — Packages is a SuperAdmin-only module today, so it lives there rather than in cross-portal flows.)
+For each existing scenario we expand the single table row into a short narrative block that answers six questions a tester always needs:
 
-## Document structure
+1. **Why this matters** — one sentence on the user-visible impact of a bug here, so the intern understands the stakes (e.g. "If the class dropdown forgets the active grade, every teacher loading this package sees the wrong subjects on day one").
+2. **Setup** — the exact precondition (which seeded package to open, which viewport, which toggle state). No "assume you have…" hand-waving.
+3. **Steps** — numbered, click-by-click, naming the actual button labels and routes the user will see (e.g. "Click the ⚙ gear icon in the top-right of `/superadmin/packages/cbse-comprehensive-foundation`").
+4. **What to look for** — the observable signals (header text, toast wording, URL change, console quiet, count on the card).
+5. **Pass vs Fail examples** — one concrete "looks like this = pass" and one "looks like this = bug" line.
+6. **Severity** — P0 / P1 / P2 with a one-line reason, matching the convention already used in the student-progress docs.
 
-1. **Before You Begin** — glossary specific to Packages (Package, Source Type, Shape, Inclusions, Lesson Plan, Attachment, Chapter Test, Grand Test, PYP, Draft/Published/Archived, Cell = grade×subject) and "Where to find it" navigation (`/superadmin/packages`, `…/new`, `…/:id`, `…/:id/lesson/:lpId`).
-2. **How a Package is Structured** — short ASCII diagram of Source → Shape (grades × subjects) → Chapter → Lesson Plans + Attachments, plus package-level Grand Tests.
-3. **Prerequisites for Testing** — SA account, at least one curriculum (CBSE) + one course (JEE Mains) seeded, a draft package, a published package, an archived package, and an empty-shape package for negative cases.
-4. **Test scenario groups** (each a table: Test ID · Test Case · Steps · Expected Result), targeting ~6–8 rows each:
+## New structure of the document
 
-   - **PKG-LIST** — List & filters
-     Archived toggle, source-tree filter (curriculum vs course), status filter (all/draft/published), empty state, counts on `PackageCard`, deep link to a single package, behaviour when source has zero packages.
-   - **PKG-CREATE** — Create wizard
-     Source type switch resets selection, kebab-case ID generation from name, duplicate-name slug collision, required fields, at-least-one-grade and at-least-one-subject-per-grade validation, inclusions toggles persist, cancel mid-wizard, navigate back without saving.
-   - **PKG-EDITOR-HEADER** — Editor header & class dropdown
-     Long package name truncation, class dropdown shows all shape grades with check mark on active, single-grade falls back to inline label, published icon shown without redundant pill, settings sheet opens, breadcrumb back to list, refresh on `/packages/:id` keeps active grade.
-   - **PKG-SUBJECTS** — Subject tabs
-     Cycling through 7–8 subjects on one grade, horizontal scroll on narrow widths (320–375px), keyboard/touch tab change, switching grade resets subject to first valid one, subject hidden if not in the active grade's shape.
-   - **PKG-CHAPTERS** — Chapter rail & content sheet
-     Chapter list matches `getChaptersForScope(source, grade, subject)`, course-owned vs mapped chapters both visible for course packages, empty chapter list for a grade with no chapters in source, selecting chapter loads detail pane, mobile sheet open/close, scroll position retained on grade switch.
-   - **PKG-LESSONS** — Lesson plan CRUD via composer
-     Opening composer from chapter detail, autosave/save indicator, editing title inline, reordering lessons, deleting a lesson updates count on chapter, navigating away with unsaved changes warning, deep-link to `/packages/:id/lesson/:lpId` for an unknown `lpId` shows fallback.
-   - **PKG-BLOCKS** — Lesson blocks (Explain / Demonstrate / Quiz / Homework)
-     Add each block type, link auto-detection (YouTube / Google Docs / generic iframe / PDF), preview render for each (video player, slides iframe, PDF, quiz dialog), reorder via drag, delete block, very long content / very long titles, attaching 10+ blocks to one lesson, switching block source between library and custom, opening Quiz dialog and selecting questions.
-   - **PKG-ATTACH-TESTS** — Chapter tests, Grand tests & PYP
-     Inclusions toggle hides/shows the relevant pane, AttachTestSheet filters exams by curriculum/subject, attaching duplicates is prevented, removing an attachment, Grand Tests appear under package-level pane (no chapter), PYP only visible when `inclusions.previousYearPapers = true`, attachment counts on `PackageCard` update.
-   - **PKG-LIFECYCLE** — Draft / Publish / Archive / Restore
-     Publish from editor updates badge + icon, publish confirm dialog cancel keeps draft, archive from list moves card to archived view, restore returns to draft (not published), archived package read-only in editor, status filter respects current view.
-   - **PKG-RESPONSIVE** — Mobile/tab UI (320, 375, 768, 1024)
-     Header doesn't clip name, class dropdown opens above keyboard, subject tabs swipeable, chapter rail collapses into sheet via `Menu`, lesson composer toolbar reachable, no horizontal overflow at 320px.
-   - **PKG-EDGE** — Edge & failure cases
-     Package with 0 grades, grade with 0 subjects, subject with 0 chapters in source, very long names (80+ chars), 8+ subjects in one grade (chip cramp test now solved by dropdown for grades — verify subjects still scroll), source curriculum/course later removed/renamed (stale `sourceId`), `getClassName` returns fallback for unknown grade id, deep-link with invalid `:id` → not-found, refresh inside lesson composer preserves route, browser back from composer returns to correct chapter.
-   - **PKG-DATA-INTEGRITY** — Mock seed sanity (dev-only)
-     Lesson plan counts match `chaptersPerCell × lessonsPerChapter` per cell, deterministic order across refreshes, attachment IDs unique, no duplicate lesson IDs, archived package excluded from default list count.
+```text
+1. Before You Begin
+   1a. Who this guide is for (interns, first-time testers)
+   1b. How to read a scenario (the 6-part pattern above, explained once)
+   1c. Severity legend (P0 = blocks release, P1 = ship-blocker for the
+       module, P2 = polish; with one example each)
+   1d. Domain Glossary (kept, lightly reworded for plain English)
+   1e. Where to find things (kept)
+   1f. Prerequisites (kept, but each item explains *why* you need it)
 
-5. **Known Limitations / Out of Scope** — note that Packages is SuperAdmin-only in Phase 1, no backend persistence yet (in-memory store via `helpers.ts`), no propagation to Institute/Teacher/Student portals to test.
+2. How a Package is Structured
+   - Keep ASCII diagram
+   - Add a "Read this diagram like a tester" paragraph that walks the
+     intern through each level and points out where bugs usually hide
 
-## Style rules
+3. Twelve scenario groups (PKG-LIST, PKG-CREATE, PKG-HDR, PKG-SUBJECTS,
+   PKG-CHAPTERS, PKG-LESSONS, PKG-BLOCKS, PKG-ATTACH, PKG-LIFECYCLE,
+   PKG-RESPONSIVE, PKG-EDGE, PKG-DATA)
+   - Group intro: 2-3 sentences explaining what surface this covers and
+     the single most common bug class here.
+   - Each scenario rewritten in the 6-part narrative pattern above.
+   - Scenario IDs unchanged so existing bug tickets keep linking.
 
-- Match `curriculum-scope-qa.md` tone: prose intro, then markdown tables.
-- Test IDs use `PKG-<GROUP>-NNN` (e.g. `PKG-CREATE-003`).
-- No emojis. Plain markdown. ASCII diagram inside ```text fence.
-- Steps column is action-only ("Open editor → switch grade → ..."); Expected Result is observable outcome.
+4. Known Limitations & Out of Scope (kept)
+```
+
+## Example: before vs after
+
+**Before (current row):**
+
+```
+| PKG-HDR-004 | Switching class via dropdown | Pick Class 11 from the
+dropdown | Subject tabs reset to Physics; chapter rail reloads; URL
+grade param (if any) updates |
+```
+
+**After (new format):**
+
+```
+### PKG-HDR-004 — Switching class via the dropdown
+**Why this matters:** The class dropdown was added specifically to stop
+the toolbar from cramping when a package covers 5+ grades. If the
+switch leaves stale subjects or chapters on screen, an author will
+edit the wrong grade without realising it.
+
+**Setup:** Open `/superadmin/packages/cbse-comprehensive-foundation`.
+The header should show "Class 6" as the active class on first load.
+
+**Steps:**
+1. Click the "Class 6" pill in the header — a dropdown opens listing
+   Class 6, 7, 11, 12 (the four grades in this package's shape).
+2. Click "Class 11".
+
+**What to look for:**
+- The pill now reads "Class 11" with a check mark next to it in the
+  open dropdown.
+- The subject chip row directly below resets to the first subject of
+  Class 11's shape — in the seeded pack this is "Physics".
+- The chapter rail on the left reloads with Class 11 Physics chapters
+  (e.g. "Electrostatics", "Current Electricity"), not the Class 6
+  Maths chapters that were there before.
+- No red errors in the browser console (open DevTools → Console).
+
+**Pass example:** Header = "Class 11", active chip = "Physics",
+chapter rail shows Physics chapters, console clean.
+
+**Bug example:** Header switches to "Class 11" but the chip row still
+shows "Maths" (Class 11 doesn't even include Maths) — file as **P0**:
+authors will silently edit the wrong cell.
+
+**Severity if it fails:** P0 — stale cell after grade switch is a
+data-integrity bug, every edit downstream is suspect.
+```
+
+We do this expansion for every existing PKG-* scenario. Group intros are added so the intern always knows which surface they are about to test.
+
+## Length & file size
+
+Expanding ~75 rows × ~6 short paragraphs each lands the file around 1,500–1,800 lines. That is in line with the longest existing QA docs (`student-progress-*-qa.md`). No split needed — keeping it one file matches the entry already in `docs/06-testing-scenarios/README.md` and how the user has been referring to it.
+
+## Out of scope
+
+- No changes to source code, routes, components, or seed data.
+- No changes to scenario IDs.
+- No new screenshots (we describe what to look for in words, matching the rest of the QA library).
+- No changes to `README.md` (the link is already correct).
 
 ## Deliverable
 
-One new markdown file at `docs/06-testing-scenarios/inter-login-tests/packages-qa.md` (~400–500 lines) plus a one-line link entry in `docs/06-testing-scenarios/README.md`. No code changes.
+A single replaced file: `docs/06-testing-scenarios/inter-login-tests/packages-qa.md`, rewritten in the intern-friendly narrative style above, every scenario covering: Why this matters, Setup, Steps, What to look for, Pass/Bug examples, Severity.
