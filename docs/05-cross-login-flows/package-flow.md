@@ -30,10 +30,10 @@
 │     (card shows source, shape summary, lesson/test counts,            │
 │      "Assigned to X of Y batches")                                    │
 │                                                                       │
-│  4. Open detail → three tabs                                          │
-│     • Content — read-only chapter/lesson/block preview                │
-│     • Reorder — drag chapters/lessons/blocks per scope                │
-│       (override saved to institutePackageOrders; SA untouched)        │
+│  4. Open detail → two tabs                                            │
+│     • Content — read-only preview + INLINE drag-to-reorder            │
+│       (grip handle on chapter rail rows and lesson rows;              │
+│        override saved to institutePackageOrders; SA untouched)        │
 │     • Batches — toggle batches per grade row                          │
 │       Save → setBatchesForPackage(...)                                │
 │                                    │                                  │
