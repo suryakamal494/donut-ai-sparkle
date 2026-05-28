@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowUp, ArrowDown, RotateCcw, BookOpen, Users, Eye } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,20 +36,12 @@ import {
 
 const CURRENT_INSTITUTE_ID = "inst-1";
 
-const move = <T,>(arr: T[], from: number, to: number): T[] => {
-  if (to < 0 || to >= arr.length) return arr;
-  const copy = [...arr];
-  const [item] = copy.splice(from, 1);
-  copy.splice(to, 0, item);
-  return copy;
-};
-
 const InstitutePackageDetail = () => {
   const navigate = useNavigate();
   const { packageId } = useParams<{ packageId: string }>();
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const { toast } = useToast();
-  const [tab, setTab] = useState<"content" | "reorder" | "batches">("content");
+  const [tab, setTab] = useState<"content" | "batches">("content");
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
 
@@ -119,13 +111,12 @@ const InstitutePackageDetail = () => {
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
 
   // ---- Chapter reorder helpers ----
-  const moveChapter = (idx: number, dir: -1 | 1) => {
-    const next = move(chapters, idx, idx + dir);
+  const reorderChapters = (orderedIds: string[]) => {
     setOrder(
       CURRENT_INSTITUTE_ID,
       pkg.id,
       { kind: "chapter", gradeId: activeGrade, subjectId: activeSubject },
-      next.map((c) => c.id),
+      orderedIds,
     );
     refresh();
   };
@@ -140,20 +131,16 @@ const InstitutePackageDetail = () => {
   };
 
   // ---- Lesson reorder for the active chapter ----
-  const lessonsForChapter = activeChapter
-    ? applyOrder(
-        getLessonPlansForChapter(pkg.id, activeChapter.id),
-        getOrder(CURRENT_INSTITUTE_ID, pkg.id, {
-          kind: "lesson",
-          gradeId: activeGrade,
-          subjectId: activeSubject,
-          chapterId: activeChapter.id,
-        }),
-      )
-    : [];
-  const moveLesson = (idx: number, dir: -1 | 1) => {
+  const lessonOrderForActiveChapter = activeChapter
+    ? getOrder(CURRENT_INSTITUTE_ID, pkg.id, {
+        kind: "lesson",
+        gradeId: activeGrade,
+        subjectId: activeSubject,
+        chapterId: activeChapter.id,
+      })
+    : null;
+  const reorderLessons = (orderedIds: string[]) => {
     if (!activeChapter) return;
-    const next = move(lessonsForChapter, idx, idx + dir);
     setOrder(
       CURRENT_INSTITUTE_ID,
       pkg.id,
@@ -163,7 +150,21 @@ const InstitutePackageDetail = () => {
         subjectId: activeSubject,
         chapterId: activeChapter.id,
       },
-      next.map((l) => l.id),
+      orderedIds,
+    );
+    refresh();
+  };
+  const resetLessonOrder = () => {
+    if (!activeChapter) return;
+    clearOrder(CURRENT_INSTITUTE_ID, pkg.id, {
+      kind: "lesson",
+      gradeId: activeGrade,
+      subjectId: activeSubject,
+      chapterId: activeChapter.id,
+    });
+    toast({ title: "Order reset", description: "Restored SuperAdmin's lesson order." });
+    refresh();
+  };
     );
     refresh();
   };
