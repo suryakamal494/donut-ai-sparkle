@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import InstituteSidebar from "./InstituteSidebar";
 import { cn } from "@/lib/utils";
 import { Bell, Search, User, ChevronDown, Menu, X } from "lucide-react";
@@ -15,7 +15,11 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const InstituteLayout = () => {
   const isMobile = useIsMobile();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const location = useLocation();
+  // Auto-collapse the global nav whenever we are inside a specific package
+  // detail page, mirroring the SuperAdmin layout behaviour.
+  const inPackageDetail = /^\/institute\/packages\/[^/]+/.test(location.pathname);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(inPackageDetail);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Auto-collapse sidebar on smaller screens (tablets)
@@ -24,14 +28,19 @@ const InstituteLayout = () => {
       if (window.innerWidth < 1024 && window.innerWidth >= 768) {
         setSidebarCollapsed(true);
       } else if (window.innerWidth >= 1280) {
-        setSidebarCollapsed(false);
+        setSidebarCollapsed(inPackageDetail);
       }
     };
     
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [inPackageDetail]);
+
+  // Collapse/expand when navigating into or out of a package detail page.
+  useEffect(() => {
+    setSidebarCollapsed(inPackageDetail);
+  }, [inPackageDetail]);
 
   // Close mobile menu when route changes or screen becomes larger
   useEffect(() => {

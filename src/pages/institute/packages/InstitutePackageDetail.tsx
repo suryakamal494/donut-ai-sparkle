@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowUp, ArrowDown, RotateCcw, BookOpen, Users, Eye } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,20 +36,12 @@ import {
 
 const CURRENT_INSTITUTE_ID = "inst-1";
 
-const move = <T,>(arr: T[], from: number, to: number): T[] => {
-  if (to < 0 || to >= arr.length) return arr;
-  const copy = [...arr];
-  const [item] = copy.splice(from, 1);
-  copy.splice(to, 0, item);
-  return copy;
-};
-
 const InstitutePackageDetail = () => {
   const navigate = useNavigate();
   const { packageId } = useParams<{ packageId: string }>();
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const { toast } = useToast();
-  const [tab, setTab] = useState<"content" | "reorder" | "batches">("content");
+  const [tab, setTab] = useState<"content" | "batches">("content");
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
 
@@ -119,13 +111,12 @@ const InstitutePackageDetail = () => {
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
 
   // ---- Chapter reorder helpers ----
-  const moveChapter = (idx: number, dir: -1 | 1) => {
-    const next = move(chapters, idx, idx + dir);
+  const reorderChapters = (orderedIds: string[]) => {
     setOrder(
       CURRENT_INSTITUTE_ID,
       pkg.id,
       { kind: "chapter", gradeId: activeGrade, subjectId: activeSubject },
-      next.map((c) => c.id),
+      orderedIds,
     );
     refresh();
   };
@@ -140,20 +131,16 @@ const InstitutePackageDetail = () => {
   };
 
   // ---- Lesson reorder for the active chapter ----
-  const lessonsForChapter = activeChapter
-    ? applyOrder(
-        getLessonPlansForChapter(pkg.id, activeChapter.id),
-        getOrder(CURRENT_INSTITUTE_ID, pkg.id, {
-          kind: "lesson",
-          gradeId: activeGrade,
-          subjectId: activeSubject,
-          chapterId: activeChapter.id,
-        }),
-      )
-    : [];
-  const moveLesson = (idx: number, dir: -1 | 1) => {
+  const lessonOrderForActiveChapter = activeChapter
+    ? getOrder(CURRENT_INSTITUTE_ID, pkg.id, {
+        kind: "lesson",
+        gradeId: activeGrade,
+        subjectId: activeSubject,
+        chapterId: activeChapter.id,
+      })
+    : null;
+  const reorderLessons = (orderedIds: string[]) => {
     if (!activeChapter) return;
-    const next = move(lessonsForChapter, idx, idx + dir);
     setOrder(
       CURRENT_INSTITUTE_ID,
       pkg.id,
@@ -163,8 +150,19 @@ const InstitutePackageDetail = () => {
         subjectId: activeSubject,
         chapterId: activeChapter.id,
       },
-      next.map((l) => l.id),
+      orderedIds,
     );
+    refresh();
+  };
+  const resetLessonOrder = () => {
+    if (!activeChapter) return;
+    clearOrder(CURRENT_INSTITUTE_ID, pkg.id, {
+      kind: "lesson",
+      gradeId: activeGrade,
+      subjectId: activeSubject,
+      chapterId: activeChapter.id,
+    });
+    toast({ title: "Order reset", description: "Restored SuperAdmin's lesson order." });
     refresh();
   };
 
@@ -226,9 +224,6 @@ const InstitutePackageDetail = () => {
             <TabsTrigger value="content" className="data-[state=active]:bg-muted gap-1.5">
               <BookOpen className="w-3.5 h-3.5" /> Content
             </TabsTrigger>
-            <TabsTrigger value="reorder" className="data-[state=active]:bg-muted gap-1.5">
-              <ArrowUp className="w-3.5 h-3.5" /> Reorder
-            </TabsTrigger>
             <TabsTrigger value="batches" className="data-[state=active]:bg-muted gap-1.5">
               <Users className="w-3.5 h-3.5" /> Batches
               {totalAssignedBatches > 0 && (
@@ -240,8 +235,8 @@ const InstitutePackageDetail = () => {
           </TabsList>
         </div>
 
-        {/* Grade/subject switchers shared by Content + Reorder tabs */}
-        {tab !== "batches" && (
+        {/* Grade/subject switchers for the Content tab */}
+        {tab === "content" && (
           <>
             <div className="px-3 md:px-6 py-2 border-b bg-background flex items-center gap-2 flex-wrap">
               <GradeSwitcher
@@ -250,11 +245,6 @@ const InstitutePackageDetail = () => {
                 onChange={setActiveGrade}
                 variant="dropdown"
               />
-              {(chapterOrder && chapterOrder.length > 0) && (
-                <Button size="sm" variant="ghost" onClick={resetChapterOrder} className="gap-1.5 text-xs">
-                  <RotateCcw className="w-3.5 h-3.5" /> Reset chapter order
-                </Button>
-              )}
             </div>
             <SubjectTabs
               subjectIds={activeRow?.subjectIds ?? []}
@@ -274,6 +264,10 @@ const InstitutePackageDetail = () => {
                 onSelectGrand={() => {}}
                 grandTestsEnabled={false}
                 grandTestCount={0}
+                reorderable
+                isCustomOrdered={!!chapterOrder && chapterOrder.length > 0}
+                onReorder={reorderChapters}
+                onResetOrder={resetChapterOrder}
               />
             </aside>
             <section className="min-h-0 overflow-y-auto bg-background">
@@ -294,12 +288,13 @@ const InstitutePackageDetail = () => {
                   lessonHrefBuilder={(lessonId) =>
                     `/superadmin/packages/${pkg.id}/lesson/${lessonId}`
                   }
-                  lessonOrderOverride={getOrder(CURRENT_INSTITUTE_ID, pkg.id, {
-                    kind: "lesson",
-                    gradeId: activeGrade,
-                    subjectId: activeSubject,
-                    chapterId: activeChapter.id,
-                  })}
+                  lessonOrderOverride={lessonOrderForActiveChapter}
+                  lessonReorderable
+                  isLessonCustomOrdered={
+                    !!lessonOrderForActiveChapter && lessonOrderForActiveChapter.length > 0
+                  }
+                  onLessonReorder={reorderLessons}
+                  onResetLessonOrder={resetLessonOrder}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center px-6">
@@ -310,108 +305,6 @@ const InstitutePackageDetail = () => {
               )}
             </section>
           </main>
-        </TabsContent>
-
-        <TabsContent value="reorder" className="flex-1 min-h-0 mt-0 outline-none overflow-y-auto">
-          <div className="p-4 md:p-6 lg:p-8 max-w-3xl space-y-8">
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-foreground">Chapters</h2>
-                <p className="text-xs text-muted-foreground">
-                  Reorder for this institute only. SuperAdmin's order is untouched.
-                </p>
-              </div>
-              {chapters.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No chapters here.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {chapters.map((c, i) => (
-                    <li
-                      key={c.id}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-card"
-                    >
-                      <span className="tabular-nums text-xs font-bold text-muted-foreground w-6">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 text-sm font-medium text-foreground truncate">
-                        {c.name}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9"
-                        onClick={() => moveChapter(i, -1)}
-                        disabled={i === 0}
-                        aria-label="Move up"
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9"
-                        onClick={() => moveChapter(i, 1)}
-                        disabled={i === chapters.length - 1}
-                        aria-label="Move down"
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {activeChapter && lessonsForChapter.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-foreground">
-                    Lesson plans in <span className="text-primary">{activeChapter.name}</span>
-                  </h2>
-                </div>
-                <ul className="space-y-2">
-                  {lessonsForChapter.map((lp, i) => (
-                    <li
-                      key={lp.id}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-card"
-                    >
-                      <span className="tabular-nums text-xs font-bold text-muted-foreground w-6">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 text-sm font-medium text-foreground truncate">
-                        {lp.title}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9"
-                        onClick={() => moveLesson(i, -1)}
-                        disabled={i === 0}
-                        aria-label="Move up"
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9"
-                        onClick={() => moveLesson(i, 1)}
-                        disabled={i === lessonsForChapter.length - 1}
-                        aria-label="Move down"
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            <p className="text-xs text-muted-foreground italic">
-              Tip: pick a different grade or subject above to reorder chapters in that scope.
-              Block-level reordering happens inside each lesson plan view.
-            </p>
-          </div>
         </TabsContent>
 
         <TabsContent value="batches" className="flex-1 min-h-0 mt-0 outline-none overflow-y-auto">
