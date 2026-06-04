@@ -286,7 +286,7 @@ const InstitutePackageDetail = () => {
                   onChange={refresh}
                   readOnly
                   lessonHrefBuilder={(lessonId) =>
-                    `/superadmin/packages/${pkg.id}/lesson/${lessonId}`
+                    `/institute/packages/${pkg.id}/lesson/${lessonId}`
                   }
                   lessonOrderOverride={lessonOrderForActiveChapter}
                   lessonReorderable
