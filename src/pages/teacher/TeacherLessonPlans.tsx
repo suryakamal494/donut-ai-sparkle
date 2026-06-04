@@ -452,7 +452,7 @@ const TeacherLessonPlans = () => {
 
         {/* ---------------- Teacher's own plans ---------------- */}
         <TabsContent value="mine" className="mt-4 outline-none">
-          <MyLessonPlans />
+          <MyLessonPlans embedded />
         </TabsContent>
       </Tabs>
 
