@@ -70,7 +70,7 @@ const MyLessonPlansRollup = () => {
   }
 
   return (
-    <div className="space-y-4 pb-14 md:pb-0">
+    <div className="space-y-4 pb-20">
       {/* Filter bar */}
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1 min-w-0">
