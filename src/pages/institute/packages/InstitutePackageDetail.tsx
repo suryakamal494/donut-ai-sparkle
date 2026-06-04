@@ -55,7 +55,7 @@ const InstitutePackageDetail = () => {
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const { toast } = useToast();
   const [tab, setTab] = useState<"content" | "batches">("content");
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
 
   const gradeIds = useMemo(() => pkg?.shape.map((s) => s.gradeId) ?? [], [pkg]);
