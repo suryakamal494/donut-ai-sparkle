@@ -1,43 +1,46 @@
-## Goal
+# Teacher → Lesson Plans — Responsiveness Audit & Fix Plan
 
-Redesign the "My Plans" lesson-plan cards to be more compact and less bulky, per the user's selected "Compact footer" direction.
+## How I tested
+Inspected the live preview at 320, 375 (phone), and requested 768 / 834 / 1280 (tablet/desktop) on these screens: **Lesson Plans hub** (`TeacherLessonPlans`), **My Plans** (`MyLessonPlansRollup`), and a **Shared lesson detail** (`TeacherPackageLessonView`). Cross-checked against the source components.
 
-## What the user sees
+> ⚠️ Testing caveat: above ~768px the in-editor preview kept rendering the app at a fixed ~360px-wide mobile shell with the right side blank, even when the viewport was set to 768/834/1280. This is a **preview-tool emulation limit**, not necessarily an app bug — your real browser at 1106px (and the code's `md:`/`lg:` breakpoints + sidebar) indicate desktop renders normally. So tablet/desktop items below are **code-review findings to confirm with the device toggle**, while phone findings are **visually verified**.
 
-- The card body stays clean: source pill (CBSE / IIT-JEE Mains), bold lesson title, "Class 11 · Physics" meta, and "Ch: <chapter>" with a teal accent label.
-- The oversized "Open" and "Present" buttons are replaced with a **compact split footer**: two text+icon buttons sit side-by-side at the bottom of the card, separated by a subtle vertical divider, each with a light hover state. The footer uses less vertical space than the previous stacked button row.
-- Cards are slightly more compact overall: tighter padding, smaller typography scale for metadata, and a bordered footer instead of a padded button row.
+---
 
-```text
-┌──────────────────────────────┐
-│ 🎓 CBSE                      │
-│ Newton's Laws — Recap        │
-│ Class 11 · Physics           │
-│ Ch: Physical World           │
-│──────────────────────────────│
-│  ✎ Open    │  🖥 Present    │
-└──────────────────────────────┘
-```
+## Bugs & issues found
 
-## Implementation
+### A. Verified on phone (320–375px)
+1. **Horizontal clipping at 320px on the lesson-detail + global header.** In the lesson workspace header (`TeacherPackageLessonView` SharedLessonView / OwnLessonComposer) the **Present** button is clipped at the right edge; the global header **avatar** (`TeacherLayout`) is also clipped. The breadcrumb row + always-on action button + header controls don't leave room at the 320 floor. Ref: `TeacherPackageLessonView.tsx` header (`h-14 … px-3`, Present button); `TeacherLayout.tsx` header (`px-4`, profile button `pr-2`).
+2. **Floating Copilot button overlaps interactive content.** On **My Plans** and the chapter **Lesson Plans** list, the fixed Copilot FAB sits on top of the last card's **Present/Open** buttons and lesson rows. Containers only reserve space for the bottom nav (`pb-20`), not the FAB. Ref: `CopilotLauncher` (fixed), `TeacherLessonPlans.tsx` (`pb-20 md:pb-6`), `MyLessonPlansRollup.tsx` card grid (no bottom clearance).
+3. **Cramped filter row with prominent scrollbars.** The Class dropdown + divider + `SubjectTabs` (horizontal-scroll) and the source-chip row both show visible scrollbars and feel tight under ~360px. Functional but unpolished. Ref: `TeacherLessonPlans.tsx` filter row + `SubjectTabs`.
 
-### `src/pages/teacher/MyLessonPlansRollup.tsx` — rewrite the card grid
+### B. Code-review findings to confirm at 768 / 1024 / 1280 (via device toggle)
+4. **Two-pane library fit.** The library card is `h-[calc(100vh-10.5rem)] min-h-[480px]` with `md:grid-cols-[280px_1fr]` and an inner scroll. Confirm no double scrollbars and that the rail + detail both scroll independently with the auto-collapsed sidebar (`ml-20`).
+5. **Lesson-detail full-bleed + fixed footer.** SharedLessonView/OwnLessonComposer use `-m-4 md:-m-6` breakout, `h-[calc(100vh-3.5rem)]`, and a `fixed bottom-16 md:bottom-0` action bar. Confirm the footer doesn't overlap the last block and there's no double scroll on short/tablet viewports.
+6. **Breakpoint boundary.** `useIsMobile` flips at 768 and Tailwind `md` is 768 — aligned, so no dead-zone in theory; still verify the exact 768/820 widths render the desktop shell (sidebar, no bottom nav) and not a stuck mobile shell.
 
-Replace the current card markup (the `grid` wrapper and each card's body + button row) with:
+### C. Looks good (no change)
+- My Plans cards (compact-footer redesign), source/My-Plans chip switching, and the mobile chapter `Sheet` all render cleanly on phone.
 
-- **Card wrapper**: `rounded-2xl border bg-card overflow-hidden hover:shadow-md transition-shadow` (removes `p-4 flex flex-col gap-3`, adds `overflow-hidden` for the footer).
-- **Card body**: `p-5 pb-4` containing the source pill, title, class·subject line, and "Ch:" line with a teal accent on the "Ch:" prefix.
-- **Source pill**: Refined to `rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border` with the same curriculum/course color classes.
-- **Title**: `text-base font-bold text-foreground leading-tight mb-1`.
-- **Meta**: `text-sm text-muted-foreground font-medium` for class·subject; `text-sm` for the chapter line.
-- **Footer actions**: A `flex border-t border-border/40` row with two plain `<button>` elements (not Shadcn `Button`):
-  - **Open**: `flex-1 flex items-center justify-center gap-2 py-3 px-4 text-muted-foreground hover:bg-muted border-r border-border/40 group text-sm font-semibold`. Icon is `PencilLine` with `group-hover:text-primary`.
-  - **Present**: `flex-1 flex items-center justify-center gap-2 py-3 px-4 text-primary hover:bg-primary/5 group text-sm font-semibold`. Icon is `Presentation` in `text-primary`.
+---
 
-No changes to the filter bar, search, empty states, or data layer. The only code touched is the card rendering block inside the grid.
+## Phased implementation plan
 
-## Technical notes
+### Phase 1 — Verify the true tablet/desktop state (no code yet)
+- Open the app in a real browser / the preview **device toggle** at 768, 1024, 1280. Confirm or rule out items #4–#6. This decides how much of Phase 3 is needed and avoids "fixing" preview-only artifacts.
 
-- Uses existing project Tailwind tokens (`bg-card`, `text-primary`, `border-border/40`, `text-muted-foreground`, `text-accent`, etc.) plus one Tailwind standard utility (`text-teal-600`) for the small "Ch:" accent label.
-- No new dependencies.
-- `navigate()` calls remain unchanged; all routing intact.
+### Phase 2 — Phone fixes (high confidence, visually verified)
+- **#1 Header clipping:** make header rows fully shrink-safe at 320 — keep breadcrumb `flex-1 min-w-0 truncate`, reduce header horizontal padding at the xs step, ensure the Present button is icon-only and `shrink-0` below `sm`, and tighten global header gaps/avatar so nothing clips at 320. Re-test at 320/360.
+- **#2 FAB collision:** add bottom clearance so the Copilot FAB never covers actions — increase bottom padding on the hub, My Plans grid, and lesson list (account for bottom nav **and** FAB), or lift the FAB above the bottom nav on mobile. Verify last card's Present/Open are tappable.
+- **#3 Filter row polish:** tidy the scroll affordance (consistent `no-scrollbar` + edge fade or wrap) for the source chips and subject tabs at narrow widths.
+
+### Phase 3 — Tablet/desktop fixes (only what Phase 1 confirms)
+- Address any confirmed issues from #4–#6 (double scrollbars, fixed-footer overlap, two-pane fit, breakpoint shell). Likely small height/scroll-container and z-index/padding adjustments; no structural rewrite expected.
+
+### Phase 4 — Regression sweep
+- Re-test all five lesson-plan screens (hub library, My Plans, shared lesson, own-lesson composer, presentation mode) at 320 / 375 / 768 / 1024 / 1280, in both Library and My Plans tabs, confirming: no horizontal overflow, 44px+ touch targets, no FAB/footer overlap, independent scrolls, and consistent headers.
+
+---
+
+## Scope note
+All fixes are **frontend/presentation only** (Tailwind classes, padding, scroll containers, z-index, header layout). No data-layer, routing, or business-logic changes. Mobile-first per project standards (320px floor, 44px targets).
