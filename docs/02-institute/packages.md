@@ -8,7 +8,7 @@
 
 A **package** is a SuperAdmin-authored bundle of lesson plans plus optional chapter tests, grand tests, and previous year papers, scoped to either a curriculum (e.g. CBSE) or a course (e.g. JEE) and a chosen set of grades + subjects (the package's "shape").
 
-The institute neither creates nor edits the package contents. Its job is to (1) preview, (2) optionally reorder for local teaching flow, and (3) decide which of its batches consume it.
+The SuperAdmin-authored contents are **read-only** for the institute (use, don't delete). On top of that base, the institute can (1) preview & reorder for local teaching flow, (2) **add its own lesson plans and attach its own tests** to any chapter, and (3) decide which of its batches consume the package. Anything the institute adds is **private to that institute** — it never appears in SuperAdmin's master package or for any other institute.
 
 ---
 
@@ -41,7 +41,7 @@ Rules:
 
 The detail page has three tabs:
 The detail page has two tabs:
-- **Content** — read-only preview of chapters, lessons, and content blocks. Reorder happens **inline** here: drag the grip handle in the Chapter Index rail to reorder chapters; drag the grip handle on a lesson row to reorder lesson plans inside that chapter. A "Reset" link appears in each scope when a local override is active.
+- **Content** — chapters, lessons, and content blocks. SuperAdmin content is read-only; the institute can add its own alongside it. Reorder happens **inline** here: drag the grip handle in the Chapter Index rail to reorder chapters; drag the grip handle on a lesson row to reorder lesson plans inside that chapter. A "Reset" link appears in each scope when a local override is active.
 - **Batches** — assign the package to one or more batches per grade.
 
 On phones (< 768px) the Chapter Index rail is replaced by a "Chapter NN of N" selector bar above the content; tapping it opens a left drawer with the full chapter list (selection + reorder), so every chapter stays reachable on mobile. Long chapter and lesson titles wrap to two lines instead of truncating, keeping them legible at 320px.
@@ -58,6 +58,17 @@ A SuperAdmin-authored lesson plan is a **read-only base layer** plus an **instit
 - The institute can **Add content** and **Add quiz** on top. Their additions are tagged "Added by your institute" and can be removed (only their own).
 - Blocks (master + additions) can be reordered locally; the SA master is never mutated.
 - A banner explains the model, and a **Reset to original** action clears the institute's additions + reorder for that lesson.
+
+---
+
+## Adding your own lessons & tests
+
+Inside any chapter (Content tab), the institute can extend SuperAdmin's content without touching it:
+
+- **Add lesson plan** — opens the institute lesson composer (`/institute/packages/:packageId/lesson/new`). Name the lesson, then add content blocks and quizzes. Saved lessons appear in the chapter alongside SA's, tagged **"Yours"**, and are fully editable and deletable by the institute.
+- **Attach test** — opens the test picker to attach an existing exam from the institute's library to the chapter. Attached tests show under **Chapter tests** tagged **"Yours"** with a remove control.
+- SuperAdmin lessons/tests stay tagged **"Shared"** and have no delete control — they can be reordered and layered onto, but never removed.
+- Institute-added lessons and tests are **private to the institute**; counts in the Chapter Index rail include them.
 - A lesson plan the **institute authored itself** (id prefixed `inst-lp-`) opens in the full composer with edit/delete — same UI as the SuperAdmin composer.
 
 ---
