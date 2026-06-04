@@ -32,7 +32,14 @@ import {
 import { getLessonAdditions } from "@/data/institute/institutePackageLessonAdditions";
 import { getOrder, applyOrder } from "@/data/institute/institutePackageOrders";
 import { INSTITUTE_LP_PREFIX } from "@/data/institute/institutePackageOwnContent";
-import { curriculums, courses, getClassName } from "@/data/masterData";
+import { getOwnLessons } from "@/data/institute/institutePackageOwnContent";
+import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
+import {
+  curriculums,
+  courses,
+  getClassName,
+  getSubjectById,
+} from "@/data/masterData";
 
 // TODO: replace with real auth context once available.
 export const CURRENT_TEACHER_ID = "teacher-1";
@@ -185,4 +192,67 @@ export const resolveLessonForTeacher = (
   const order = getOrder(teacherId, packageId, { kind: "block", lessonId });
   const blocks = applyOrder([...master.blocks, ...additions], order);
   return { title: master.title, blocks };
+};
+
+// ------------------------------------------------------------------
+// "My Plans" roll-up: every lesson the teacher personally authored,
+// across all their sources / classes / subjects / chapters. Read-only
+// index — clicking jumps back into the chapter's library view.
+// ------------------------------------------------------------------
+export interface TeacherOwnLessonRollupItem {
+  lessonId: string;
+  title: string;
+  packageId: string;
+  sourceType: Package["sourceType"];
+  sourceName: string;
+  gradeId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  chapterId: string;
+  chapterName: string;
+  openHref: string;
+  presentHref: string;
+}
+
+export const getOwnLessonRollupForTeacher = (
+  teacherId: string = CURRENT_TEACHER_ID,
+): TeacherOwnLessonRollupItem[] => {
+  const out: TeacherOwnLessonRollupItem[] = [];
+  const sources = getLessonSourcesForTeacher(teacherId);
+
+  for (const source of sources) {
+    for (const cls of source.classes) {
+      for (const subjectId of cls.subjectIds) {
+        const chapters = getChaptersForScope(
+          source.pkg.sourceType,
+          source.pkg.sourceId,
+          cls.gradeId,
+          subjectId,
+        );
+        for (const chapter of chapters) {
+          const own = getOwnLessons(teacherId, source.packageId, chapter.id);
+          for (const lesson of own) {
+            out.push({
+              lessonId: lesson.id,
+              title: lesson.title,
+              packageId: source.packageId,
+              sourceType: source.sourceType,
+              sourceName: source.sourceName,
+              gradeId: cls.gradeId,
+              className: cls.className,
+              subjectId,
+              subjectName: getSubjectById(subjectId)?.name ?? subjectId,
+              chapterId: chapter.id,
+              chapterName: chapter.name,
+              openHref: `/teacher/lesson-plans/library/pkg/${source.packageId}/lesson/${lesson.id}`,
+              presentHref: `/teacher/lesson-plans/library/pkg/${source.packageId}/present/${lesson.id}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return out;
 };

@@ -43,7 +43,7 @@ import {
   getLessonSourcesForTeacher,
   CURRENT_TEACHER_ID,
 } from "@/data/teacher/lessonPackages";
-import MyLessonPlans from "./LessonPlans";
+import MyLessonPlansRollup from "./MyLessonPlansRollup";
 
 const T = CURRENT_TEACHER_ID;
 
@@ -429,7 +429,7 @@ const TeacherLessonPlans = () => {
           </div>
         )
       ) : (
-        <MyLessonPlans embedded />
+        <MyLessonPlansRollup />
       )}
 
       {/* Mobile chapter index sheet */}
