@@ -44,3 +44,11 @@ Inspected the live preview at 320, 375 (phone), and requested 768 / 834 / 1280 (
 
 ## Scope note
 All fixes are **frontend/presentation only** (Tailwind classes, padding, scroll containers, z-index, header layout). No data-layer, routing, or business-logic changes. Mobile-first per project standards (320px floor, 44px targets).
+
+---
+
+## Resolution log (completed)
+- **Phase 2 (phone):** header shrink-safe at 320, Copilot FAB hidden on lesson sub-routes, bottom clearance on hub/My Plans/lesson list. ✅
+- **Phase 1 + 3 (tablet/desktop, verified live):** Confirmed the 768–1023px band cramped the two-pane library (lesson titles collapsed to "Phy…"). Fixed by deferring the two-pane to `lg` — tablets now use the comfortable single-column + chapter sheet; desktop (≥1024) keeps the two-pane. Shared lesson detail header + fixed footer verified clean at 768 (no clipping/overlap). ✅
+- **My Plans FAB clearance:** rollup grid now reserves `pb-20` at all widths (FAB shows on the hub at every breakpoint). ✅
+- **Phase 4 regression:** hub library, My Plans, and shared lesson detail verified at 768 / 1280; phone fixes verified earlier at 320/360. ✅
