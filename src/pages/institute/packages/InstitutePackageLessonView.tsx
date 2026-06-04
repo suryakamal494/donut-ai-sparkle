@@ -14,6 +14,7 @@ import {
   type LessonPlanBlock,
   type BlockType,
 } from "@/components/teacher/lesson-workspace";
+import { Clock } from "lucide-react";
 import {
   getPackageById,
   getLessonPlanById,
