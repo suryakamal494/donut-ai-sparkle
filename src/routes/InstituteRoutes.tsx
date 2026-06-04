@@ -14,6 +14,11 @@ import InstituteLayout from "@/components/layout/InstituteLayout";
 // ============================================
 import InstituteDashboard from "@/pages/institute/Dashboard";
 
+// Packages (institute view) - EAGER loaded to avoid skeleton hang
+import InstitutePackagesPage from "@/pages/institute/packages/InstitutePackages";
+import InstitutePackageDetailPage from "@/pages/institute/packages/InstitutePackageDetail";
+import InstitutePackageLessonViewPage from "@/pages/institute/packages/InstitutePackageLessonView";
+
 // ============================================
 // LAZY LOADED PAGES - Load on demand
 // ============================================
@@ -51,11 +56,6 @@ const InstituteCreateQuestion = lazy(() => import("@/pages/institute/questions/C
 const InstituteContent = lazy(() => import("@/pages/institute/content/Content"));
 const InstituteCreateContent = lazy(() => import("@/pages/institute/content/CreateContent"));
 const InstituteAIContentGenerator = lazy(() => import("@/pages/institute/content/AIContentGenerator"));
-
-// Packages (institute view)
-const InstitutePackagesPage = lazy(() => import("@/pages/institute/packages/InstitutePackages"));
-const InstitutePackageDetailPage = lazy(() => import("@/pages/institute/packages/InstitutePackageDetail"));
-const InstitutePackageLessonViewPage = lazy(() => import("@/pages/institute/packages/InstitutePackageLessonView"));
 
 // Exams
 const InstituteExams = lazy(() => import("@/pages/institute/exams/Exams"));
@@ -155,10 +155,10 @@ export default function InstituteRoutes() {
         <Route path="content/edit/:contentId" element={<LazyPage><InstituteCreateContent /></LazyPage>} />
         <Route path="content/ai-generate" element={<LazyPage><InstituteAIContentGenerator /></LazyPage>} />
 
-        {/* Packages (institute-side view) */}
-        <Route path="packages" element={<LazyPage><InstitutePackagesPage /></LazyPage>} />
-        <Route path="packages/:packageId" element={<LazyPage><InstitutePackageDetailPage /></LazyPage>} />
-        <Route path="packages/:packageId/lesson/:lpId" element={<LazyPage><InstitutePackageLessonViewPage /></LazyPage>} />
+        {/* Packages (institute-side view) - eager loaded */}
+        <Route path="packages" element={<InstitutePackagesPage />} />
+        <Route path="packages/:packageId" element={<InstitutePackageDetailPage />} />
+        <Route path="packages/:packageId/lesson/:lpId" element={<InstitutePackageLessonViewPage />} />
         
         {/* Exams */}
         <Route path="exams" element={<LazyPage><InstituteExams /></LazyPage>} />
