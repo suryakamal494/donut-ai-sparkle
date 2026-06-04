@@ -89,7 +89,7 @@ const ChapterRail = ({
       </div>
       {reorderable && (
         <p className="px-3 pb-2 text-[10px] text-muted-foreground leading-snug">
-          Drag <GripVertical className="inline w-3 h-3 align-text-bottom" /> to reorder for this institute. SuperAdmin's order stays untouched.
+          Drag <GripVertical className="inline w-3 h-3 align-text-bottom" /> to reorder. Your custom order is saved separately.
         </p>
       )}
       {items.length === 0 ? (
