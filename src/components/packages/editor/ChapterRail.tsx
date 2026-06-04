@@ -184,7 +184,7 @@ const RowBody = ({ chapter, index, isActive }: Omit<RowProps, "onSelect">) => {
     <div className="flex items-center justify-between gap-2 flex-1 min-w-0">
       <span
         className={cn(
-          "text-sm font-semibold truncate",
+          "text-sm font-semibold line-clamp-2 sm:truncate",
           isActive ? "text-foreground" : dim ? "text-muted-foreground" : "text-foreground/80",
         )}
       >

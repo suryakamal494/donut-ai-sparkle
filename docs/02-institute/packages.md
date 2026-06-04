@@ -44,6 +44,8 @@ The detail page has two tabs:
 - **Content** — read-only preview of chapters, lessons, and content blocks. Reorder happens **inline** here: drag the grip handle in the Chapter Index rail to reorder chapters; drag the grip handle on a lesson row to reorder lesson plans inside that chapter. A "Reset" link appears in each scope when a local override is active.
 - **Batches** — assign the package to one or more batches per grade.
 
+On phones (< 768px) the Chapter Index rail is replaced by a "Chapter NN of N" selector bar above the content; tapping it opens a left drawer with the full chapter list (selection + reorder), so every chapter stays reachable on mobile. Long chapter and lesson titles wrap to two lines instead of truncating, keeping them legible at 320px.
+
 Clicking a lesson plan opens the **institute lesson view** (`/institute/packages/:packageId/lesson/:lpId`) — it stays inside the institute panel (sidebar collapsed), never the SuperAdmin composer.
 
 ---

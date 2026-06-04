@@ -146,7 +146,7 @@ const ChapterDetailPane = ({
           <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
             Chapter {String(chapterIndex + 1).padStart(2, "0")}
           </div>
-          <h2 className="text-xl md:text-2xl font-bold text-foreground tracking-tight truncate">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground tracking-tight break-words md:truncate">
             {chapter.name}
           </h2>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground font-medium">
@@ -284,7 +284,7 @@ const ChapterDetailPane = ({
                           {String(i + 1).padStart(2, "0")}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">
+                          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">
                             {lp.title}
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -415,7 +415,7 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLes
           {String(index + 1).padStart(2, "0")}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{title}</p>
+          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">{title}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {blockCount} block{blockCount === 1 ? "" : "s"}
             {blockCount > 0 && <> · ~{Math.max(5, blockCount * 5)} min</>}

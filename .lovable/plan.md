@@ -1,35 +1,53 @@
-## What's wrong
+# Institute Packages — UI Audit & Phased Fix Plan
 
-### 1. The lag / "cursor not working" / can't select multiple items (the real bug)
+I audited the institute (institute panel) Packages module on desktop (1280), tablet (≥768), phone (390px) and small phone (320px), and reviewed the code. Findings below, then a phase-wise plan.
 
-The slowness is **not** the network or the backend — it's a broken DOM structure in the "Add content" panel (`ChapterContentSheet.tsx`).
+## Audit findings
 
-Each content row in the library list is built as a `<button>` that **contains other buttons inside it**:
-- a checkbox (which is itself a button), and
-- a "Preview" button.
+### 🔴 Critical — chapters are unreachable on mobile
+On the package detail "Content" tab, the Chapter Index rail is `hidden md:block` (only shows ≥768px). On phones the page jumps straight into Chapter 01 and there is **no way to switch chapters at all** — every phone user is stuck on the first chapter. This is the biggest breakage. (Desktop/tablet 3‑pane works correctly.)
 
-Nested buttons are invalid HTML. React detects this on every render and prints a `validateDOMNesting: <button> cannot appear as a descendant of <button>` warning (this exact error is in your console right now). The library renders ~15+ items, and every keystroke in search or every item you select re-renders the whole list, so React floods the console with warnings each time. That warning spam is what freezes the panel, makes the cursor feel dead, and makes selecting a second item take forever.
+### 🟠 High — lesson/chapter titles become unreadable on narrow screens
+Lesson rows and chapter rows use single‑line `truncate`. On 320–390px every lesson collapses to the identical string "Knowing Our Nu…", so they're impossible to tell apart. Per your guidance, the fix is to redesign for mobile (keep the font, allow a 2‑line wrap) rather than shrink text.
 
-**Fix:** restructure each row so it's a normal container (`div`) with the checkbox and preview as proper siblings — no button inside a button. This removes the warning storm and the list becomes instantly responsive (typing, selecting multiple items, attaching). Same fix keeps the click-to-select and Preview behaviors identical, just with valid markup.
+### 🟠 High — initial load is slow / long skeleton
+The detail page shows a lengthy loading skeleton and feels sluggish. Causes: heavy synchronous mock-data work and derived lists (e.g. `railItems` recomputes `getLessonPlansForChapter` for every chapter on every render; chapter/lesson lookups aren't memoized). This recompute storm also makes interactions (tab/subject switches) feel laggy.
 
-### 2. Remove the "Shared by Donut…" line
+### 🟡 Medium
+- **Add content / Add quiz toolbar** (lesson view): the descriptive subtitle is clipped on phones ("…generate with AI" cut off). The 2‑column card layout is too tight under ~360px.
+- **Shared lesson footer**: the fixed bottom bar overlaps the last block on phones; bottom padding doesn't fully clear it.
+- **Chapter detail header**: chapter name uses `truncate`; should wrap on mobile so the full name is visible.
 
-In the shared lesson view (`InstitutePackageLessonView.tsx`), delete the sentence:
-> "Shared by Donut. You can add your own content & quizzes on top — the original stays intact and can't be deleted."
+### ⚪ Low
+- "Read-only" / "Shared" badges are hidden on phones (`sm:inline-flex`), so the use‑don't‑delete model isn't signalled on mobile.
+- React Router v7 future‑flag warnings in console (cosmetic only).
 
-Keep the thin bar but show only the **Reset to original** button (when overrides exist). The "Shared" lock badge in the header stays.
+## Phased implementation plan
 
-### 3. Show the institute name instead of "Added by your institute"
+### Phase 1 — Restore mobile chapter navigation (critical)
+- Add a mobile-only chapter selector to the Content tab so all chapters are reachable < 768px. Approach: a compact "Chapter Index" trigger button (shows current chapter + count) that opens a bottom sheet / drawer listing all chapters, reusing the existing `ChapterRail` rows (selection + reorder grip). Selecting a chapter closes the sheet and updates the detail pane.
+- Keep the existing desktop/tablet rail unchanged.
 
-The block badge currently reads "Added by your institute". Change it to the institute's name. There's no bound institute identity in the mock layer today, so I'll add a `CURRENT_INSTITUTE_NAME` constant next to the existing `CURRENT_INSTITUTE_ID = "inst-1"` and use it as the badge label (e.g. blocks added by the institute show that name). The "Shared" badge on master blocks is unchanged.
+### Phase 2 — Mobile readability redesign (high)
+- Lesson rows (`ChapterDetailPane` static + sortable) and chapter rows (`ChapterRail` `RowBody`): replace single-line `truncate` with a 2‑line clamp on mobile, same font size; keep truncate on desktop where space is tight.
+- Chapter detail header title: allow wrap on mobile instead of `truncate`.
+- `PackageWorkspaceToolbar`: stack to a single column under ~360px (or hide subtitle on xs) so labels never clip.
 
-## Files touched
+### Phase 3 — Performance & loading (high)
+- Memoize derived data in `InstitutePackageDetail` (`railItems`, chapter/lesson lookups, batch lists) so they don't recompute every render.
+- Verify the load skeleton resolves quickly after memoization; if mock generation is the bottleneck, cache the generated package data.
+- Re-measure interaction latency (tab/subject/chapter switch) on mobile.
 
-- `src/components/packages/editor/ChapterContentSheet.tsx` — replace the nested-button row markup with a valid `div`-based row (checkbox + preview as siblings); fixes the performance/responsiveness issue.
-- `src/pages/institute/packages/InstitutePackageLessonView.tsx` — remove the "Shared by Donut…" sentence (keep Reset to original); add `CURRENT_INSTITUTE_NAME` and use it for the "Added by…" badge label.
+### Phase 4 — Polish & QA
+- Fix shared-lesson fixed-footer overlap (correct bottom padding).
+- Surface the "Read-only / Shared" context on mobile (small inline label).
+- Full QA pass at 320 / 375 / 390 / 768 / 1280 across: package detail Content + Batches tabs, shared lesson view, own-lesson composer, Add content sheet, reorder (drag) on touch.
 
-## Out of scope / unchanged
+## Technical notes (files in scope)
+- `src/pages/institute/packages/InstitutePackageDetail.tsx` — mobile chapter selector, memoization, header wrap.
+- `src/components/packages/editor/ChapterRail.tsx` — reuse rows in mobile sheet; 2‑line clamp.
+- `src/components/packages/editor/ChapterDetailPane.tsx` — lesson title clamp, header wrap.
+- `src/components/packages/editor/PackageWorkspaceToolbar.tsx` — responsive stacking.
+- `src/pages/institute/packages/InstitutePackageLessonView.tsx` — footer padding, mobile badge.
 
-- The read-only "use, don't delete" model, reorder, and reset logic stay exactly as they are.
-- No backend/data changes; the content library mock generator is untouched.
-- Heavy external preview iframes only load when you open Preview (already on-demand) — not part of the lag.
+No backend/data-model changes; this is frontend/presentation only. The read-only "use, don't delete" content model stays exactly as-is.

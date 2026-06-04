@@ -1,9 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, Users, Eye } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Eye, ListTree, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -76,6 +82,7 @@ const InstitutePackageDetail = () => {
   const chapters = applyOrder(rawChapters, chapterOrder);
 
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
+  const [chapterSheetOpen, setChapterSheetOpen] = useState(false);
   useEffect(() => {
     if (chapters.length === 0) return;
     if (!chapters.some((c) => c.id === selectedChapterId)) {
@@ -99,13 +106,25 @@ const InstitutePackageDetail = () => {
       ? curriculums.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId
       : courses.find((c) => c.id === pkg.sourceId)?.name ?? pkg.sourceId;
 
-  const railItems: ChapterRailItem[] = chapters.map((c) => {
-    const lessons = pkg.inclusions.lessonPlans ? getLessonPlansForChapter(pkg.id, c.id) : [];
-    const atts = getAttachmentsForChapter(pkg.id, c.id).filter((a) => a.kind !== "grand-test");
-    return { ...c, lessonCount: lessons.length, testCount: atts.length };
-  });
+  const railItems: ChapterRailItem[] = useMemo(
+    () =>
+      chapters.map((c) => {
+        const lessons = pkg.inclusions.lessonPlans
+          ? getLessonPlansForChapter(pkg.id, c.id)
+          : [];
+        const atts = getAttachmentsForChapter(pkg.id, c.id).filter(
+          (a) => a.kind !== "grand-test",
+        );
+        return { ...c, lessonCount: lessons.length, testCount: atts.length };
+      }),
+    [chapters, pkg.id, pkg.inclusions.lessonPlans],
+  );
   const activeChapterIndex = chapters.findIndex((c) => c.id === selectedChapterId);
   const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
+  const selectChapter = (id: string) => {
+    setSelectedChapterId(id);
+    setChapterSheetOpen(false);
+  };
 
   const grandTestCount = getGrandTestsForPackage(pkg.id).length;
   const lessonCount = getLessonPlansForPackage(pkg.id).length;
@@ -270,7 +289,28 @@ const InstitutePackageDetail = () => {
                 onResetOrder={resetChapterOrder}
               />
             </aside>
-            <section className="min-h-0 overflow-y-auto bg-background">
+            <section className="min-h-0 flex flex-col overflow-hidden bg-background">
+              {/* Mobile chapter selector — the rail is hidden below md */}
+              {chapters.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setChapterSheetOpen(true)}
+                  className="md:hidden flex items-center gap-2 w-full px-4 py-2.5 border-b bg-muted/30 text-left"
+                >
+                  <ListTree className="w-4 h-4 text-primary shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">
+                      Chapter {String(activeChapterIndex + 1).padStart(2, "0")} of{" "}
+                      {chapters.length}
+                    </span>
+                    <span className="block text-sm font-semibold text-foreground truncate leading-tight">
+                      {activeChapter?.name ?? "Select a chapter"}
+                    </span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              )}
+              <div className="flex-1 min-h-0 overflow-y-auto">
               {activeChapter ? (
                 <ChapterDetailPane
                   packageId={pkg.id}
@@ -303,8 +343,32 @@ const InstitutePackageDetail = () => {
                   </p>
                 </div>
               )}
+              </div>
             </section>
           </main>
+
+          {/* Mobile chapter index sheet */}
+          <Sheet open={chapterSheetOpen} onOpenChange={setChapterSheetOpen}>
+            <SheetContent side="left" className="w-[88vw] max-w-sm p-0 flex flex-col gap-0">
+              <SheetHeader className="px-4 py-3 border-b shrink-0 text-left">
+                <SheetTitle className="text-sm">Chapter Index</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ChapterRail
+                  items={railItems}
+                  selected={{ kind: "chapter", id: selectedChapterId }}
+                  onSelectChapter={selectChapter}
+                  onSelectGrand={() => {}}
+                  grandTestsEnabled={false}
+                  grandTestCount={0}
+                  reorderable
+                  isCustomOrdered={!!chapterOrder && chapterOrder.length > 0}
+                  onReorder={reorderChapters}
+                  onResetOrder={resetChapterOrder}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         </TabsContent>
 
         <TabsContent value="batches" className="flex-1 min-h-0 mt-0 outline-none overflow-y-auto">
