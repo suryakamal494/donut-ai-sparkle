@@ -8,7 +8,6 @@ import {
   GraduationCap,
   Layers,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +16,6 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/ui/page-header";
 import GradeSwitcher from "@/components/packages/editor/GradeSwitcher";
 import SubjectTabs from "@/components/packages/editor/SubjectTabs";
 import ChapterRail, {
