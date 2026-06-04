@@ -175,6 +175,100 @@ export const getLessonSourcesForTeacher = (
   });
 };
 
+// ------------------------------------------------------------------
+// Demo seed: a handful of teacher-authored lessons so the "My Plans"
+// roll-up shows real content out of the box (mirrors the seeded CBSE /
+// IIT-JEE sources). Written through the same store as the in-chapter
+// "Add lesson" flow, so these also appear inside each chapter's library
+// view and resolve correctly for Open/Present.
+// ------------------------------------------------------------------
+const SUBJECT_LESSON_TITLES: Record<string, string[]> = {
+  "1": ["Newton's Laws — Recap", "Kinematics Problem Set"], // Physics
+  "2": ["Mole Concept Walkthrough", "Periodic Trends Drill"], // Chemistry
+};
+
+const buildSampleBlocks = (
+  prefix: string,
+  title: string,
+  chapterName: string,
+): LessonPlanBlock[] => [
+  {
+    id: `${prefix}-b1`,
+    type: "explain",
+    title: `${title} — Concept Recap`,
+    content: `Walk the class through the key ideas of ${chapterName}.`,
+    duration: 15,
+    source: "custom",
+  },
+  {
+    id: `${prefix}-b2`,
+    type: "quiz",
+    title: "Quick Check",
+    content: "3 quick questions to gauge understanding.",
+    duration: 10,
+    source: "custom",
+  },
+  {
+    id: `${prefix}-b3`,
+    type: "homework",
+    title: "Practice Set",
+    content: `Assign a short practice set on ${chapterName}.`,
+    duration: 0,
+    source: "custom",
+  },
+];
+
+let ownLessonsSeeded = false;
+const seedTeacherOwnLessons = () => {
+  if (ownLessonsSeeded) return;
+  ownLessonsSeeded = true;
+
+  const teacherId = CURRENT_TEACHER_ID;
+  const now = new Date().toISOString();
+  let counter = 0;
+
+  for (const source of getLessonSourcesForTeacher(teacherId)) {
+    for (const cls of source.classes) {
+      for (const subjectId of cls.subjectIds) {
+        const titles = SUBJECT_LESSON_TITLES[subjectId];
+        if (!titles) continue;
+        const chapters = getChaptersForScope(
+          source.pkg.sourceType,
+          source.pkg.sourceId,
+          cls.gradeId,
+          subjectId,
+        );
+        if (chapters.length === 0) continue;
+
+        // Seed the first one or two chapters of this slice.
+        const slice = chapters.slice(0, Math.min(titles.length, 2));
+        slice.forEach((chapter, i) => {
+          // Don't duplicate if a lesson already exists for this chapter.
+          if (getOwnLessons(teacherId, source.packageId, chapter.id).length > 0) {
+            return;
+          }
+          const id = `${INSTITUTE_LP_PREFIX}${source.packageId}-seed-${counter++}`;
+          const title = titles[i % titles.length];
+          upsertOwnLesson(teacherId, source.packageId, {
+            id,
+            packageId: source.packageId,
+            gradeId: cls.gradeId,
+            subjectId,
+            chapterId: chapter.id,
+            order: nextOwnLessonOrder(teacherId, source.packageId, chapter.id),
+            title,
+            topics: [chapter.name],
+            blocks: buildSampleBlocks(id, title, chapter.name),
+            createdAt: now,
+            updatedAt: now,
+          });
+        });
+      }
+    }
+  }
+};
+seedTeacherOwnLessons();
+
 /**
  * Resolve a lesson's title + final block list for presenting.
  * Shared (SuperAdmin) lessons merge the teacher's own added blocks and any
