@@ -130,8 +130,9 @@ const InstitutePackageDetail = () => {
           testCount: atts.length + ownTests.length,
         };
       }),
-    // `tick` (via the bumped key below) keeps counts fresh after add/remove.
-    [chapters, pkg.id, pkg.inclusions.lessonPlans],
+    // `tick` keeps counts fresh after the institute adds/removes its own content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chapters, pkg.id, pkg.inclusions.lessonPlans, tick],
   );
   const activeChapterIndex = chapters.findIndex((c) => c.id === selectedChapterId);
   const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
