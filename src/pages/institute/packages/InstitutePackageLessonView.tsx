@@ -429,9 +429,11 @@ const OwnLessonComposer = ({
     }
     setIsSaving(true);
     const now = new Date().toISOString();
-    const finalId = existing?.id ?? `inst-lp-${packageId}-${Date.now()}`;
-    const order = existing?.order ?? getLessonPlansForChapter(packageId, chapterId).length;
-    upsertLessonPlan({
+    const finalId = existing?.id ?? `${INSTITUTE_LP_PREFIX}${packageId}-${Date.now()}`;
+    const order =
+      existing?.order ??
+      nextOwnLessonOrder(CURRENT_INSTITUTE_ID, packageId, chapterId);
+    upsertOwnLesson(CURRENT_INSTITUTE_ID, packageId, {
       id: finalId,
       packageId,
       gradeId,
