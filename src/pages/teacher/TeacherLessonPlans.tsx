@@ -429,7 +429,7 @@ const TeacherLessonPlans = () => {
           </div>
         )
       ) : (
-        <MyLessonPlans embedded />
+        <MyLessonPlansRollup />
       )}
 
       {/* Mobile chapter index sheet */}
