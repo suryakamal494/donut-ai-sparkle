@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ClipboardList, Plus, X, FileText, ChevronRight, GripVertical, RotateCcw } from "lucide-react";
+import { BookOpen, ClipboardList, Plus, X, FileText, ChevronRight, GripVertical, RotateCcw, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -78,6 +78,11 @@ interface Props {
   onAttachOwnTest?: (examIds: string[]) => void;
   onDeleteOwnLesson?: (lessonId: string) => void;
   onRemoveOwnTest?: (testId: string) => void;
+  /**
+   * When provided, each lesson row shows a "Present" action that launches the
+   * smartboard viewer. Used by the teacher Lesson Plans library.
+   */
+  onPresentLesson?: (lessonId: string) => void;
 }
 
 const ChapterDetailPane = ({
@@ -102,6 +107,7 @@ const ChapterDetailPane = ({
   onAttachOwnTest,
   onDeleteOwnLesson,
   onRemoveOwnTest,
+  onPresentLesson,
 }: Props) => {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<PackageAttachmentKind | null>(null);
@@ -304,6 +310,11 @@ const ChapterDetailPane = ({
                           blockCount={lp.blocks.length}
                           onOpen={() => openLesson(lp.id)}
                           owned={additive && ownLessonIds.has(lp.id)}
+                          onPresent={
+                            onPresentLesson && lp.blocks.length > 0
+                              ? () => onPresentLesson(lp.id)
+                              : undefined
+                          }
                           onDelete={
                             additive && ownLessonIds.has(lp.id) && onDeleteOwnLesson
                               ? () => onDeleteOwnLesson(lp.id)
@@ -317,10 +328,13 @@ const ChapterDetailPane = ({
               ) : (
                 <ul className="space-y-2">
                   {lessons.map((lp, i) => (
-                    <li key={lp.id}>
+                    <li
+                      key={lp.id}
+                      className="group flex items-center gap-1 rounded-xl border bg-background hover:border-primary/40 hover:shadow-sm transition-all min-h-[64px]"
+                    >
                       <button
                         onClick={() => openLesson(lp.id)}
-                        className="group w-full flex items-center gap-4 px-3 sm:px-4 py-3 rounded-xl border bg-background hover:border-primary/40 hover:shadow-sm transition-all text-left min-h-[64px]"
+                        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 text-left"
                       >
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
                           {String(i + 1).padStart(2, "0")}
@@ -336,8 +350,19 @@ const ChapterDetailPane = ({
                             )}
                           </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
                       </button>
+                      {onPresentLesson && lp.blocks.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onPresentLesson(lp.id)}
+                          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-2.5 mr-1 rounded-lg bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20 transition-colors"
+                          aria-label={`Present ${lp.title}`}
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span className="hidden sm:inline">Present</span>
+                        </button>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0 mr-2" />
                     </li>
                   ))}
                 </ul>
@@ -470,9 +495,10 @@ interface SortableLessonRowProps {
   onOpen: () => void;
   owned?: boolean;
   onDelete?: () => void;
+  onPresent?: () => void;
 }
 
-const SortableLessonRow = ({ id, index, title, blockCount, onOpen, owned = false, onDelete }: SortableLessonRowProps) => {
+const SortableLessonRow = ({ id, index, title, blockCount, onOpen, owned = false, onDelete, onPresent }: SortableLessonRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -520,6 +546,17 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen, owned = false
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
       </button>
+      {onPresent && (
+        <button
+          type="button"
+          onClick={onPresent}
+          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-primary/10 text-primary font-semibold text-xs hover:bg-primary/20 transition-colors"
+          aria-label={`Present ${title}`}
+        >
+          <Play className="w-3.5 h-3.5 fill-current" />
+          <span className="hidden sm:inline">Present</span>
+        </button>
+      )}
       {onDelete && (
         <button
           type="button"
