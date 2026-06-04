@@ -289,7 +289,7 @@ const SharedLessonView = ({
               masterIds.has(id)
                 ? "Shared"
                 : addedIds.has(id)
-                  ? "Added by your institute"
+                  ? CURRENT_INSTITUTE_NAME
                   : undefined
             }
           />
