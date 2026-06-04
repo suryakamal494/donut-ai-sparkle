@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import TeacherSidebar from "./TeacherSidebar";
 import TeacherBottomNav from "./TeacherBottomNav";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { CopilotProvider } from "@/components/teacher/routine-pilot/CopilotConte
 
 const TeacherLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -53,6 +54,14 @@ const TeacherLayout = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Auto-collapse on the Lesson Plans page so the chapter/lesson panes get
+  // more room. Re-openable manually via the sidebar toggle.
+  useEffect(() => {
+    if (location.pathname.startsWith("/teacher/lesson-plans")) {
+      setSidebarCollapsed(true);
+    }
+  }, [location.pathname]);
 
   // Close mobile menu when route changes
   useEffect(() => {

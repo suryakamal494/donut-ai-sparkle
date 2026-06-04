@@ -1,61 +1,53 @@
-# Teacher Lesson Plans — Package-sourced content
-
 ## Goal
-Teachers should see the lesson content that flows down from SuperAdmin → Institute → batch, but **never see the word "package"** — to them it is all **"Lesson Plans"**. A teacher only sees the slice that matches **their batch + class + subject**, navigable as **Curriculum/Course → Class → Subject → Chapter → Lessons**. Teachers can open a lesson to **edit / add their own lessons & attach tests** (mirroring the institute), and **Present** any lesson on a smartboard. Mobile/tablet-first throughout. The existing lesson-plan **editor/canvas is reused untouched**; the timetable auto-open is intentionally deferred.
 
-## The visibility rule (mirrors the backend)
-A lesson set is visible to a teacher when there is a three-way match:
-1. The package is **bound to a batch** the teacher is assigned to (`getPackagesForBatch`), AND
-2. its shape includes a **grade/class** the teacher teaches, AND
-3. its shape includes a **subject** the teacher teaches in that class.
+Stop the teacher Lesson Plans page from feeling crammed. Today ~5 stacked full-width bands (title+tagline, tabs, source pills, class row, subject row) eat the top 70% before any lesson content shows. We collapse the chrome so the **chapter index + lesson plans get ~70-80% of the height**.
 
-The teacher is shown **only** the matching grade+subject slices, grouped by the package's source (curriculum or course).
+## What changes (visual)
+
+### 1. One unified top row (kill a whole band)
+Merge the `Curriculum / My Plans` tabs and the separate source-pill row into a **single chip row**:
 
 ```text
-SuperAdmin package ─assign→ Institute ─bind→ Batch ─teacher assigned→ Teacher
-                                                   └ filter to teacher's class + subject
-Teacher "Lesson Plans":
-  [CBSE]  [JEE Foundation (course)]      ← source switcher (only if >1)
-     └ Class 10 ▸ Physics ▸ Chapters ▸ Lessons / Tests
+[ CBSE ]  [ IIT-JEE Mains ]  [ My Plans ]
 ```
 
-## Demo scenario to seed
-Reshape the demo teacher so the combinatorics are visible:
-- Teacher teaches across **two sources**: **CBSE** (curriculum package) + **one course** package.
-- **~3 classes**, mixed subjects — e.g. Class 10 → Physics; Class 11 → Physics + Chemistry; Course class → one subject.
-- Bind those packages to the teacher's batches so the three-way match resolves.
+- Each source (curriculum/course) is a chip; "My Plans" is the last chip in the same row.
+- Selecting CBSE or IIT-JEE shows that source's content; selecting "My Plans" shows the teacher's own plans.
+- No more separate `Curriculum` vs source-pills double selection — one tap picks everything.
+- The `Curriculum` label is renamed to `Course` where any label remains.
+- Remove the `(CURRICULUM)` / `(COURSE)` suffix badges entirely — just `CBSE`, `IIT-JEE Mains`.
 
-## Phases
+### 2. Slim the header
+- Remove the tagline "Open the chapter you're teaching, present it on the board, or build your own."
+- Shrink the "Lesson Plans" title into a compact inline header (smaller, less vertical padding). Breadcrumb stays minimal.
 
-### Phase 1 — Data layer (teacher scope)
-- Add a teacher resolver `getLessonSourcesForTeacher(teacherId)` that returns the matching packages grouped by source (curriculum/course) with the allowed class+subject slices, using existing `getPackagesForBatch`, package `shape`, and the teacher profile.
-- Add teacher-scoped mirror stores keyed by `teacherId` (same pattern as the institute ones):
-  - `teacherPackageOrders` (chapter/lesson reorder),
-  - `teacherPackageOwnContent` (own lessons + attached tests),
-  - `teacherPackageLessonAdditions` (composer-created lessons).
-- Extend demo mock data: teacher profile (curricula/classes/subjects), batches, and `institutePackageBatches` bindings to realize the CBSE + course scenario.
+### 3. Two-row compact filter (only when a source is active)
+Instead of class on its own band + subjects on another band, combine into a tight layout:
 
-### Phase 2 — Lesson Plans information architecture (no "package" wording)
-- Repoint `/teacher/lesson-plans` to a new **Lesson Library** view (curriculum/course → class → subject → chapter rail → lesson detail). The existing "my plans" list is preserved as a secondary tab so nothing is lost.
-- Source switcher shown **only when the teacher has more than one** curriculum/course; class & subject selectors below it (matches the existing curriculum-selection UX).
-- Reuse the existing teacher design system (teal/cyan, lighter), 44px+ touch targets, 320px-safe. Mobile: chapter index in a bottom/left sheet, large tap rows.
+```text
+Row A:  [ CBSE ] [ IIT-JEE Mains ] [ My Plans ]          (top chip row)
+Row B:  Class [ Class 11 ▾ ]   |   Physics  Chemistry    (class dropdown + subject chips)
+```
 
-### Phase 3 — Chapter detail (view + edit + add-own, like institute)
-- Reuse/adapt the institute `ChapterDetailPane` flow in teacher styling: per chapter show shared lessons + tests, plus the teacher's **own** lessons/tests with add & delete.
-- "Add lesson" opens the existing **lesson composer/canvas** (untouched) scoped to the chapter; "Attach test" reuses the existing exam-picker.
-- Per-teacher chapter/lesson reordering via the new `teacherPackageOrders` store, with "reset to default".
+- Subject **chips stay** (good for navigation as the user wants), but sit inline next to the Class dropdown on the same row, horizontally scrollable when subjects are many — they wrap/scroll instead of taking a full band.
+- This drops from ~3 filter bands to ~2 rows.
 
-### Phase 4 — Present (smartboard viewer)
-- Add a **Present** action on each lesson and within the lesson detail.
-- Build a full-screen, classroom-optimized viewer: large type, one block at a time, swipe / arrow-key / on-screen next-prev, progress indicator, exit button. Renders the same `LessonPlanBlock[]`, so editing and presenting share one data source.
-- Editing stays in the existing workspace; presenting is a separate read-only mode — no duplicated content model.
+### 4. Give the panes the height back
+- Container height changes from `h-[calc(100vh-15rem)]` to roughly `h-[calc(100vh-9rem)]` (exact value tuned after the header/filter shrink) so the chapter rail + lesson detail fill the majority of the viewport.
+- Three-pane structure (chapter rail + detail) is kept — only the surrounding chrome shrinks.
 
-### Phase 5 — Wiring & QA
-- Keep sidebar/bottom-nav labels as **"Lesson Plans" / "Plans"** (no new nav item, no "package" term).
-- Verify: source/class/subject filtering shows only matching slices; add/delete own content persists; reorder persists & resets; Present works on mobile, tablet, smartboard widths; existing canvas editor and old plans list still work; build passes with zero TS errors.
+### 5. Auto-collapse the left sidebar on this page
+- When the route is `/teacher/lesson-plans*`, the teacher sidebar collapses to the narrow icon strip automatically, giving the panes more width.
+- It remains manually re-openable via the existing toggle; leaving the page restores normal behavior.
 
 ## Technical notes
-- New pages under `src/pages/teacher/` (e.g. `LessonLibrary`, `LessonChapter`, `LessonPresent`); new teacher stores under `src/data/teacher/`; adapt shared components from `src/components/packages/editor/*` with a teacher `mode`/styling rather than forking logic.
-- Routes added under the existing `/teacher/lesson-plans/*` tree in `TeacherRoutes.tsx`; lesson editor routes reused as-is.
-- `CURRENT_TEACHER_ID = "teacher-1"` placeholder until auth, matching the institute's `CURRENT_INSTITUTE_ID` convention.
-- Deferred (next iteration): timetable-driven auto-open of the current period's chapter.
+
+- **`src/pages/teacher/TeacherLessonPlans.tsx`**: replace the `Tabs` + source-pill block with a single chip row that drives both `tab` (`library` | `mine`) and `activeSourceId`. Selecting a source sets `tab="library"` + that source; "My Plans" sets `tab="mine"`. Remove the tagline from `PageHeader` (or swap to a compact custom header). Restructure the filter band into the two-row layout; bump the container height. Subject chips reuse `SubjectTabs` made horizontally scrollable.
+- **`src/components/packages/editor/SubjectTabs.tsx`**: switch wrap to a single scrollable row (`overflow-x-auto no-scrollbar`) so many subjects/classes don't add height.
+- **`src/components/layout/TeacherLayout.tsx`**: add a `useLocation` effect that sets `sidebarCollapsed` true when on `/teacher/lesson-plans`, without breaking the existing resize-based auto-collapse or the manual toggle.
+- Mobile path (chapter sheet, bottom-nav padding) is preserved; the chip row scrolls horizontally on small screens.
+- No data-layer or business-logic changes — purely layout/presentation.
+
+## Out of scope
+- Lesson composer / presentation viewer internals.
+- Institute/SuperAdmin package views (shared components touched only in backward-compatible ways).
