@@ -468,9 +468,11 @@ interface SortableLessonRowProps {
   title: string;
   blockCount: number;
   onOpen: () => void;
+  owned?: boolean;
+  onDelete?: () => void;
 }
 
-const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLessonRowProps) => {
+const SortableLessonRow = ({ id, index, title, blockCount, onOpen, owned = false, onDelete }: SortableLessonRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -497,13 +499,20 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLes
       <button
         type="button"
         onClick={onOpen}
-        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pr-3 sm:pr-4 py-3 text-left"
+        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pr-2 sm:pr-3 py-3 text-left"
       >
         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
           {String(index + 1).padStart(2, "0")}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">{title}</p>
+          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">
+            {title}
+            {owned && (
+              <span className="ml-2 align-middle text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                Yours
+              </span>
+            )}
+          </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {blockCount} block{blockCount === 1 ? "" : "s"}
             {blockCount > 0 && <> · ~{Math.max(5, blockCount * 5)} min</>}
@@ -511,6 +520,16 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLes
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
       </button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="shrink-0 mr-2 p-1.5 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition"
+          aria-label={`Delete ${title}`}
+        >
+          <X className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+      )}
     </li>
   );
 };
