@@ -1,65 +1,53 @@
 ## Goal
 
-Today the "My Plans" tab renders an old standalone screen (`LessonPlans.tsx`) backed by an unrelated mock list (`teacherData.teacherLessonPlans`). It has its own "New Plan" button and filters that are completely disconnected from courses, classes, chapters, and the real package system. Meanwhile, the lesson plans a teacher actually creates live per-chapter via `getOwnLessons` (keyed by teacher + package + chapter).
-
-We will make "My Plans" a true **roll-up index**: a read-only list that aggregates every lesson the teacher personally authored across all their sources/chapters. It is not a creation surface. Clicking a plan jumps back into that chapter's library view to teach, present, or edit it.
+The "My Plans" tab is now a roll-up of lessons the teacher personally created in chapters. Since no teacher-authored lessons are seeded, the tab shows only the empty state — so it's impossible to see how it works. We'll seed a handful of mock teacher-authored lessons across the teacher's existing CBSE and IIT-JEE sources, so "My Plans" displays a populated, realistic list out of the box (matching how CBSE and IIT-JEE already show seeded content).
 
 ## What the user sees
 
-- The `[ CBSE ] [ IIT-JEE Mains ] [ My Plans ]` chip row stays exactly as is.
-- "My Plans" now shows a clean list/grid of cards, one per teacher-created lesson. Each card shows:
-  - Lesson title
-  - Context line: Source (CBSE / IIT-JEE Mains) · Class · Subject · Chapter
-  - Actions: **Open** (edit in chapter) and **Present**
-- A lightweight search box and optional Source + Class filters at the top (driven by real data, not the old free-text fields).
-- Empty state: "You haven't created any lesson plans yet. Open a chapter and add one to see it here."
-- No "New Plan" button — creation happens only inside a chapter.
+When they open the **My Plans** tab, instead of the empty state they see ~6 lesson-plan cards spread across both sources and multiple classes/subjects/chapters, e.g.:
 
 ```text
-My Plans
-[ search... ]   [ Source ▾ ]  [ Class ▾ ]
-
 ┌────────────────────────────┐  ┌────────────────────────────┐
-│ Newton's Laws — Recap      │  │ Organic Basics Intro       │
-│ CBSE · Class 11 · Physics  │  │ CBSE · Class 11 · Chemistry │
+│ Newton's Laws — Recap      │  │ Mole Concept Walkthrough   │
+│ CBSE                       │  │ CBSE                       │
+│ Class 11 · Physics         │  │ Class 11 · Chemistry       │
 │ Ch: Laws of Motion         │  │ Ch: Some Basic Concepts    │
 │ [ Open ]      [ Present ]   │  │ [ Open ]      [ Present ]   │
 └────────────────────────────┘  └────────────────────────────┘
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ Kinematics Problem Set     │  │ JEE Physics — Quick Drills │
+│ CBSE · Class 12 · Physics  │  │ IIT-JEE Mains · Cls 11 ·Phy│
+└────────────────────────────┘  └────────────────────────────┘
 ```
+
+Search, Source ▾, and Class ▾ filters all work against this seeded data. Each card's **Open** / **Present** navigates into the real chapter library view, because the seeded lessons are stored exactly like teacher-created ones.
 
 ## Implementation
 
-### 1. New aggregator (data layer) — `src/data/teacher/lessonPackages.ts`
-Add `getOwnLessonRollupForTeacher(teacherId?)` that:
-- Iterates `getLessonSourcesForTeacher()` → each source's classes → each class's subjects.
-- For each (source, grade, subject) resolves chapters via `getChaptersForScope(pkg.sourceType, pkg.sourceId, gradeId, subjectId)`.
-- For each chapter calls `getOwnLessons(teacherId, packageId, chapterId)` (own/teacher-authored lessons only — these carry the `inst-lp-` prefix).
-- Emits a flat array of roll-up items, each with: `lessonId`, `title`, `packageId`, `sourceName`, `sourceType`, `gradeId`, `className`, `subjectId`, subject name (via existing subject lookup in masterData), `chapterId`, `chapterName`, plus prebuilt `openHref` and `presentHref` using the existing patterns:
-  - open → `/teacher/lesson-plans/library/pkg/{packageId}/lesson/{lessonId}`
-  - present → `/teacher/lesson-plans/library/pkg/{packageId}/present/{lessonId}`
+All changes are confined to the mock data layer — no UI/component changes needed (the roll-up already renders whatever `getOwnLessons` returns).
 
-This reuses all existing resolvers; no new storage and no change to how lessons are created.
+### `src/data/teacher/lessonPackages.ts` — add a seeding step
 
-### 2. New roll-up component — `src/pages/teacher/MyLessonPlansRollup.tsx`
-- Calls the aggregator, holds local `search` + `sourceFilter` + `classFilter` state, filters client-side.
-- Renders the card grid + search/filter bar + empty state described above, following the teacher design system (compact, mobile-first, 44px touch targets).
-- `Open`/`Present` use `navigate(...)` with the prebuilt hrefs.
-- Re-uses a `tick`/refresh-free read on mount (in-memory mock); list reflects current `getOwnLessons` state.
+Add a `seedTeacherOwnLessons()` function, called once on import right after `seedTeacherBindings()` (guarded by a module-level `seeded` flag so it never double-runs).
 
-### 3. Wire it into the tab — `src/pages/teacher/TeacherLessonPlans.tsx`
-- Replace `<MyLessonPlans embedded />` (the `tab === "mine"` branch) with `<MyLessonPlansRollup />`.
-- Remove the now-unused `import MyLessonPlans from "./LessonPlans";`.
+It will:
+- Iterate `getLessonSourcesForTeacher()` → each source's classes → each subject.
+- For each (source, grade, subject), resolve chapters via `getChaptersForScope(pkg.sourceType, pkg.sourceId, gradeId, subjectId)`.
+- For the **first one or two chapters** of selected slices, build a `PackageLessonPlan` (id prefixed with `INSTITUTE_LP_PREFIX` + `packageId`, kebab-safe) and call `upsertOwnLesson(CURRENT_TEACHER_ID, packageId, lesson)`.
+- Keep it modest: ~5–6 lessons total spanning both sources, both classes, and Physics + Chemistry, with realistic titles per subject (e.g. Physics → "Newton's Laws — Recap", "Kinematics Problem Set"; Chemistry → "Mole Concept Walkthrough").
+- Each seeded lesson gets a small, realistic `blocks` array (2–3 `LessonPlanBlock`s: an `explain` block + a `quiz`/`homework` block, `source: "custom"`), plus `topics`, `order` from `nextOwnLessonOrder`, and `createdAt`/`updatedAt` timestamps.
 
-### 4. Cleanup
-- The old standalone screen `LessonPlans.tsx` is no longer referenced from the hub. Keep the file only if its `/teacher/lesson-plans/new` + canvas creation flow is still wanted; the roll-up itself does not link to it. (Creation is now exclusively in-chapter via the existing "Add lesson" flow.) No route changes required.
-
-## Out of scope
-- Lesson composer / presentation internals.
-- How lessons are created inside a chapter (unchanged).
-- Institute / SuperAdmin package editors.
-- Any backend/data persistence (still in-memory mock layer).
+Because the seed writes through the same `upsertOwnLesson` store the in-chapter creation flow uses, the lessons appear both in **My Plans** and inside each chapter's library view, and Open/Present resolve correctly via the existing `resolveLessonForTeacher` path.
 
 ## Technical notes
-- Subject id → name uses the existing master-data helper already imported in `lessonPackages.ts` (`getClassName` is there; add the analogous subject lookup).
-- All identifiers stay kebab-case in URLs per project convention.
-- No new dependencies.
+
+- Reuses existing imports already present in the file (`getChaptersForScope`, `getOwnLessons`, `INSTITUTE_LP_PREFIX`); adds imports for `upsertOwnLesson` and `nextOwnLessonOrder` from `institutePackageOwnContent`.
+- Idempotent: seeding guarded by a flag and only writes when a chapter has no existing own lessons, so it won't duplicate on hot reloads.
+- All ids stay kebab-case per project convention.
+- In-memory mock only — no backend/persistence, no new dependencies.
+
+## Out of scope
+
+- Lesson composer / presentation internals.
+- The roll-up component UI (unchanged).
+- Institute / SuperAdmin seeding.

@@ -33,6 +33,10 @@ import { getLessonAdditions } from "@/data/institute/institutePackageLessonAddit
 import { getOrder, applyOrder } from "@/data/institute/institutePackageOrders";
 import { INSTITUTE_LP_PREFIX } from "@/data/institute/institutePackageOwnContent";
 import { getOwnLessons } from "@/data/institute/institutePackageOwnContent";
+import {
+  upsertOwnLesson,
+  nextOwnLessonOrder,
+} from "@/data/institute/institutePackageOwnContent";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
 import {
   curriculums,
