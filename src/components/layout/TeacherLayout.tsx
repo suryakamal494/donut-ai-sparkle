@@ -107,8 +107,8 @@ const TeacherLayout = () => {
         )}
       >
         {/* Header */}
-        <header className="h-14 md:h-16 border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-40 flex items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-3 md:gap-4">
+        <header className="h-14 md:h-16 border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-40 flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
             {/* Mobile menu trigger */}
             {isMobile && (
               <Button 
@@ -123,9 +123,9 @@ const TeacherLayout = () => {
             
             {/* Greeting - mobile */}
             {isMobile && (
-              <div>
-                <p className="text-sm font-semibold text-foreground">Hi, {currentTeacher.name.split(' ')[1]}</p>
-                <p className="text-xs text-muted-foreground">{currentTeacher.subjects.join(', ')}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">Hi, {currentTeacher.name.split(' ')[1]}</p>
+                <p className="text-xs text-muted-foreground truncate">{currentTeacher.subjects.join(', ')}</p>
               </div>
             )}
             
@@ -140,7 +140,7 @@ const TeacherLayout = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
             {/* Mobile search */}
             <Button variant="ghost" size="icon" className="md:hidden hover:bg-muted/50">
               <Search className="w-5 h-5 text-muted-foreground" />
