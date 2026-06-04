@@ -13,8 +13,7 @@ const SubjectTabs = ({ subjectIds, activeId, onChange }: Props) => {
     .filter((s): s is { id: string; name: string } => Boolean(s));
 
   return (
-    <div className="border-b bg-background px-4 md:px-6 py-1.5">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
         {items.map((s) => {
           const active = s.id === activeId;
           return (
@@ -22,7 +21,7 @@ const SubjectTabs = ({ subjectIds, activeId, onChange }: Props) => {
               key={s.id}
               onClick={() => onChange(s.id)}
               className={cn(
-                "px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
+                "shrink-0 px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
                 active
                   ? "bg-primary/10 text-primary border-primary/30"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -32,7 +31,6 @@ const SubjectTabs = ({ subjectIds, activeId, onChange }: Props) => {
             </button>
           );
         })}
-      </div>
     </div>
   );
 };
