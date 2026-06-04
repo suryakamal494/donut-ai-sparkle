@@ -12,6 +12,8 @@ import {
 import { teacherExams } from "@/data/teacher/exams";
 import AttachTestSheet from "./AttachTestSheet";
 import type { PackageAttachmentKind } from "@/types/packages";
+import type { PackageLessonPlan } from "@/types/packages";
+import type { InstituteOwnTest } from "@/data/institute/institutePackageOwnContent";
 import type { EditorChapter } from "./packageChapterLookup";
 import {
   DndContext,
@@ -64,6 +66,18 @@ interface Props {
   onLessonReorder?: (orderedIds: string[]) => void;
   onResetLessonOrder?: () => void;
   isLessonCustomOrdered?: boolean;
+  /**
+   * Institute "additive" mode. SuperAdmin lessons/tests stay read-only, but the
+   * institute can add its OWN lessons/tests alongside them. When enabled the
+   * Add controls are shown and own items get delete/remove affordances.
+   */
+  additive?: boolean;
+  ownLessons?: PackageLessonPlan[];
+  ownTests?: InstituteOwnTest[];
+  onAddLesson?: () => void;
+  onAttachOwnTest?: (examIds: string[]) => void;
+  onDeleteOwnLesson?: (lessonId: string) => void;
+  onRemoveOwnTest?: (testId: string) => void;
 }
 
 const ChapterDetailPane = ({
@@ -81,13 +95,23 @@ const ChapterDetailPane = ({
   onLessonReorder,
   onResetLessonOrder,
   isLessonCustomOrdered = false,
+  additive = false,
+  ownLessons = [],
+  ownTests = [],
+  onAddLesson,
+  onAttachOwnTest,
+  onDeleteOwnLesson,
+  onRemoveOwnTest,
 }: Props) => {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<PackageAttachmentKind | null>(null);
 
-  const rawLessons = inclusionsEnabled.lessons
+  const baseLessons = inclusionsEnabled.lessons
     ? getLessonPlansForChapter(packageId, chapter.id)
     : [];
+  // In additive mode the institute's own lessons sit alongside SA's.
+  const rawLessons = additive ? [...baseLessons, ...ownLessons] : baseLessons;
+  const ownLessonIds = new Set(ownLessons.map((l) => l.id));
   const lessons = (() => {
     if (!lessonOrderOverride || lessonOrderOverride.length === 0) return rawLessons;
     const byId = new Map(rawLessons.map((l) => [l.id, l]));
@@ -106,9 +130,16 @@ const ChapterDetailPane = ({
   })();
   const attachments = getAttachmentsForChapter(packageId, chapter.id);
   const testAttachments = attachments.filter((a) => a.kind !== "grand-test");
+  const totalTestCount = testAttachments.length + (additive ? ownTests.length : 0);
   const blockCount = lessons.reduce((s, lp) => s + lp.blocks.length, 0);
   const examName = (id: string) =>
     teacherExams.find((e) => e.id === id)?.name ?? id;
+
+  // What add/delete controls are available.
+  const showLessonAdd = inclusionsEnabled.lessons && (additive || !readOnly);
+  const showTestAdd = additive || (!readOnly && inclusionsEnabled.tests);
+  const showPypAdd = !readOnly && !additive && inclusionsEnabled.pyp;
+  const hasAnyAdd = showLessonAdd || showTestAdd || showPypAdd;
 
   const openLesson = (lessonId: string) =>
     navigate(
@@ -133,10 +164,15 @@ const ChapterDetailPane = ({
     onLessonReorder(next.map((l) => l.id));
   };
 
-  const addLesson = () =>
+  const addLesson = () => {
+    if (additive) {
+      onAddLesson?.();
+      return;
+    }
     navigate(
       `/superadmin/packages/${packageId}/lesson/new?grade=${gradeId}&subject=${subjectId}&chapter=${chapter.id}`,
     );
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl">
@@ -162,21 +198,21 @@ const ChapterDetailPane = ({
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  testAttachments.length > 0 ? "bg-emerald-500" : "bg-muted-foreground/40",
+                  totalTestCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/40",
                 )}
               />
-              {testAttachments.length} test{testAttachments.length === 1 ? "" : "s"}
+              {totalTestCount} test{totalTestCount === 1 ? "" : "s"}
             </span>
           </div>
         </div>
-        {!readOnly && (
+        {hasAnyAdd && (
         <div className="flex flex-wrap gap-2">
-          {inclusionsEnabled.lessons && (
+          {showLessonAdd && (
             <Button size="sm" variant="outline" className="gap-1.5" onClick={addLesson}>
               <Plus className="w-3.5 h-3.5" /> Add lesson plan
             </Button>
           )}
-          {inclusionsEnabled.tests && (
+          {showTestAdd && (
             <Button
               size="sm"
               className="gap-1.5"
@@ -185,7 +221,7 @@ const ChapterDetailPane = ({
               <Plus className="w-3.5 h-3.5" /> Attach test
             </Button>
           )}
-          {inclusionsEnabled.pyp && (
+          {showPypAdd && (
             <Button
               size="sm"
               variant="outline"
@@ -200,24 +236,24 @@ const ChapterDetailPane = ({
       </div>
 
       {/* Empty state */}
-      {lessons.length === 0 && testAttachments.length === 0 ? (
+      {lessons.length === 0 && totalTestCount === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed bg-muted/20 px-6 py-12 text-center">
           <BookOpen className="w-8 h-8 mx-auto text-muted-foreground/60 mb-3" />
           <p className="text-sm font-semibold text-foreground">
             Nothing in this chapter yet
           </p>
-          {!readOnly && (
+          {hasAnyAdd && (
             <>
           <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
             Add a lesson plan to start building content, or attach a chapter test for assessment.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {inclusionsEnabled.lessons && (
+            {showLessonAdd && (
               <Button size="sm" className="gap-1.5" onClick={addLesson}>
                 <Plus className="w-3.5 h-3.5" /> Add the first lesson plan
               </Button>
             )}
-            {inclusionsEnabled.tests && (
+            {showTestAdd && (
               <Button
                 size="sm"
                 variant="outline"
