@@ -35,6 +35,7 @@ import {
 import { getOrder, setOrder, clearOrder, applyOrder } from "@/data/institute/institutePackageOrders";
 
 const CURRENT_INSTITUTE_ID = "inst-1";
+const CURRENT_INSTITUTE_NAME = "Delhi Public School";
 
 const GRADE_LABEL: Record<string, string> = {
   "class-6": "Class 6",
@@ -251,13 +252,9 @@ const SharedLessonView = ({
         </Badge>
       </header>
 
-      {/* Banner explaining the use-don't-delete model */}
-      <div className="px-4 md:px-6 py-2.5 border-b bg-muted/30 flex items-start sm:items-center gap-2 flex-wrap">
-        <p className="text-[11px] sm:text-xs text-muted-foreground flex-1 min-w-0">
-          <span className="font-semibold text-foreground">Shared by Donut.</span>{" "}
-          You can add your own content & quizzes on top — the original stays intact and can't be deleted.
-        </p>
-        {hasOverrides && (
+      {/* Reset-to-original action (only when the institute has layered changes) */}
+      {hasOverrides && (
+        <div className="px-4 md:px-6 py-2 border-b bg-muted/30 flex items-center justify-end">
           <Button
             size="sm"
             variant="ghost"
@@ -266,8 +263,8 @@ const SharedLessonView = ({
           >
             <RotateCcw className="w-3.5 h-3.5" /> Reset to original
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="px-4 md:px-6 py-2 border-b bg-background text-[11px] text-muted-foreground truncate">
         {pathLabel}
@@ -292,7 +289,7 @@ const SharedLessonView = ({
               masterIds.has(id)
                 ? "Shared"
                 : addedIds.has(id)
-                  ? "Added by your institute"
+                  ? CURRENT_INSTITUTE_NAME
                   : undefined
             }
           />

@@ -1,51 +1,35 @@
-# Institute lesson-plan view (use, don't delete)
+## What's wrong
 
-## The problem
+### 1. The lag / "cursor not working" / can't select multiple items (the real bug)
 
-In the institute panel, opening a lesson plan inside a package currently navigates to `/superadmin/packages/:id/lesson/:lpId` — the SuperAdmin composer. That screen is built for **authoring**: it lets you delete blocks, save over the master, and is framed around "build this lesson." For an institute viewing a lesson plan that SuperAdmin shipped, that's wrong: they should be able to **use** it, **add** their own content/quiz on top, but never **delete or overwrite** the original.
+The slowness is **not** the network or the backend — it's a broken DOM structure in the "Add content" panel (`ChapterContentSheet.tsx`).
 
-## Recommended UX (my choice)
+Each content row in the library list is built as a `<button>` that **contains other buttons inside it**:
+- a checkbox (which is itself a button), and
+- a "Preview" button.
 
-Treat a SuperAdmin lesson plan as a **locked base layer** the institute reads, plus an **institute layer** they can add to.
+Nested buttons are invalid HTML. React detects this on every render and prints a `validateDOMNesting: <button> cannot appear as a descendant of <button>` warning (this exact error is in your console right now). The library renders ~15+ items, and every keystroke in search or every item you select re-renders the whole list, so React floods the console with warnings each time. That warning spam is what freezes the panel, makes the cursor feel dead, and makes selecting a second item take forever.
 
-- The lesson opens **inside the institute panel** at a new institute route, so the sidebar stays collapsed and the breadcrumb/back goes to the institute package (not SuperAdmin).
-- A clear header signal: a small banner/badge — "Shared by Donut · You can add your own content, the original stays intact." The Save button is replaced by an auto-saved "Your changes" indicator (institute edits are local overrides, not edits to the master).
-- **Original blocks**: shown normally but **locked** — no delete (X) control, no overwrite. They can still be previewed.
-- **Add content / Add quiz**: present in the toolbar exactly like today, but framed as "Add your content" — institute-added blocks get a subtle "Added by your institute" tag and **can** be removed (only the institute's own additions).
-- **Reorder**: institute can reorder the combined list locally (we already store block-order overrides per institute); the master order is never touched.
-- A **"Reset to original"** action clears the institute's additions + reorder for that lesson, falling back to SuperAdmin's version.
-- For a lesson plan the **institute created itself** (not from SuperAdmin), it's their own content → full edit, including delete. Same composer UI as SuperAdmin.
+**Fix:** restructure each row so it's a normal container (`div`) with the checkbox and preview as proper siblings — no button inside a button. This removes the warning storm and the list becomes instantly responsive (typing, selecting multiple items, attaching). Same fix keeps the click-to-select and Preview behaviors identical, just with valid markup.
 
-This keeps one mental model ("the package is shared; you tailor it") and keeps complexity inside the package, as you wanted — no separate area.
+### 2. Remove the "Shared by Donut…" line
 
-## What gets built
+In the shared lesson view (`InstitutePackageLessonView.tsx`), delete the sentence:
+> "Shared by Donut. You can add your own content & quizzes on top — the original stays intact and can't be deleted."
 
-### 1. New institute lesson route + page
-- Route: `/institute/packages/:packageId/lesson/:lpId` in `InstituteRoutes.tsx` (the existing sidebar-collapse regex `/^\/institute\/packages\/[^/]+/` already covers it).
-- New page `src/pages/institute/packages/InstitutePackageLessonView.tsx`, adapted from `PackageLessonComposer.tsx`, that:
-  - Detects whether the lesson is SuperAdmin-authored (shared) or institute-created.
-  - Renders the read-only base + institute additions, with back nav to `/institute/packages/:packageId`.
+Keep the thin bar but show only the **Reset to original** button (when overrides exist). The "Shared" lock badge in the header stays.
 
-### 2. Point the institute package detail at the new route
-- In `InstitutePackageDetail.tsx`, change `lessonHrefBuilder` from `/superadmin/packages/...` to `/institute/packages/${pkg.id}/lesson/${lessonId}`.
-- "Add lesson plan" (institute creating its own) also points to the institute `.../lesson/new` route.
+### 3. Show the institute name instead of "Added by your institute"
 
-### 3. Institute additions store (local layer)
-- New `src/data/institute/institutePackageLessonAdditions.ts`: keyed by `${instituteId}::${packageId}::${lessonId}`, holds the institute's extra blocks (content/quiz). Mirrors the existing override-store pattern; SuperAdmin master in `packages/helpers.ts` stays untouched.
-- The view composes the displayed block list = `master blocks (locked)` + `institute additions (editable)`, then applies the existing block-order override from `institutePackageOrders.ts`.
+The block badge currently reads "Added by your institute". Change it to the institute's name. There's no bound institute identity in the mock layer today, so I'll add a `CURRENT_INSTITUTE_NAME` constant next to the existing `CURRENT_INSTITUTE_ID = "inst-1"` and use it as the badge label (e.g. blocks added by the institute show that name). The "Shared" badge on master blocks is unchanged.
 
-### 4. Read-only-aware block UI
-- Pass a per-block "locked" flag so `WorkspaceBlock` hides the delete control for master blocks while keeping it for institute additions. Add the small "Shared / Added by your institute" tag.
+## Files touched
 
-### 5. Docs
-- Update `docs/02-institute/packages.md` and `docs/05-cross-login-flows/package-flow.md` to describe the use-don't-delete model and the new lesson route.
+- `src/components/packages/editor/ChapterContentSheet.tsx` — replace the nested-button row markup with a valid `div`-based row (checkbox + preview as siblings); fixes the performance/responsiveness issue.
+- `src/pages/institute/packages/InstitutePackageLessonView.tsx` — remove the "Shared by Donut…" sentence (keep Reset to original); add `CURRENT_INSTITUTE_NAME` and use it for the "Added by…" badge label.
 
-## Out of scope
-- Editing the text/content *inside* a SuperAdmin-authored block (they add new blocks instead of mutating originals).
-- Persisting beyond the in-memory mock stores (consistent with the current package mock layer).
-- Teacher/student surfacing of institute additions.
+## Out of scope / unchanged
 
-## Technical notes
-- `InstitutePackageLessonView` reuses `WorkspaceCanvas`, `PackageWorkspaceToolbar`, `ChapterContentSheet`, `QuizDialog` (same as the SuperAdmin composer) so the add-content/add-quiz flows are identical.
-- "Locked" handling: extend `WorkspaceBlock`/`WorkspaceCanvas` with an optional `lockedBlockIds: Set<string>` (or a `locked` flag on the block view-model) to suppress delete; default behavior unchanged for the SuperAdmin composer.
-- `CURRENT_INSTITUTE_ID = "inst-1"` constant reused from the package detail page.
+- The read-only "use, don't delete" model, reorder, and reset logic stay exactly as they are.
+- No backend/data changes; the content library mock generator is untouched.
+- Heavy external preview iframes only load when you open Preview (already on-demand) — not part of the lag.
