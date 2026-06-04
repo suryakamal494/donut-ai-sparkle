@@ -24,6 +24,7 @@ import { getChaptersForScope } from "@/components/packages/editor/packageChapter
 import { PackageWorkspaceToolbar } from "@/components/packages/editor/PackageWorkspaceToolbar";
 import { ChapterContentSheet } from "@/components/packages/editor/ChapterContentSheet";
 import type { ContentItem } from "@/data/contentLibraryData";
+import type { PackageLessonPlan } from "@/types/packages";
 import {
   getLessonAdditions,
   addLessonBlocks,
@@ -139,7 +140,7 @@ export default InstitutePackageLessonView;
 interface SharedLessonViewProps {
   packageId: string;
   packageName: string;
-  lesson: ReturnType<typeof getLessonPlanById> & {};
+  lesson: PackageLessonPlan;
   subjectName: string;
   chapterName: string;
   pathLabel: string;
@@ -156,13 +157,13 @@ const SharedLessonView = ({
   onBack,
 }: SharedLessonViewProps) => {
   const { toast } = useToast();
-  const lessonId = lesson!.id;
+  const lessonId = lesson.id;
   const [, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
   const [showContentSheet, setShowContentSheet] = useState(false);
   const [showQuizDialog, setShowQuizDialog] = useState(false);
 
-  const masterBlocks = lesson!.blocks;
+  const masterBlocks = lesson.blocks;
   const masterIds = useMemo(() => new Set(masterBlocks.map((b) => b.id)), [masterBlocks]);
   const additions = getLessonAdditions(CURRENT_INSTITUTE_ID, packageId, lessonId);
   const addedIds = useMemo(() => new Set(additions.map((b) => b.id)), [additions]);
@@ -243,7 +244,7 @@ const SharedLessonView = ({
             <span className="truncate">{chapterName}</span>
           </p>
           <h1 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight">
-            {lesson!.title}
+            {lesson.title}
           </h1>
         </div>
         <Badge variant="outline" className="hidden sm:inline-flex gap-1">
@@ -329,7 +330,7 @@ const SharedLessonView = ({
         onAddBlock={handleAddQuiz}
         chapter={chapterName}
         subject={subjectName}
-        chapterId={lesson!.chapterId}
+        chapterId={lesson.chapterId}
       />
     </div>
   );
