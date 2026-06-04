@@ -39,6 +39,13 @@ import {
   clearOrder,
   applyOrder,
 } from "@/data/institute/institutePackageOrders";
+import {
+  getOwnLessons,
+  getOwnTests,
+  addOwnTests,
+  removeOwnTest,
+  removeOwnLesson,
+} from "@/data/institute/institutePackageOwnContent";
 
 const CURRENT_INSTITUTE_ID = "inst-1";
 
@@ -115,8 +122,15 @@ const InstitutePackageDetail = () => {
         const atts = getAttachmentsForChapter(pkg.id, c.id).filter(
           (a) => a.kind !== "grand-test",
         );
-        return { ...c, lessonCount: lessons.length, testCount: atts.length };
+        const ownLessons = getOwnLessons(CURRENT_INSTITUTE_ID, pkg.id, c.id);
+        const ownTests = getOwnTests(CURRENT_INSTITUTE_ID, pkg.id, c.id);
+        return {
+          ...c,
+          lessonCount: lessons.length + ownLessons.length,
+          testCount: atts.length + ownTests.length,
+        };
       }),
+    // `tick` (via the bumped key below) keeps counts fresh after add/remove.
     [chapters, pkg.id, pkg.inclusions.lessonPlans],
   );
   const activeChapterIndex = chapters.findIndex((c) => c.id === selectedChapterId);
