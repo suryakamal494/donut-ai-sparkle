@@ -9,7 +9,6 @@ import {
   PencilLine,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -125,16 +124,16 @@ const MyLessonPlansRollup = () => {
           {filtered.map((item) => (
             <div
               key={`${item.packageId}-${item.lessonId}`}
-              className="rounded-2xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md transition-shadow"
+              className="rounded-2xl border bg-card overflow-hidden hover:shadow-md transition-shadow"
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-2">
+              <div className="p-5 pb-4">
+                <div className="flex items-center gap-1.5 mb-3">
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border",
                       item.sourceType === "curriculum"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-accent/10 text-accent",
+                        ? "bg-primary/10 text-primary border-primary/20"
+                        : "bg-accent/10 text-accent border-accent/20",
                     )}
                   >
                     {item.sourceType === "curriculum" ? (
@@ -145,34 +144,36 @@ const MyLessonPlansRollup = () => {
                     {item.sourceName}
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-foreground line-clamp-2 leading-snug">
+                <h3 className="text-base font-bold text-foreground leading-tight mb-1">
                   {item.title}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1.5">
+                <p className="text-sm text-muted-foreground font-medium">
                   {item.className} · {item.subjectName}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  Ch: {item.chapterName}
+                <p className="text-sm flex items-center gap-1.5 mt-1">
+                  <span className="text-teal-600 font-semibold">Ch:</span>
+                  <span className="text-muted-foreground truncate">
+                    {item.chapterName}
+                  </span>
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 h-10 gap-1.5"
+
+              {/* Compact footer actions */}
+              <div className="flex border-t border-border/40">
+                <button
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-muted-foreground hover:bg-muted transition-colors border-r border-border/40 group text-sm font-semibold"
                   onClick={() => navigate(item.openHref)}
                 >
-                  <PencilLine className="w-3.5 h-3.5" />
+                  <PencilLine className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   Open
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1 h-10 gap-1.5 gradient-button"
+                </button>
+                <button
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-primary hover:bg-primary/5 transition-colors group text-sm font-semibold"
                   onClick={() => navigate(item.presentHref)}
                 >
-                  <Presentation className="w-3.5 h-3.5" />
+                  <Presentation className="w-4 h-4 text-primary" />
                   Present
-                </Button>
+                </button>
               </div>
             </div>
           ))}
