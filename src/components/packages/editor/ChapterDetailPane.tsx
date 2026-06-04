@@ -294,7 +294,7 @@ const ChapterDetailPane = ({
               </div>
               {lessonReorderable && (
                 <p className="px-1 mb-2 text-[11px] text-muted-foreground">
-                  Drag <GripVertical className="inline w-3 h-3 align-text-bottom" /> to reorder lesson plans for this institute.
+                  Drag <GripVertical className="inline w-3 h-3 align-text-bottom" /> to reorder lesson plans.
                 </p>
               )}
               {lessonReorderable ? (
