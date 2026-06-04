@@ -291,7 +291,7 @@ const SharedLessonView = ({
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 sm:relative bg-white/95 backdrop-blur-sm border-t p-3 z-20">
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 md:relative bg-white/95 backdrop-blur-sm border-t p-3 z-20">
         <div className="flex items-center justify-between gap-4 max-w-4xl mx-auto">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" />
