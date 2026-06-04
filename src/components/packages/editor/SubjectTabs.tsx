@@ -5,14 +5,20 @@ interface Props {
   subjectIds: string[];
   activeId: string;
   onChange: (id: string) => void;
+  /**
+   * When true, renders only the scrollable chip row with no band styling
+   * (border/padding). Used by the teacher Lesson Plans compact filter where
+   * subject chips sit inline next to the class dropdown.
+   */
+  bare?: boolean;
 }
 
-const SubjectTabs = ({ subjectIds, activeId, onChange }: Props) => {
+const SubjectTabs = ({ subjectIds, activeId, onChange, bare = false }: Props) => {
   const items = subjectIds
     .map((id) => subjects.find((s) => s.id === id))
     .filter((s): s is { id: string; name: string } => Boolean(s));
 
-  return (
+  const chips = (
     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
         {items.map((s) => {
           const active = s.id === activeId;
@@ -32,6 +38,12 @@ const SubjectTabs = ({ subjectIds, activeId, onChange }: Props) => {
           );
         })}
     </div>
+  );
+
+  if (bare) return chips;
+
+  return (
+    <div className="border-b bg-background px-4 md:px-6 py-1.5">{chips}</div>
   );
 };
 
