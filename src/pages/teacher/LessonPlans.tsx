@@ -38,7 +38,12 @@ const getUniqueBatches = (plans: LessonPlan[]) => {
   return batches;
 };
 
-const LessonPlans = () => {
+interface LessonPlansProps {
+  /** When embedded inside the Lesson Plans hub tab, hide the duplicate page header. */
+  embedded?: boolean;
+}
+
+const LessonPlans = ({ embedded = false }: LessonPlansProps) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [chapterFilter, setChapterFilter] = useState<string>("all");
@@ -79,17 +84,19 @@ const LessonPlans = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto pb-20 md:pb-6">
+    <div className={cn("space-y-4 sm:space-y-6 max-w-6xl mx-auto", embedded ? "" : "pb-20 md:pb-6")}>
       {/* Header with Stats */}
       <div className="space-y-3">
-        <PageHeader
-          title="My Lesson Plans"
-          description="Create, manage and reuse your teaching plans"
-          breadcrumbs={[
-            { label: "Teacher", href: "/teacher" },
-            { label: "Lesson Plans" },
-          ]}
-        />
+        {!embedded && (
+          <PageHeader
+            title="My Lesson Plans"
+            description="Create, manage and reuse your teaching plans"
+            breadcrumbs={[
+              { label: "Teacher", href: "/teacher" },
+              { label: "Lesson Plans" },
+            ]}
+          />
+        )}
 
         {/* Quick Stats */}
         <div className="flex items-center gap-2 flex-wrap">
