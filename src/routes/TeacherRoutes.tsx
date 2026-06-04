@@ -12,7 +12,7 @@ import TeacherLayout from "@/components/layout/TeacherLayout";
 // Core pages - EAGER LOADED for instant navigation
 import TeacherDashboard from "@/pages/teacher/Dashboard";
 import TeacherSchedule from "@/pages/teacher/Schedule";
-import LessonPlans from "@/pages/teacher/LessonPlans";
+import TeacherLessonPlans from "@/pages/teacher/TeacherLessonPlans";
 import TeacherAcademicProgress from "@/pages/teacher/AcademicProgress";
 import TeacherExams from "@/pages/teacher/Exams";
 import TeacherHomework from "@/pages/teacher/Homework";
@@ -24,6 +24,8 @@ import RoutinePilot from "@/pages/teacher/RoutinePilot";
 
 // Heavy pages - LAZY LOADED
 const LessonPlanCanvas = lazy(() => import("@/pages/teacher/LessonPlanCanvas"));
+const TeacherPackageLessonView = lazy(() => import("@/pages/teacher/TeacherPackageLessonView"));
+const TeacherLessonPresent = lazy(() => import("@/pages/teacher/TeacherLessonPresent"));
 const CreateTeacherExam = lazy(() => import("@/pages/teacher/CreateExam"));
 const TeacherExamResults = lazy(() => import("@/pages/teacher/ExamResults"));
 const EditTeacherExam = lazy(() => import("@/pages/teacher/EditExam"));
@@ -56,8 +58,16 @@ export default function TeacherRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TeacherDashboard />} />
         <Route path="schedule" element={<TeacherSchedule />} />
-        <Route path="lesson-plans" element={<LessonPlans />} />
+        <Route path="lesson-plans" element={<TeacherLessonPlans />} />
         <Route path="lesson-plans/new" element={<LazyPage><LessonPlanCanvas /></LazyPage>} />
+        <Route
+          path="lesson-plans/library/pkg/:packageId/lesson/:lpId"
+          element={<LazyPage><TeacherPackageLessonView /></LazyPage>}
+        />
+        <Route
+          path="lesson-plans/library/pkg/:packageId/present/:lpId"
+          element={<LazyPage><TeacherLessonPresent /></LazyPage>}
+        />
         <Route path="lesson-plans/:planId" element={<LazyPage><LessonPlanCanvas /></LazyPage>} />
         <Route path="academic-progress" element={<TeacherAcademicProgress />} />
         <Route path="exams" element={<TeacherExams />} />
