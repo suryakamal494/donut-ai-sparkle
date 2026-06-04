@@ -55,6 +55,7 @@ const InstituteAIContentGenerator = lazy(() => import("@/pages/institute/content
 // Packages (institute view)
 const InstitutePackagesPage = lazy(() => import("@/pages/institute/packages/InstitutePackages"));
 const InstitutePackageDetailPage = lazy(() => import("@/pages/institute/packages/InstitutePackageDetail"));
+const InstitutePackageLessonViewPage = lazy(() => import("@/pages/institute/packages/InstitutePackageLessonView"));
 
 // Exams
 const InstituteExams = lazy(() => import("@/pages/institute/exams/Exams"));
@@ -157,6 +158,7 @@ export default function InstituteRoutes() {
         {/* Packages (institute-side view) */}
         <Route path="packages" element={<LazyPage><InstitutePackagesPage /></LazyPage>} />
         <Route path="packages/:packageId" element={<LazyPage><InstitutePackageDetailPage /></LazyPage>} />
+        <Route path="packages/:packageId/lesson/:lpId" element={<LazyPage><InstitutePackageLessonViewPage /></LazyPage>} />
         
         {/* Exams */}
         <Route path="exams" element={<LazyPage><InstituteExams /></LazyPage>} />

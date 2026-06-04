@@ -37,11 +37,26 @@ Rules:
 |------|-------|
 | Packages list | `/institute/packages` |
 | Package detail | `/institute/packages/:packageId` |
+| Lesson view | `/institute/packages/:packageId/lesson/:lpId` |
 
 The detail page has three tabs:
 The detail page has two tabs:
 - **Content** — read-only preview of chapters, lessons, and content blocks. Reorder happens **inline** here: drag the grip handle in the Chapter Index rail to reorder chapters; drag the grip handle on a lesson row to reorder lesson plans inside that chapter. A "Reset" link appears in each scope when a local override is active.
 - **Batches** — assign the package to one or more batches per grade.
+
+Clicking a lesson plan opens the **institute lesson view** (`/institute/packages/:packageId/lesson/:lpId`) — it stays inside the institute panel (sidebar collapsed), never the SuperAdmin composer.
+
+---
+
+## Lesson view — use, don't delete
+
+A SuperAdmin-authored lesson plan is a **read-only base layer** plus an **institute layer**:
+
+- Original blocks are **locked** — tagged "Shared", with no edit/delete control (preview only).
+- The institute can **Add content** and **Add quiz** on top. Their additions are tagged "Added by your institute" and can be removed (only their own).
+- Blocks (master + additions) can be reordered locally; the SA master is never mutated.
+- A banner explains the model, and a **Reset to original** action clears the institute's additions + reorder for that lesson.
+- A lesson plan the **institute authored itself** (id prefixed `inst-lp-`) opens in the full composer with edit/delete — same UI as the SuperAdmin composer.
 
 ---
 
@@ -97,6 +112,7 @@ Class 12
 |-------|------|---------|
 | `institutePackages` | `src/data/institute/institutePackages.ts` | SA → institute assignment set |
 | `institutePackageOrders` | `src/data/institute/institutePackageOrders.ts` | Local reorder overrides |
+| `institutePackageLessonAdditions` | `src/data/institute/institutePackageLessonAdditions.ts` | Institute's own blocks layered on a shared lesson |
 | `institutePackageBatches` | `src/data/institute/institutePackageBatches.ts` | Package → batch bindings |
 | `getEligiblePackagesForAssignment` | `src/data/packages/helpers.ts` | Filters published packages by curriculum/course |
 

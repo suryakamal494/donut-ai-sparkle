@@ -15,7 +15,8 @@ import {
   Video,
   Image as ImageIcon,
   Timer,
-  FolderOpen
+  FolderOpen,
+  Lock
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,10 @@ interface WorkspaceBlockProps {
   onEdit: (block: LessonPlanBlock) => void;
   onDelete: (blockId: string) => void;
   onPreview: (block: LessonPlanBlock) => void;
+  /** When true, the block is shared/read-only: edit & delete are hidden. */
+  locked?: boolean;
+  /** Optional small badge text (e.g. "Shared" or "Added by your institute"). */
+  tag?: string;
 }
 
 const iconMap = {
@@ -75,7 +80,9 @@ export const WorkspaceBlock = ({
   index, 
   onEdit, 
   onDelete,
-  onPreview
+  onPreview,
+  locked = false,
+  tag,
 }: WorkspaceBlockProps) => {
   const config = blockTypeConfig[block.type];
   const Icon = iconMap[block.type];
@@ -187,6 +194,21 @@ export const WorkspaceBlock = ({
                 AI
               </Badge>
             )}
+
+            {tag && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 gap-0.5 font-medium",
+                  locked
+                    ? "bg-muted text-muted-foreground border-border"
+                    : "bg-primary/10 text-primary border-primary/20",
+                )}
+              >
+                {locked && <Lock className="w-2.5 h-2.5" />}
+                {tag}
+              </Badge>
+            )}
           </div>
           
           <h4 className="font-medium text-sm text-foreground mt-1 line-clamp-1">
@@ -219,24 +241,28 @@ export const WorkspaceBlock = ({
           >
             <Eye className="w-3.5 h-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-            onClick={() => onEdit(block)}
-            title="Edit block"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => onDelete(block.id)}
-            title="Delete block"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
+          {!locked && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                onClick={() => onEdit(block)}
+                title="Edit block"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onDelete(block.id)}
+                title="Delete block"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Card>
