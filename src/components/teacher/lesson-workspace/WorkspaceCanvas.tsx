@@ -36,6 +36,13 @@ interface WorkspaceCanvasProps {
    * two-action toolbar above the canvas instead).
    */
   mode?: "teacher" | "packages";
+  /**
+   * Block ids that are shared/read-only (e.g. SuperAdmin master blocks shown
+   * in the institute view). Their edit & delete controls are hidden.
+   */
+  lockedBlockIds?: Set<string>;
+  /** Optional per-block badge text resolver. */
+  blockTag?: (blockId: string) => string | undefined;
 }
 
 export const WorkspaceCanvas = ({
@@ -45,6 +52,8 @@ export const WorkspaceCanvas = ({
   onDeleteBlock,
   onAddBetween,
   mode = "teacher",
+  lockedBlockIds,
+  blockTag,
 }: WorkspaceCanvasProps) => {
   const [previewBlock, setPreviewBlock] = useState<LessonPlanBlock | null>(null);
   const [activeBlock, setActiveBlock] = useState<LessonPlanBlock | null>(null);
@@ -155,6 +164,8 @@ export const WorkspaceCanvas = ({
               onEdit={onEditBlock}
               onDelete={onDeleteBlock}
               onPreview={(block) => setPreviewBlock(block)}
+              locked={lockedBlockIds?.has(block.id)}
+              tag={blockTag?.(block.id)}
             />
           ))}
           
