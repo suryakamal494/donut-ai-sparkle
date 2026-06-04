@@ -303,6 +303,12 @@ const ChapterDetailPane = ({
                           title={lp.title}
                           blockCount={lp.blocks.length}
                           onOpen={() => openLesson(lp.id)}
+                          owned={additive && ownLessonIds.has(lp.id)}
+                          onDelete={
+                            additive && ownLessonIds.has(lp.id) && onDeleteOwnLesson
+                              ? () => onDeleteOwnLesson(lp.id)
+                              : undefined
+                          }
                         />
                       ))}
                     </ul>
@@ -340,7 +346,7 @@ const ChapterDetailPane = ({
           )}
 
           {/* Tests */}
-          {testAttachments.length > 0 && (
+          {totalTestCount > 0 && (
             <div className="mt-8">
               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">
                 Chapter tests
@@ -362,7 +368,7 @@ const ChapterDetailPane = ({
                         {a.kind === "pyp" ? "Previous Year Paper" : "Chapter test"}
                       </p>
                     </div>
-                    {!readOnly && (
+                    {!readOnly && !additive && (
                     <button
                       onClick={() => {
                         removeAttachment(a.id);
@@ -374,8 +380,47 @@ const ChapterDetailPane = ({
                       <X className="w-3.5 h-3.5 text-violet-700" />
                     </button>
                     )}
+                    {additive && (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-violet-700/80 bg-violet-100 px-1.5 py-0.5 rounded">
+                        Shared
+                      </span>
+                    )}
                   </li>
                 ))}
+                {additive &&
+                  ownTests.map((t) => (
+                    <li
+                      key={t.id}
+                      className="group flex items-center gap-3 px-4 py-3 rounded-xl border bg-background"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {examName(t.examId)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          Chapter test
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        Yours
+                      </span>
+                      {onRemoveOwnTest && (
+                        <button
+                          onClick={() => {
+                            onRemoveOwnTest(t.id);
+                            onChange();
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded hover:bg-muted"
+                          aria-label="Remove your test"
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
@@ -388,16 +433,23 @@ const ChapterDetailPane = ({
           onOpenChange={(o) => !o && setSheet(null)}
           kind={sheet}
           subjectId={subjectId}
-          excludeExamIds={getAttachmentsForChapter(packageId, chapter.id)
-            .filter((a) => a.kind === sheet)
-            .map((a) => a.examId)}
+          excludeExamIds={[
+            ...getAttachmentsForChapter(packageId, chapter.id)
+              .filter((a) => a.kind === sheet)
+              .map((a) => a.examId),
+            ...(additive ? ownTests.map((t) => t.examId) : []),
+          ]}
           onAttach={(ids) => {
-            attachExamsToPackage(packageId, ids, {
-              kind: sheet,
-              gradeId,
-              subjectId,
-              chapterId: chapter.id,
-            });
+            if (additive && onAttachOwnTest) {
+              onAttachOwnTest(ids);
+            } else {
+              attachExamsToPackage(packageId, ids, {
+                kind: sheet,
+                gradeId,
+                subjectId,
+                chapterId: chapter.id,
+              });
+            }
             onChange();
           }}
         />
