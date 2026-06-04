@@ -35,6 +35,7 @@ import {
 import { getOrder, setOrder, clearOrder, applyOrder } from "@/data/institute/institutePackageOrders";
 
 const CURRENT_INSTITUTE_ID = "inst-1";
+const CURRENT_INSTITUTE_NAME = "Delhi Public School";
 
 const GRADE_LABEL: Record<string, string> = {
   "class-6": "Class 6",
