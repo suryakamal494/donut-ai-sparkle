@@ -121,8 +121,6 @@ const InstitutePackageDetail = () => {
   );
   const activeChapterIndex = chapters.findIndex((c) => c.id === selectedChapterId);
   const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
-  const activeRailItem = railItems.find((c) => c.id === selectedChapterId);
-
   const selectChapter = (id: string) => {
     setSelectedChapterId(id);
     setChapterSheetOpen(false);
