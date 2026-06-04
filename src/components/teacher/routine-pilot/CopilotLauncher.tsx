@@ -69,10 +69,15 @@ export default function CopilotLauncher() {
 
   const handleOpen = () => openCopilot();
 
+  // Hide the floating launcher on focused lesson-plan workspaces (editor /
+  // canvas / presentation) where a dedicated action footer or full-screen
+  // surface already occupies the bottom-right and would collide with the FAB.
+  const hideFab = /^\/teacher\/(lesson-plans|l)\/.+/.test(location.pathname);
+
   return (
     <>
       {/* Floating Action Button - hidden when overlay open */}
-      {!isOpen && (
+      {!isOpen && !hideFab && (
         <button
           type="button"
           onClick={handleOpen}
