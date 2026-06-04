@@ -255,204 +255,182 @@ const TeacherLessonPlans = () => {
   );
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-20 md:pb-6">
-      <PageHeader
-        title="Lesson Plans"
-        description="Open the chapter you're teaching, present it on the board, or build your own."
-        breadcrumbs={[
-          { label: "Teacher", href: "/teacher" },
-          { label: "Lesson Plans" },
-        ]}
-      />
+    <div className="max-w-7xl mx-auto pb-20 md:pb-6">
+      {/* Compact header */}
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <h1 className="text-lg md:text-xl font-bold text-foreground">
+          Lesson Plans
+        </h1>
+      </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-        <TabsList className="bg-muted/60">
-          <TabsTrigger value="library" className="gap-1.5">
-            <Library className="w-3.5 h-3.5" /> Curriculum
-          </TabsTrigger>
-          <TabsTrigger value="mine" className="gap-1.5">
-            <BookOpen className="w-3.5 h-3.5" /> My Plans
-          </TabsTrigger>
-        </TabsList>
+      {/* Unified chip row: sources + My Plans (replaces tabs + source pills) */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5 mb-3">
+        {sources.map((s) => {
+          const active = tab === "library" && s.packageId === activeSourceId;
+          return (
+            <button
+              key={s.packageId}
+              onClick={() => {
+                setTab("library");
+                selectSource(s.packageId);
+              }}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-sm font-semibold transition-all",
+                active
+                  ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-md shadow-primary/20"
+                  : "bg-background text-foreground hover:bg-muted border-border",
+              )}
+            >
+              {s.sourceType === "curriculum" ? (
+                <GraduationCap className="w-4 h-4" />
+              ) : (
+                <Layers className="w-4 h-4" />
+              )}
+              <span className="whitespace-nowrap">{s.sourceName}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setTab("mine")}
+          className={cn(
+            "shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-sm font-semibold transition-all",
+            tab === "mine"
+              ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-md shadow-primary/20"
+              : "bg-background text-foreground hover:bg-muted border-border",
+          )}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span className="whitespace-nowrap">My Plans</span>
+        </button>
+      </div>
 
-        {/* ---------------- Curriculum library ---------------- */}
-        <TabsContent value="library" className="mt-4 outline-none">
-          {!hasSources || !activeSource ? (
-            <div className="rounded-2xl border border-dashed bg-muted/20 px-6 py-16 text-center">
-              <Library className="w-8 h-8 mx-auto text-muted-foreground/60 mb-3" />
-              <p className="text-sm font-semibold text-foreground">
-                No lesson plans assigned yet
-              </p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                When your institute assigns curriculum lesson plans to your
-                batches, the chapters you teach will appear here.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border bg-card overflow-hidden flex flex-col h-[calc(100vh-15rem)] min-h-[520px]">
-              {/* Source + class selectors */}
-              <div className="border-b bg-background px-3 md:px-5 py-3 space-y-3">
-                {sources.length > 1 && (
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    {sources.map((s) => {
-                      const active = s.packageId === activeSourceId;
-                      return (
-                        <button
-                          key={s.packageId}
-                          onClick={() => selectSource(s.packageId)}
-                          className={cn(
-                            "shrink-0 inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border text-sm font-semibold transition-all",
-                            active
-                              ? "bg-gradient-to-r from-primary to-accent text-white border-transparent shadow-md shadow-primary/20"
-                              : "bg-background text-foreground hover:bg-muted border-border",
-                          )}
-                        >
-                          {s.sourceType === "curriculum" ? (
-                            <GraduationCap className="w-4 h-4" />
-                          ) : (
-                            <Layers className="w-4 h-4" />
-                          )}
-                          <span>{s.sourceName}</span>
-                          <span
-                            className={cn(
-                              "text-[10px] font-medium uppercase tracking-wide rounded-full px-1.5 py-0.5",
-                              active
-                                ? "bg-white/20 text-white"
-                                : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {s.sourceType === "curriculum" ? "Curriculum" : "Course"}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {sources.length === 1 && (
-                    <span className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold">
-                      {activeSource.sourceType === "curriculum" ? (
-                        <GraduationCap className="w-3.5 h-3.5" />
-                      ) : (
-                        <Layers className="w-3.5 h-3.5" />
-                      )}
-                      {activeSource.sourceName}
-                    </span>
-                  )}
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    Class
-                  </span>
-                  <GradeSwitcher
-                    gradeIds={activeSource.classes.map((c) => c.gradeId)}
-                    activeId={activeGrade}
-                    onChange={selectGrade}
-                    variant="dropdown"
-                  />
-                </div>
+      {tab === "library" ? (
+        !hasSources || !activeSource ? (
+          <div className="rounded-2xl border border-dashed bg-muted/20 px-6 py-16 text-center">
+            <Library className="w-8 h-8 mx-auto text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-semibold text-foreground">
+              No lesson plans assigned yet
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+              When your institute assigns lesson plans to your batches, the
+              chapters you teach will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border bg-card overflow-hidden flex flex-col h-[calc(100vh-10.5rem)] min-h-[480px]">
+            {/* Single compact filter row: Class dropdown + subject chips */}
+            <div className="border-b bg-background px-3 md:px-5 py-2 flex items-center gap-3">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  Class
+                </span>
+                <GradeSwitcher
+                  gradeIds={activeSource.classes.map((c) => c.gradeId)}
+                  activeId={activeGrade}
+                  onChange={selectGrade}
+                  variant="dropdown"
+                />
               </div>
-
-              {/* Subject tabs */}
+              <span className="h-5 w-px bg-border shrink-0" />
               <SubjectTabs
                 subjectIds={activeClass?.subjectIds ?? []}
                 activeId={activeSubject}
                 onChange={selectSubject}
+                bare
               />
-
-              {/* Mobile chapter selector */}
-              {chapters.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setChapterSheetOpen(true)}
-                  className="md:hidden flex items-center gap-2 w-full px-4 py-2.5 border-b bg-muted/30 text-left"
-                >
-                  <ListTree className="w-4 h-4 text-primary shrink-0" />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">
-                      Chapter {String(activeChapterIndex + 1).padStart(2, "0")} of{" "}
-                      {chapters.length}
-                    </span>
-                    <span className="block text-sm font-semibold text-foreground truncate leading-tight">
-                      {activeChapter?.name ?? "Select a chapter"}
-                    </span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                </button>
-              )}
-
-              {/* Rail + detail */}
-              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] overflow-hidden">
-                <aside className="hidden md:block min-h-0 overflow-hidden border-r">
-                  {rail}
-                </aside>
-                <section className="min-h-0 overflow-y-auto bg-background">
-                  {activeChapter && pkg ? (
-                    <ChapterDetailPane
-                      packageId={packageId}
-                      gradeId={activeGrade}
-                      subjectId={activeSubject}
-                      chapter={activeChapter}
-                      chapterIndex={activeChapterIndex}
-                      inclusionsEnabled={{
-                        lessons: pkg.inclusions.lessonPlans,
-                        tests: pkg.inclusions.chapterTests,
-                        pyp: pkg.inclusions.previousYearPapers,
-                      }}
-                      onChange={refresh}
-                      additive
-                      ownLessons={getOwnLessons(T, packageId, activeChapter.id)}
-                      ownTests={getOwnTests(T, packageId, activeChapter.id)}
-                      onAddLesson={() => navigate(addLessonHref())}
-                      onAttachOwnTest={(examIds) => {
-                        addOwnTests(
-                          T,
-                          packageId,
-                          {
-                            gradeId: activeGrade,
-                            subjectId: activeSubject,
-                            chapterId: activeChapter.id,
-                          },
-                          examIds,
-                        );
-                        refresh();
-                      }}
-                      onDeleteOwnLesson={(lessonId) => {
-                        removeOwnLesson(T, packageId, lessonId);
-                        toast({ title: "Removed", description: "Your lesson plan was deleted." });
-                        refresh();
-                      }}
-                      onRemoveOwnTest={(testId) => {
-                        removeOwnTest(T, packageId, testId);
-                        refresh();
-                      }}
-                      onPresentLesson={(lessonId) => navigate(presentHref(lessonId))}
-                      lessonHrefBuilder={lessonHref}
-                      lessonOrderOverride={lessonOrderForActiveChapter}
-                      lessonReorderable
-                      isLessonCustomOrdered={
-                        !!lessonOrderForActiveChapter &&
-                        lessonOrderForActiveChapter.length > 0
-                      }
-                      onLessonReorder={reorderLessons}
-                      onResetLessonOrder={resetLessonOrder}
-                    />
-                  ) : (
-                    <div className="h-full flex items-center justify-center px-6">
-                      <p className="text-sm text-muted-foreground">
-                        No chapters for this class &amp; subject.
-                      </p>
-                    </div>
-                  )}
-                </section>
-              </div>
             </div>
-          )}
-        </TabsContent>
 
-        {/* ---------------- Teacher's own plans ---------------- */}
-        <TabsContent value="mine" className="mt-4 outline-none">
-          <MyLessonPlans embedded />
-        </TabsContent>
-      </Tabs>
+            {/* Mobile chapter selector */}
+            {chapters.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setChapterSheetOpen(true)}
+                className="md:hidden flex items-center gap-2 w-full px-4 py-2.5 border-b bg-muted/30 text-left"
+              >
+                <ListTree className="w-4 h-4 text-primary shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground leading-tight">
+                    Chapter {String(activeChapterIndex + 1).padStart(2, "0")} of{" "}
+                    {chapters.length}
+                  </span>
+                  <span className="block text-sm font-semibold text-foreground truncate leading-tight">
+                    {activeChapter?.name ?? "Select a chapter"}
+                  </span>
+                </span>
+                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+              </button>
+            )}
+
+            {/* Rail + detail */}
+            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] overflow-hidden">
+              <aside className="hidden md:block min-h-0 overflow-hidden border-r">
+                {rail}
+              </aside>
+              <section className="min-h-0 overflow-y-auto bg-background">
+                {activeChapter && pkg ? (
+                  <ChapterDetailPane
+                    packageId={packageId}
+                    gradeId={activeGrade}
+                    subjectId={activeSubject}
+                    chapter={activeChapter}
+                    chapterIndex={activeChapterIndex}
+                    inclusionsEnabled={{
+                      lessons: pkg.inclusions.lessonPlans,
+                      tests: pkg.inclusions.chapterTests,
+                      pyp: pkg.inclusions.previousYearPapers,
+                    }}
+                    onChange={refresh}
+                    additive
+                    ownLessons={getOwnLessons(T, packageId, activeChapter.id)}
+                    ownTests={getOwnTests(T, packageId, activeChapter.id)}
+                    onAddLesson={() => navigate(addLessonHref())}
+                    onAttachOwnTest={(examIds) => {
+                      addOwnTests(
+                        T,
+                        packageId,
+                        {
+                          gradeId: activeGrade,
+                          subjectId: activeSubject,
+                          chapterId: activeChapter.id,
+                        },
+                        examIds,
+                      );
+                      refresh();
+                    }}
+                    onDeleteOwnLesson={(lessonId) => {
+                      removeOwnLesson(T, packageId, lessonId);
+                      toast({ title: "Removed", description: "Your lesson plan was deleted." });
+                      refresh();
+                    }}
+                    onRemoveOwnTest={(testId) => {
+                      removeOwnTest(T, packageId, testId);
+                      refresh();
+                    }}
+                    onPresentLesson={(lessonId) => navigate(presentHref(lessonId))}
+                    lessonHrefBuilder={lessonHref}
+                    lessonOrderOverride={lessonOrderForActiveChapter}
+                    lessonReorderable
+                    isLessonCustomOrdered={
+                      !!lessonOrderForActiveChapter &&
+                      lessonOrderForActiveChapter.length > 0
+                    }
+                    onLessonReorder={reorderLessons}
+                    onResetLessonOrder={resetLessonOrder}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center px-6">
+                    <p className="text-sm text-muted-foreground">
+                      No chapters for this class &amp; subject.
+                    </p>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        )
+      ) : (
+        <MyLessonPlans embedded />
+      )}
 
       {/* Mobile chapter index sheet */}
       <Sheet open={chapterSheetOpen} onOpenChange={setChapterSheetOpen}>
