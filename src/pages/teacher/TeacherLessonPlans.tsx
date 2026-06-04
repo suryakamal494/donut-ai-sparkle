@@ -366,7 +366,7 @@ const TeacherLessonPlans = () => {
               <aside className="hidden md:block min-h-0 overflow-hidden border-r">
                 {rail}
               </aside>
-              <section className="min-h-0 overflow-y-auto bg-background">
+              <section className="min-h-0 overflow-y-auto bg-background pb-20 md:pb-4">
                 {activeChapter && pkg ? (
                   <ChapterDetailPane
                     packageId={packageId}
