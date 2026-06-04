@@ -248,7 +248,7 @@ const InstitutePackageDetail = () => {
           </p>
         </div>
         <Badge variant="outline" className="hidden sm:inline-flex gap-1">
-          <Eye className="w-3 h-3" /> Read-only
+          <Eye className="w-3 h-3" /> Shared content · add your own
         </Badge>
       </header>
 
