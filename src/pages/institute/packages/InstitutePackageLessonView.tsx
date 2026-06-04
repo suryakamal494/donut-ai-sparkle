@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Save, ChevronRight, Pencil, Lock, RotateCcw } from "lucide-react";
+import { ArrowLeft, Save, ChevronRight, Pencil, Lock, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,7 @@ import {
   QuizDialog,
   detectLinkType,
   type LessonPlanBlock,
-  type BlockType,
 } from "@/components/teacher/lesson-workspace";
-import { Clock } from "lucide-react";
 import {
   getPackageById,
   getLessonPlanById,
