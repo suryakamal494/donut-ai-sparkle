@@ -53,7 +53,6 @@ const InstitutePackageLessonView = () => {
   const navigate = useNavigate();
   const { packageId, lpId } = useParams<{ packageId: string; lpId: string }>();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
 
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const isNew = lpId === "new";
