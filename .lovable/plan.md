@@ -1,53 +1,68 @@
-# Institute Packages — UI Audit & Phased Fix Plan
+## What you're asking for
 
-I audited the institute (institute panel) Packages module on desktop (1280), tablet (≥768), phone (390px) and small phone (320px), and reviewed the code. Findings below, then a phase-wise plan.
+Today, when an institute opens a package chapter (e.g. *Knowing Our Numbers*), it sees **only the lesson plans and tests authored by SuperAdmin**, and the whole pane is read-only. The institute can reorder and layer extra blocks onto a shared lesson, but it **cannot add its own brand-new lesson plans or its own tests** to a chapter.
 
-## Audit findings
+You want institutes to be able to, **per chapter**:
+- **Create their own lesson plans** (full composer: name it, add content blocks + quizzes) that sit *alongside* SuperAdmin's lessons.
+- **Attach their own tests** (picked from their existing exam library) to that chapter, alongside SuperAdmin's tests.
 
-### 🔴 Critical — chapters are unreachable on mobile
-On the package detail "Content" tab, the Chapter Index rail is `hidden md:block` (only shows ≥768px). On phones the page jumps straight into Chapter 01 and there is **no way to switch chapters at all** — every phone user is stuck on the first chapter. This is the biggest breakage. (Desktop/tablet 3‑pane works correctly.)
+Rules that stay intact:
+- SuperAdmin's lessons/tests remain **read-only** — institutes can use and reorder but **never edit or delete** them.
+- Institute-created lessons/tests are **fully editable and deletable by that institute** (their own content).
+- Everything an institute adds is **private to that institute** — it never appears in SuperAdmin's master package or for any other institute.
 
-### 🟠 High — lesson/chapter titles become unreadable on narrow screens
-Lesson rows and chapter rows use single‑line `truncate`. On 320–390px every lesson collapses to the identical string "Knowing Our Nu…", so they're impossible to tell apart. Per your guidance, the fix is to redesign for mobile (keep the font, allow a 2‑line wrap) rather than shrink text.
+```text
+Chapter 01 — Knowing Our Numbers
+├── Lesson plans
+│   ├── [Shared]   Introduction & Hook        (read-only, lock badge)
+│   ├── [Shared]   Core Concepts              (read-only, lock badge)
+│   └── [Yours]    Extra Practice Walkthrough (edit / delete) ← NEW
+└── Tests
+    ├── [Shared]   SA Chapter Test            (read-only)
+    └── [Yours]    DPS Weekly Quiz            (remove)        ← NEW
+```
 
-### 🟠 High — initial load is slow / long skeleton
-The detail page shows a lengthy loading skeleton and feels sluggish. Causes: heavy synchronous mock-data work and derived lists (e.g. `railItems` recomputes `getLessonPlansForChapter` for every chapter on every render; chapter/lesson lookups aren't memoized). This recompute storm also makes interactions (tab/subject switches) feel laggy.
+## How it will work
 
-### 🟡 Medium
-- **Add content / Add quiz toolbar** (lesson view): the descriptive subtitle is clipped on phones ("…generate with AI" cut off). The 2‑column card layout is too tight under ~360px.
-- **Shared lesson footer**: the fixed bottom bar overlaps the last block on phones; bottom padding doesn't fully clear it.
-- **Chapter detail header**: chapter name uses `truncate`; should wrap on mobile so the full name is visible.
+### 1. New private data layer (mock, in-memory, institute-scoped)
+Create `src/data/institute/institutePackageOwnContent.ts`, mirroring the existing `institutePackageLessonAdditions`/`institutePackageOrders` pattern — keyed by `instituteId :: packageId :: chapterId`:
+- **Own lesson plans**: `getOwnLessons`, `getOwnLessonById`, `upsertOwnLesson`, `removeOwnLesson`.
+- **Own test attachments**: `getOwnTests`, `addOwnTests(examIds)`, `removeOwnTest`.
 
-### ⚪ Low
-- "Read-only" / "Shared" badges are hidden on phones (`sm:inline-flex`), so the use‑don't‑delete model isn't signalled on mobile.
-- React Router v7 future‑flag warnings in console (cosmetic only).
+This keeps institute content fully isolated. (The current `OwnLessonComposer` mistakenly saves into the *global* package store; this fix routes it to the private store so it never leaks to SuperAdmin.)
 
-## Phased implementation plan
+### 2. ChapterDetailPane — new "additive" mode
+Replace the all-or-nothing `readOnly` with an additive mode used by the institute view:
+- Show **"Add lesson plan"** and **"Attach test"** buttons again.
+- Render a **merged list**: SuperAdmin lessons/tests (lock/"Shared" badge, no delete) + institute lessons/tests ("Yours" badge, with edit/delete).
+- "Add lesson plan" → navigates to the institute lesson composer (`lesson/new`, already routed).
+- "Attach test" → opens the existing `AttachTestSheet` (pick from existing exams) and saves into the private store.
+- Delete/remove controls appear **only on institute-owned items**.
+- Empty state offers both add actions.
 
-### Phase 1 — Restore mobile chapter navigation (critical)
-- Add a mobile-only chapter selector to the Content tab so all chapters are reachable < 768px. Approach: a compact "Chapter Index" trigger button (shows current chapter + count) that opens a bottom sheet / drawer listing all chapters, reusing the existing `ChapterRail` rows (selection + reorder grip). Selecting a chapter closes the sheet and updates the detail pane.
-- Keep the existing desktop/tablet rail unchanged.
+### 3. InstitutePackageDetail wiring
+- Merge SuperAdmin + institute counts in the chapter rail (`lessonCount`, `testCount`).
+- Pass the new additive props and handlers (create lesson, attach test, delete own lesson, remove own test) into `ChapterDetailPane`.
+- Combined SA+institute lessons feed the existing local reorder logic unchanged.
+- Update the header badge from a hard "Read-only" to convey "shared content is read-only, but you can add your own" (small label tweak).
 
-### Phase 2 — Mobile readability redesign (high)
-- Lesson rows (`ChapterDetailPane` static + sortable) and chapter rows (`ChapterRail` `RowBody`): replace single-line `truncate` with a 2‑line clamp on mobile, same font size; keep truncate on desktop where space is tight.
-- Chapter detail header title: allow wrap on mobile instead of `truncate`.
-- `PackageWorkspaceToolbar`: stack to a single column under ~360px (or hide subtitle on xs) so labels never clip.
+### 4. Institute lesson composer (`InstitutePackageLessonView`)
+- `OwnLessonComposer` save → `upsertOwnLesson` in the private store (not the global package store).
+- Lesson lookup resolves `inst-lp-` IDs from the private store first, then falls back to shared lessons for the read-only "SharedLessonView".
+- Editing/deleting an institute-owned lesson works end-to-end; shared lessons keep the existing "layer blocks + reset to original" behavior.
 
-### Phase 3 — Performance & loading (high)
-- Memoize derived data in `InstitutePackageDetail` (`railItems`, chapter/lesson lookups, batch lists) so they don't recompute every render.
-- Verify the load skeleton resolves quickly after memoization; if mock generation is the bottleneck, cache the generated package data.
-- Re-measure interaction latency (tab/subject/chapter switch) on mobile.
+### 5. Docs
+Update `docs/02-institute/packages.md` to document that institutes can add private lesson plans and attach private tests per chapter, with the use-don't-delete rule for shared content.
 
-### Phase 4 — Polish & QA
-- Fix shared-lesson fixed-footer overlap (correct bottom padding).
-- Surface the "Read-only / Shared" context on mobile (small inline label).
-- Full QA pass at 320 / 375 / 390 / 768 / 1280 across: package detail Content + Batches tabs, shared lesson view, own-lesson composer, Add content sheet, reorder (drag) on touch.
+## Technical notes
+- No backend/schema changes — this module is entirely mock/in-memory, consistent with the rest of packages.
+- Reuses existing components: `AttachTestSheet`, `PackageWorkspaceToolbar`, `WorkspaceCanvas`, `ChapterContentSheet`, `QuizDialog`.
+- Multi-tenant isolation enforced by always keying reads/writes on `CURRENT_INSTITUTE_ID` (`inst-1` in the mock).
+- Mobile-first: new add buttons and merged rows reuse the already-responsive layouts (44px+ targets, stacked toolbar < 400px).
 
-## Technical notes (files in scope)
-- `src/pages/institute/packages/InstitutePackageDetail.tsx` — mobile chapter selector, memoization, header wrap.
-- `src/components/packages/editor/ChapterRail.tsx` — reuse rows in mobile sheet; 2‑line clamp.
-- `src/components/packages/editor/ChapterDetailPane.tsx` — lesson title clamp, header wrap.
-- `src/components/packages/editor/PackageWorkspaceToolbar.tsx` — responsive stacking.
-- `src/pages/institute/packages/InstitutePackageLessonView.tsx` — footer padding, mobile badge.
-
-No backend/data-model changes; this is frontend/presentation only. The read-only "use, don't delete" content model stays exactly as-is.
+### Files
+- **New**: `src/data/institute/institutePackageOwnContent.ts`
+- **Edit**: `src/components/packages/editor/ChapterDetailPane.tsx` (additive mode, merged lists, own-item delete)
+- **Edit**: `src/pages/institute/packages/InstitutePackageDetail.tsx` (merge counts, wire handlers, badge)
+- **Edit**: `src/pages/institute/packages/InstitutePackageLessonView.tsx` (save/lookup via private store)
+- **Edit**: `docs/02-institute/packages.md`

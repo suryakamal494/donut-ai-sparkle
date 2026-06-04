@@ -12,6 +12,8 @@ import {
 import { teacherExams } from "@/data/teacher/exams";
 import AttachTestSheet from "./AttachTestSheet";
 import type { PackageAttachmentKind } from "@/types/packages";
+import type { PackageLessonPlan } from "@/types/packages";
+import type { InstituteOwnTest } from "@/data/institute/institutePackageOwnContent";
 import type { EditorChapter } from "./packageChapterLookup";
 import {
   DndContext,
@@ -64,6 +66,18 @@ interface Props {
   onLessonReorder?: (orderedIds: string[]) => void;
   onResetLessonOrder?: () => void;
   isLessonCustomOrdered?: boolean;
+  /**
+   * Institute "additive" mode. SuperAdmin lessons/tests stay read-only, but the
+   * institute can add its OWN lessons/tests alongside them. When enabled the
+   * Add controls are shown and own items get delete/remove affordances.
+   */
+  additive?: boolean;
+  ownLessons?: PackageLessonPlan[];
+  ownTests?: InstituteOwnTest[];
+  onAddLesson?: () => void;
+  onAttachOwnTest?: (examIds: string[]) => void;
+  onDeleteOwnLesson?: (lessonId: string) => void;
+  onRemoveOwnTest?: (testId: string) => void;
 }
 
 const ChapterDetailPane = ({
@@ -81,13 +95,23 @@ const ChapterDetailPane = ({
   onLessonReorder,
   onResetLessonOrder,
   isLessonCustomOrdered = false,
+  additive = false,
+  ownLessons = [],
+  ownTests = [],
+  onAddLesson,
+  onAttachOwnTest,
+  onDeleteOwnLesson,
+  onRemoveOwnTest,
 }: Props) => {
   const navigate = useNavigate();
   const [sheet, setSheet] = useState<PackageAttachmentKind | null>(null);
 
-  const rawLessons = inclusionsEnabled.lessons
+  const baseLessons = inclusionsEnabled.lessons
     ? getLessonPlansForChapter(packageId, chapter.id)
     : [];
+  // In additive mode the institute's own lessons sit alongside SA's.
+  const rawLessons = additive ? [...baseLessons, ...ownLessons] : baseLessons;
+  const ownLessonIds = new Set(ownLessons.map((l) => l.id));
   const lessons = (() => {
     if (!lessonOrderOverride || lessonOrderOverride.length === 0) return rawLessons;
     const byId = new Map(rawLessons.map((l) => [l.id, l]));
@@ -106,9 +130,16 @@ const ChapterDetailPane = ({
   })();
   const attachments = getAttachmentsForChapter(packageId, chapter.id);
   const testAttachments = attachments.filter((a) => a.kind !== "grand-test");
+  const totalTestCount = testAttachments.length + (additive ? ownTests.length : 0);
   const blockCount = lessons.reduce((s, lp) => s + lp.blocks.length, 0);
   const examName = (id: string) =>
     teacherExams.find((e) => e.id === id)?.name ?? id;
+
+  // What add/delete controls are available.
+  const showLessonAdd = inclusionsEnabled.lessons && (additive || !readOnly);
+  const showTestAdd = additive || (!readOnly && inclusionsEnabled.tests);
+  const showPypAdd = !readOnly && !additive && inclusionsEnabled.pyp;
+  const hasAnyAdd = showLessonAdd || showTestAdd || showPypAdd;
 
   const openLesson = (lessonId: string) =>
     navigate(
@@ -133,10 +164,15 @@ const ChapterDetailPane = ({
     onLessonReorder(next.map((l) => l.id));
   };
 
-  const addLesson = () =>
+  const addLesson = () => {
+    if (additive) {
+      onAddLesson?.();
+      return;
+    }
     navigate(
       `/superadmin/packages/${packageId}/lesson/new?grade=${gradeId}&subject=${subjectId}&chapter=${chapter.id}`,
     );
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl">
@@ -162,21 +198,21 @@ const ChapterDetailPane = ({
               <span
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  testAttachments.length > 0 ? "bg-emerald-500" : "bg-muted-foreground/40",
+                  totalTestCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/40",
                 )}
               />
-              {testAttachments.length} test{testAttachments.length === 1 ? "" : "s"}
+              {totalTestCount} test{totalTestCount === 1 ? "" : "s"}
             </span>
           </div>
         </div>
-        {!readOnly && (
+        {hasAnyAdd && (
         <div className="flex flex-wrap gap-2">
-          {inclusionsEnabled.lessons && (
+          {showLessonAdd && (
             <Button size="sm" variant="outline" className="gap-1.5" onClick={addLesson}>
               <Plus className="w-3.5 h-3.5" /> Add lesson plan
             </Button>
           )}
-          {inclusionsEnabled.tests && (
+          {showTestAdd && (
             <Button
               size="sm"
               className="gap-1.5"
@@ -185,7 +221,7 @@ const ChapterDetailPane = ({
               <Plus className="w-3.5 h-3.5" /> Attach test
             </Button>
           )}
-          {inclusionsEnabled.pyp && (
+          {showPypAdd && (
             <Button
               size="sm"
               variant="outline"
@@ -200,24 +236,24 @@ const ChapterDetailPane = ({
       </div>
 
       {/* Empty state */}
-      {lessons.length === 0 && testAttachments.length === 0 ? (
+      {lessons.length === 0 && totalTestCount === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed bg-muted/20 px-6 py-12 text-center">
           <BookOpen className="w-8 h-8 mx-auto text-muted-foreground/60 mb-3" />
           <p className="text-sm font-semibold text-foreground">
             Nothing in this chapter yet
           </p>
-          {!readOnly && (
+          {hasAnyAdd && (
             <>
           <p className="text-xs text-muted-foreground mt-1 mb-4 max-w-sm mx-auto">
             Add a lesson plan to start building content, or attach a chapter test for assessment.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {inclusionsEnabled.lessons && (
+            {showLessonAdd && (
               <Button size="sm" className="gap-1.5" onClick={addLesson}>
                 <Plus className="w-3.5 h-3.5" /> Add the first lesson plan
               </Button>
             )}
-            {inclusionsEnabled.tests && (
+            {showTestAdd && (
               <Button
                 size="sm"
                 variant="outline"
@@ -267,6 +303,12 @@ const ChapterDetailPane = ({
                           title={lp.title}
                           blockCount={lp.blocks.length}
                           onOpen={() => openLesson(lp.id)}
+                          owned={additive && ownLessonIds.has(lp.id)}
+                          onDelete={
+                            additive && ownLessonIds.has(lp.id) && onDeleteOwnLesson
+                              ? () => onDeleteOwnLesson(lp.id)
+                              : undefined
+                          }
                         />
                       ))}
                     </ul>
@@ -304,7 +346,7 @@ const ChapterDetailPane = ({
           )}
 
           {/* Tests */}
-          {testAttachments.length > 0 && (
+          {totalTestCount > 0 && (
             <div className="mt-8">
               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">
                 Chapter tests
@@ -326,7 +368,7 @@ const ChapterDetailPane = ({
                         {a.kind === "pyp" ? "Previous Year Paper" : "Chapter test"}
                       </p>
                     </div>
-                    {!readOnly && (
+                    {!readOnly && !additive && (
                     <button
                       onClick={() => {
                         removeAttachment(a.id);
@@ -338,8 +380,47 @@ const ChapterDetailPane = ({
                       <X className="w-3.5 h-3.5 text-violet-700" />
                     </button>
                     )}
+                    {additive && (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-violet-700/80 bg-violet-100 px-1.5 py-0.5 rounded">
+                        Shared
+                      </span>
+                    )}
                   </li>
                 ))}
+                {additive &&
+                  ownTests.map((t) => (
+                    <li
+                      key={t.id}
+                      className="group flex items-center gap-3 px-4 py-3 rounded-xl border bg-background"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {examName(t.examId)}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          Chapter test
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        Yours
+                      </span>
+                      {onRemoveOwnTest && (
+                        <button
+                          onClick={() => {
+                            onRemoveOwnTest(t.id);
+                            onChange();
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded hover:bg-muted"
+                          aria-label="Remove your test"
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
@@ -352,16 +433,23 @@ const ChapterDetailPane = ({
           onOpenChange={(o) => !o && setSheet(null)}
           kind={sheet}
           subjectId={subjectId}
-          excludeExamIds={getAttachmentsForChapter(packageId, chapter.id)
-            .filter((a) => a.kind === sheet)
-            .map((a) => a.examId)}
+          excludeExamIds={[
+            ...getAttachmentsForChapter(packageId, chapter.id)
+              .filter((a) => a.kind === sheet)
+              .map((a) => a.examId),
+            ...(additive ? ownTests.map((t) => t.examId) : []),
+          ]}
           onAttach={(ids) => {
-            attachExamsToPackage(packageId, ids, {
-              kind: sheet,
-              gradeId,
-              subjectId,
-              chapterId: chapter.id,
-            });
+            if (additive && onAttachOwnTest) {
+              onAttachOwnTest(ids);
+            } else {
+              attachExamsToPackage(packageId, ids, {
+                kind: sheet,
+                gradeId,
+                subjectId,
+                chapterId: chapter.id,
+              });
+            }
             onChange();
           }}
         />
@@ -380,9 +468,11 @@ interface SortableLessonRowProps {
   title: string;
   blockCount: number;
   onOpen: () => void;
+  owned?: boolean;
+  onDelete?: () => void;
 }
 
-const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLessonRowProps) => {
+const SortableLessonRow = ({ id, index, title, blockCount, onOpen, owned = false, onDelete }: SortableLessonRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -409,13 +499,20 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLes
       <button
         type="button"
         onClick={onOpen}
-        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pr-3 sm:pr-4 py-3 text-left"
+        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pr-2 sm:pr-3 py-3 text-left"
       >
         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center font-bold text-sm text-foreground/80 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0 tabular-nums">
           {String(index + 1).padStart(2, "0")}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">{title}</p>
+          <p className="text-sm font-semibold text-foreground line-clamp-2 sm:truncate">
+            {title}
+            {owned && (
+              <span className="ml-2 align-middle text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                Yours
+              </span>
+            )}
+          </p>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {blockCount} block{blockCount === 1 ? "" : "s"}
             {blockCount > 0 && <> · ~{Math.max(5, blockCount * 5)} min</>}
@@ -423,6 +520,16 @@ const SortableLessonRow = ({ id, index, title, blockCount, onOpen }: SortableLes
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary shrink-0" />
       </button>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="shrink-0 mr-2 p-1.5 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition"
+          aria-label={`Delete ${title}`}
+        >
+          <X className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+      )}
     </li>
   );
 };

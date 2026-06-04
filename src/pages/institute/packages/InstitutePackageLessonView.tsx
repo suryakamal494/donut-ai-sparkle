@@ -16,8 +16,6 @@ import {
 import {
   getPackageById,
   getLessonPlanById,
-  upsertLessonPlan,
-  getLessonPlansForChapter,
 } from "@/data/packages";
 import { getSubjectById, curriculums, courses } from "@/data/masterData";
 import { getChaptersForScope } from "@/components/packages/editor/packageChapterLookup";
@@ -32,6 +30,12 @@ import {
   clearLessonAdditions,
   hasLessonAdditions,
 } from "@/data/institute/institutePackageLessonAdditions";
+import {
+  getOwnLessonById,
+  upsertOwnLesson,
+  nextOwnLessonOrder,
+  INSTITUTE_LP_PREFIX,
+} from "@/data/institute/institutePackageOwnContent";
 import { getOrder, setOrder, clearOrder, applyOrder } from "@/data/institute/institutePackageOrders";
 
 const CURRENT_INSTITUTE_ID = "inst-1";
@@ -47,9 +51,6 @@ const GRADE_LABEL: Record<string, string> = {
   "class-12": "Class 12",
 };
 
-/** Lesson plans authored by the institute itself carry this id prefix. */
-const INSTITUTE_LP_PREFIX = "inst-lp-";
-
 const InstitutePackageLessonView = () => {
   const navigate = useNavigate();
   const { packageId, lpId } = useParams<{ packageId: string; lpId: string }>();
@@ -57,7 +58,15 @@ const InstitutePackageLessonView = () => {
 
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const isNew = lpId === "new";
-  const existing = !isNew && lpId ? getLessonPlanById(lpId) : undefined;
+  // Institute-owned lessons live in the private store; SuperAdmin master
+  // lessons live in the shared package store. Resolve from the private store
+  // first so editing an own lesson works end-to-end.
+  const existing =
+    !isNew && lpId
+      ? lpId.startsWith(INSTITUTE_LP_PREFIX) && packageId
+        ? getOwnLessonById(CURRENT_INSTITUTE_ID, packageId, lpId)
+        : getLessonPlanById(lpId)
+      : undefined;
 
   // Institute-authored lessons are fully editable; SuperAdmin-authored
   // lessons are a read-only base the institute can layer onto.
@@ -420,9 +429,11 @@ const OwnLessonComposer = ({
     }
     setIsSaving(true);
     const now = new Date().toISOString();
-    const finalId = existing?.id ?? `inst-lp-${packageId}-${Date.now()}`;
-    const order = existing?.order ?? getLessonPlansForChapter(packageId, chapterId).length;
-    upsertLessonPlan({
+    const finalId = existing?.id ?? `${INSTITUTE_LP_PREFIX}${packageId}-${Date.now()}`;
+    const order =
+      existing?.order ??
+      nextOwnLessonOrder(CURRENT_INSTITUTE_ID, packageId, chapterId);
+    upsertOwnLesson(CURRENT_INSTITUTE_ID, packageId, {
       id: finalId,
       packageId,
       gradeId,

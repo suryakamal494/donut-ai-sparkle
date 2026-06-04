@@ -39,6 +39,13 @@ import {
   clearOrder,
   applyOrder,
 } from "@/data/institute/institutePackageOrders";
+import {
+  getOwnLessons,
+  getOwnTests,
+  addOwnTests,
+  removeOwnTest,
+  removeOwnLesson,
+} from "@/data/institute/institutePackageOwnContent";
 
 const CURRENT_INSTITUTE_ID = "inst-1";
 
@@ -48,7 +55,7 @@ const InstitutePackageDetail = () => {
   const pkg = packageId ? getPackageById(packageId) : undefined;
   const { toast } = useToast();
   const [tab, setTab] = useState<"content" | "batches">("content");
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const refresh = () => setTick((t) => t + 1);
 
   const gradeIds = useMemo(() => pkg?.shape.map((s) => s.gradeId) ?? [], [pkg]);
@@ -115,9 +122,17 @@ const InstitutePackageDetail = () => {
         const atts = getAttachmentsForChapter(pkg.id, c.id).filter(
           (a) => a.kind !== "grand-test",
         );
-        return { ...c, lessonCount: lessons.length, testCount: atts.length };
+        const ownLessons = getOwnLessons(CURRENT_INSTITUTE_ID, pkg.id, c.id);
+        const ownTests = getOwnTests(CURRENT_INSTITUTE_ID, pkg.id, c.id);
+        return {
+          ...c,
+          lessonCount: lessons.length + ownLessons.length,
+          testCount: atts.length + ownTests.length,
+        };
       }),
-    [chapters, pkg.id, pkg.inclusions.lessonPlans],
+    // `tick` keeps counts fresh after the institute adds/removes its own content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chapters, pkg.id, pkg.inclusions.lessonPlans, tick],
   );
   const activeChapterIndex = chapters.findIndex((c) => c.id === selectedChapterId);
   const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : undefined;
@@ -233,7 +248,7 @@ const InstitutePackageDetail = () => {
           </p>
         </div>
         <Badge variant="outline" className="hidden sm:inline-flex gap-1">
-          <Eye className="w-3 h-3" /> Read-only
+          <Eye className="w-3 h-3" /> Shared content · add your own
         </Badge>
       </header>
 
@@ -324,7 +339,36 @@ const InstitutePackageDetail = () => {
                     pyp: pkg.inclusions.previousYearPapers,
                   }}
                   onChange={refresh}
-                  readOnly
+                  additive
+                  ownLessons={getOwnLessons(CURRENT_INSTITUTE_ID, pkg.id, activeChapter.id)}
+                  ownTests={getOwnTests(CURRENT_INSTITUTE_ID, pkg.id, activeChapter.id)}
+                  onAddLesson={() =>
+                    navigate(
+                      `/institute/packages/${pkg.id}/lesson/new?grade=${activeGrade}&subject=${activeSubject}&chapter=${activeChapter.id}`,
+                    )
+                  }
+                  onAttachOwnTest={(examIds) => {
+                    addOwnTests(
+                      CURRENT_INSTITUTE_ID,
+                      pkg.id,
+                      {
+                        gradeId: activeGrade,
+                        subjectId: activeSubject,
+                        chapterId: activeChapter.id,
+                      },
+                      examIds,
+                    );
+                    refresh();
+                  }}
+                  onDeleteOwnLesson={(lessonId) => {
+                    removeOwnLesson(CURRENT_INSTITUTE_ID, pkg.id, lessonId);
+                    toast({ title: "Removed", description: "Your lesson plan was deleted." });
+                    refresh();
+                  }}
+                  onRemoveOwnTest={(testId) => {
+                    removeOwnTest(CURRENT_INSTITUTE_ID, pkg.id, testId);
+                    refresh();
+                  }}
                   lessonHrefBuilder={(lessonId) =>
                     `/institute/packages/${pkg.id}/lesson/${lessonId}`
                   }
