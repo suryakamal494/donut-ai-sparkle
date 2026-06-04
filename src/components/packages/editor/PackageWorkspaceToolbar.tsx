@@ -17,7 +17,7 @@ export const PackageWorkspaceToolbar = ({
   onAddQuiz,
 }: PackageWorkspaceToolbarProps) => {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+    <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2 sm:gap-3">
       <Button
         variant="outline"
         onClick={onAddContent}
@@ -27,7 +27,7 @@ export const PackageWorkspaceToolbar = ({
           <FolderOpen className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">Add content</span>
         </div>
-        <span className="text-[10px] text-muted-foreground font-normal">
+        <span className="text-[10px] text-muted-foreground font-normal text-center whitespace-normal leading-tight">
           Pick from chapter library or quick-add
         </span>
       </Button>
@@ -40,7 +40,7 @@ export const PackageWorkspaceToolbar = ({
           <HelpCircle className="w-4 h-4 text-[hsl(var(--donut-pink))]" />
           <span className="text-sm font-semibold">Add quiz</span>
         </div>
-        <span className="text-[10px] text-muted-foreground font-normal">
+        <span className="text-[10px] text-muted-foreground font-normal text-center whitespace-normal leading-tight">
           Pick questions or generate with AI
         </span>
       </Button>
