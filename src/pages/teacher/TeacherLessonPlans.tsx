@@ -345,7 +345,7 @@ const TeacherLessonPlans = () => {
               <button
                 type="button"
                 onClick={() => setChapterSheetOpen(true)}
-                className="md:hidden flex items-center gap-2 w-full px-4 py-2.5 border-b bg-muted/30 text-left"
+                className="lg:hidden flex items-center gap-2 w-full px-4 py-2.5 border-b bg-muted/30 text-left"
               >
                 <ListTree className="w-4 h-4 text-primary shrink-0" />
                 <span className="flex-1 min-w-0">
@@ -362,11 +362,11 @@ const TeacherLessonPlans = () => {
             )}
 
             {/* Rail + detail */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] overflow-hidden">
-              <aside className="hidden md:block min-h-0 overflow-hidden border-r">
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] overflow-hidden">
+              <aside className="hidden lg:block min-h-0 overflow-hidden border-r">
                 {rail}
               </aside>
-              <section className="min-h-0 overflow-y-auto bg-background pb-20 md:pb-4">
+              <section className="min-h-0 overflow-y-auto bg-background pb-20 lg:pb-4">
                 {activeChapter && pkg ? (
                   <ChapterDetailPane
                     packageId={packageId}
