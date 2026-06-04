@@ -339,7 +339,36 @@ const InstitutePackageDetail = () => {
                     pyp: pkg.inclusions.previousYearPapers,
                   }}
                   onChange={refresh}
-                  readOnly
+                  additive
+                  ownLessons={getOwnLessons(CURRENT_INSTITUTE_ID, pkg.id, activeChapter.id)}
+                  ownTests={getOwnTests(CURRENT_INSTITUTE_ID, pkg.id, activeChapter.id)}
+                  onAddLesson={() =>
+                    navigate(
+                      `/institute/packages/${pkg.id}/lesson/new?grade=${activeGrade}&subject=${activeSubject}&chapter=${activeChapter.id}`,
+                    )
+                  }
+                  onAttachOwnTest={(examIds) => {
+                    addOwnTests(
+                      CURRENT_INSTITUTE_ID,
+                      pkg.id,
+                      {
+                        gradeId: activeGrade,
+                        subjectId: activeSubject,
+                        chapterId: activeChapter.id,
+                      },
+                      examIds,
+                    );
+                    refresh();
+                  }}
+                  onDeleteOwnLesson={(lessonId) => {
+                    removeOwnLesson(CURRENT_INSTITUTE_ID, pkg.id, lessonId);
+                    toast({ title: "Removed", description: "Your lesson plan was deleted." });
+                    refresh();
+                  }}
+                  onRemoveOwnTest={(testId) => {
+                    removeOwnTest(CURRENT_INSTITUTE_ID, pkg.id, testId);
+                    refresh();
+                  }}
                   lessonHrefBuilder={(lessonId) =>
                     `/institute/packages/${pkg.id}/lesson/${lessonId}`
                   }
