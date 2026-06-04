@@ -296,16 +296,23 @@ const SharedLessonView = ({
                   : undefined
             }
           />
-
-          <WorkspaceFooter
-            totalDuration={totalDuration}
-            blockCount={blocks.length}
-            isSaving={false}
-            onSaveDraft={onBack}
-            onPublish={onBack}
-          />
         </div>
       </main>
+
+      {/* Lightweight footer — additions auto-save, so just stats + done */}
+      <div className="fixed bottom-0 left-0 right-0 sm:relative bg-white/95 backdrop-blur-sm border-t p-3 z-20">
+        <div className="flex items-center justify-between gap-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span className="font-medium text-foreground">{totalDuration}</span> min ·{" "}
+            <span className="font-medium text-foreground">{blocks.length}</span> block
+            {blocks.length === 1 ? "" : "s"}
+          </div>
+          <Button size="sm" className="h-10 px-5 gradient-button" onClick={onBack}>
+            Done
+          </Button>
+        </div>
+      </div>
 
       <ChapterContentSheet
         open={showContentSheet}
