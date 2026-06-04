@@ -1,88 +1,51 @@
-## Goal
+# Institute lesson-plan view (use, don't delete)
 
-Three focused UX fixes on the institute package detail page:
+## The problem
 
-1. Auto-collapse the institute sidebar when a package is opened (mirror SuperAdmin behavior).
-2. Replace up/down arrow reorder with real drag-and-drop using `@dnd-kit` (already installed).
-3. Remove the standalone "Reorder" tab. Drag-reorder lives **inline inside the Content view** — chapters drag in the Chapter Index rail, lesson plans drag inside the chapter's lesson list.
+In the institute panel, opening a lesson plan inside a package currently navigates to `/superadmin/packages/:id/lesson/:lpId` — the SuperAdmin composer. That screen is built for **authoring**: it lets you delete blocks, save over the master, and is framed around "build this lesson." For an institute viewing a lesson plan that SuperAdmin shipped, that's wrong: they should be able to **use** it, **add** their own content/quiz on top, but never **delete or overwrite** the original.
 
----
+## Recommended UX (my choice)
 
-## 1. Sidebar auto-collapse on package detail
+Treat a SuperAdmin lesson plan as a **locked base layer** the institute reads, plus an **institute layer** they can add to.
 
-**File:** `src/components/layout/InstituteLayout.tsx`
+- The lesson opens **inside the institute panel** at a new institute route, so the sidebar stays collapsed and the breadcrumb/back goes to the institute package (not SuperAdmin).
+- A clear header signal: a small banner/badge — "Shared by Donut · You can add your own content, the original stays intact." The Save button is replaced by an auto-saved "Your changes" indicator (institute edits are local overrides, not edits to the master).
+- **Original blocks**: shown normally but **locked** — no delete (X) control, no overwrite. They can still be previewed.
+- **Add content / Add quiz**: present in the toolbar exactly like today, but framed as "Add your content" — institute-added blocks get a subtle "Added by your institute" tag and **can** be removed (only the institute's own additions).
+- **Reorder**: institute can reorder the combined list locally (we already store block-order overrides per institute); the master order is never touched.
+- A **"Reset to original"** action clears the institute's additions + reorder for that lesson, falling back to SuperAdmin's version.
+- For a lesson plan the **institute created itself** (not from SuperAdmin), it's their own content → full edit, including delete. Same composer UI as SuperAdmin.
 
-Mirror the pattern already used by `AdminLayout.tsx`:
+This keeps one mental model ("the package is shared; you tailor it") and keeps complexity inside the package, as you wanted — no separate area.
 
-```ts
-const inPackageDetail = /^\/institute\/packages\/[^/]+/.test(location.pathname);
-const [sidebarCollapsed, setSidebarCollapsed] = useState(inPackageDetail);
-useEffect(() => { setSidebarCollapsed(inPackageDetail); }, [inPackageDetail]);
-```
+## What gets built
 
-User can still toggle the chevron manually after auto-collapse.
+### 1. New institute lesson route + page
+- Route: `/institute/packages/:packageId/lesson/:lpId` in `InstituteRoutes.tsx` (the existing sidebar-collapse regex `/^\/institute\/packages\/[^/]+/` already covers it).
+- New page `src/pages/institute/packages/InstitutePackageLessonView.tsx`, adapted from `PackageLessonComposer.tsx`, that:
+  - Detects whether the lesson is SuperAdmin-authored (shared) or institute-created.
+  - Renders the read-only base + institute additions, with back nav to `/institute/packages/:packageId`.
 
----
+### 2. Point the institute package detail at the new route
+- In `InstitutePackageDetail.tsx`, change `lessonHrefBuilder` from `/superadmin/packages/...` to `/institute/packages/${pkg.id}/lesson/${lessonId}`.
+- "Add lesson plan" (institute creating its own) also points to the institute `.../lesson/new` route.
 
-## 2. Drag-and-drop chapter reorder in the Chapter Index (Content tab)
+### 3. Institute additions store (local layer)
+- New `src/data/institute/institutePackageLessonAdditions.ts`: keyed by `${instituteId}::${packageId}::${lessonId}`, holds the institute's extra blocks (content/quiz). Mirrors the existing override-store pattern; SuperAdmin master in `packages/helpers.ts` stays untouched.
+- The view composes the displayed block list = `master blocks (locked)` + `institute additions (editable)`, then applies the existing block-order override from `institutePackageOrders.ts`.
 
-**Files:** `src/components/packages/editor/ChapterRail.tsx`, `src/pages/institute/packages/InstitutePackageDetail.tsx`
+### 4. Read-only-aware block UI
+- Pass a per-block "locked" flag so `WorkspaceBlock` hides the delete control for master blocks while keeping it for institute additions. Add the small "Shared / Added by your institute" tag.
 
-- Extend `ChapterRail` with optional props: `reorderable?: boolean`, `onReorder?: (orderedIds: string[]) => void`, `onResetOrder?: () => void`, `isCustomOrdered?: boolean`.
-- When `reorderable`, wrap the list in `@dnd-kit` `DndContext` + `SortableContext` (vertical). Each chapter row gets a small `GripVertical` drag handle (visible on hover, always visible on touch) on the left.
-- Default (`reorderable=false`) keeps existing SuperAdmin/teacher behavior untouched.
-- Show a subtle "Custom order · Reset" link at the rail top when `isCustomOrdered` is true.
+### 5. Docs
+- Update `docs/02-institute/packages.md` and `docs/05-cross-login-flows/package-flow.md` to describe the use-don't-delete model and the new lesson route.
 
-In `InstitutePackageDetail.tsx`:
-- Pass `reorderable`, `isCustomOrdered`, `onReorder`, `onResetOrder` into `ChapterRail`.
-- `onReorder(ids)` → `setOrder(institute, pkg, {kind:'chapter', gradeId, subjectId}, ids)`.
-
----
-
-## 3. Drag-and-drop lesson reorder inside the chapter pane
-
-**File:** `src/components/packages/editor/ChapterDetailPane.tsx`
-
-- Add optional props: `lessonReorderable?: boolean`, `onLessonReorder?: (orderedIds: string[]) => void`, `onResetLessonOrder?: () => void`, `isLessonCustomOrdered?: boolean`.
-- When enabled, the "Lesson plans" `<ul>` becomes a `DndContext`/`SortableContext`. Each lesson row gets a `GripVertical` handle on the left of the existing number badge. Clicking the row body still navigates to the lesson (drag handle has its own listener).
-- "Reset lesson order" appears next to the "Lesson plans" section title only when there's an override.
-- All other modes (SA, read-only without reorder) unchanged.
-
-In `InstitutePackageDetail.tsx`, wire the same handlers using `setOrder/clearOrder` with the `lesson` scope keyed by `chapterId`.
-
----
-
-## 4. Remove the Reorder tab
-
-**File:** `src/pages/institute/packages/InstitutePackageDetail.tsx`
-
-- Drop the `TabsTrigger value="reorder"` and `TabsContent value="reorder"` blocks entirely.
-- `tab` state becomes `"content" | "batches"`; default `"content"`.
-- Header sub-line "Reorder for this institute only · SuperAdmin order untouched" moves into a small one-liner under the Chapter Index title in the rail.
-- Remove the now-unused `moveChapter` / `moveLesson` / `ArrowUp`/`ArrowDown` imports.
-
----
-
-## 5. Docs touch-up
-
-- `docs/02-institute/packages.md` — update the "Reorder semantics" section: reorder is inline in Content (drag handles on chapter rail and lesson list); no separate tab. Block-level reorder still occurs inside SA lesson composer (out of scope for institute in this build — same as today).
-- `docs/05-cross-login-flows/package-flow.md` — change Stage 2 wording from "Reorder tab" to "drag handles in Content view".
-- `docs/06-testing-scenarios/inter-login-tests/packages-qa.md` — update reorder QA steps to drag-and-drop on the Content tab.
-
----
-
-## Out of scope (unchanged)
-
-- Block-level reorder inside lesson plans for institute (still SA-only).
-- Teacher/student surfacing.
-- Batch assignment tab — no changes.
-- Mobile chapter rail is currently `hidden md:block`; this build keeps that behavior. Drag works on touch via dnd-kit's `TouchSensor` when the rail is visible (tablet+).
-
----
+## Out of scope
+- Editing the text/content *inside* a SuperAdmin-authored block (they add new blocks instead of mutating originals).
+- Persisting beyond the in-memory mock stores (consistent with the current package mock layer).
+- Teacher/student surfacing of institute additions.
 
 ## Technical notes
-
-- Library: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (all already in `package.json`).
-- Sensors: `PointerSensor` (activation distance 5px so simple clicks on chapter rows still select), `TouchSensor`, `KeyboardSensor` with `sortableKeyboardCoordinates` for accessibility.
-- Drag handle is a separate element with `{...listeners}` so the row's click-to-select / click-to-open still works.
-- Existing `applyOrder` / `setOrder` / `clearOrder` / store keys stay identical — only the UI affordance changes.
+- `InstitutePackageLessonView` reuses `WorkspaceCanvas`, `PackageWorkspaceToolbar`, `ChapterContentSheet`, `QuizDialog` (same as the SuperAdmin composer) so the add-content/add-quiz flows are identical.
+- "Locked" handling: extend `WorkspaceBlock`/`WorkspaceCanvas` with an optional `lockedBlockIds: Set<string>` (or a `locked` flag on the block view-model) to suppress delete; default behavior unchanged for the SuperAdmin composer.
+- `CURRENT_INSTITUTE_ID = "inst-1"` constant reused from the package detail page.
