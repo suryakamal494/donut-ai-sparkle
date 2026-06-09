@@ -98,6 +98,7 @@ const navItems: NavItem[] = [
   },
   { title: "Master Data", icon: Database, href: "/institute/master-data" },
   { title: "Roles & Access", icon: Shield, href: "/institute/roles" },
+  { title: "Communications", icon: MessageCircle, href: "/institute/communications" },
   { title: "Settings", icon: Settings, href: "/institute/settings" },
 ];
 
