@@ -1,10 +1,11 @@
-// Automated Alerts tab — toggle matrix with mandatory always-visible previews
+// Automated Alerts tab — clean segmented toggle list with on-demand previews
 import { useEffect, useMemo, useState } from "react";
-import { GraduationCap, Users, BookUser } from "lucide-react";
+import { GraduationCap, Users, BookUser, Eye, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { alertConfigRows, audienceLabels } from "@/data/institute/whatsappComms";
 import type { AlertConfigRow, CommAudience } from "@/types/whatsappComms";
 import MessagePreview from "./MessagePreview";
@@ -35,9 +36,19 @@ interface AudienceGroupProps {
   toggles: Record<string, boolean>;
   onToggle: (id: string) => void;
   onSetAll: (audience: CommAudience, value: boolean) => void;
+  openPreviews: Set<string>;
+  onTogglePreview: (id: string) => void;
 }
 
-const AudienceGroup = ({ audience, rows, toggles, onToggle, onSetAll }: AudienceGroupProps) => {
+const AudienceGroup = ({
+  audience,
+  rows,
+  toggles,
+  onToggle,
+  onSetAll,
+  openPreviews,
+  onTogglePreview,
+}: AudienceGroupProps) => {
   const Icon = audienceIcon[audience];
   const enabledCount = rows.filter((r) => toggles[r.id]).length;
   const allOn = enabledCount === rows.length;
@@ -65,27 +76,56 @@ const AudienceGroup = ({ audience, rows, toggles, onToggle, onSetAll }: Audience
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="pt-0">
         {rows.map((row) => {
           const on = !!toggles[row.id];
+          const previewOpen = openPreviews.has(row.id);
           return (
             <div
               key={row.id}
-              className="rounded-xl border border-border p-3 space-y-3"
+              className="py-3 border-b border-border/50 last:border-0"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+                <div className={cn("min-w-0 flex-1", !on && "opacity-60")}>
                   <p className="font-medium text-sm">{row.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{row.description}</p>
                 </div>
-                <Switch
-                  checked={on}
-                  onCheckedChange={() => onToggle(row.id)}
-                  className="shrink-0 mt-0.5"
-                  aria-label={`Toggle ${row.title}`}
-                />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => onTogglePreview(row.id)}
+                    aria-expanded={previewOpen}
+                    aria-label={`${previewOpen ? "Hide" : "Show"} preview for ${row.title}`}
+                  >
+                    <Eye className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Preview</span>
+                    <ChevronDown
+                      className={cn(
+                        "w-3.5 h-3.5 ml-0.5 transition-transform",
+                        previewOpen && "rotate-180",
+                      )}
+                    />
+                  </Button>
+                  <Switch
+                    checked={on}
+                    onCheckedChange={() => onToggle(row.id)}
+                    className="shrink-0"
+                    aria-label={`Toggle ${row.title}`}
+                  />
+                </div>
               </div>
-              <MessagePreview body={row.previewBody} compact className={on ? "" : "opacity-60"} />
+              {previewOpen && (
+                <div className="mt-3">
+                  <MessagePreview
+                    body={row.previewBody}
+                    compact
+                    className={on ? "" : "opacity-60"}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -96,6 +136,7 @@ const AudienceGroup = ({ audience, rows, toggles, onToggle, onSetAll }: Audience
 
 const AutomatedAlertsTab = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>(loadToggles);
+  const [openPreviews, setOpenPreviews] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -121,13 +162,21 @@ const AutomatedAlertsTab = () => {
       return next;
     });
 
+  const handleTogglePreview = (id: string) =>
+    setOpenPreviews((s) => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   const audiences: CommAudience[] = ["teachers", "students"];
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Turn on the alerts you want sent automatically. Only enabled alerts are delivered —
-        every message shows exactly what the recipient receives.
+        Turn on the alerts you want sent automatically. Only enabled alerts are delivered.
+        Tap <span className="font-medium text-foreground">Preview</span> on any alert to see
+        exactly what the recipient receives.
       </p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {audiences.map((a) => (
@@ -138,6 +187,8 @@ const AutomatedAlertsTab = () => {
             toggles={toggles}
             onToggle={handleToggle}
             onSetAll={handleSetAll}
+            openPreviews={openPreviews}
+            onTogglePreview={handleTogglePreview}
           />
         ))}
       </div>
