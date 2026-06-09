@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import {
   GraduationCap,
   Users,
-  BookUser,
   Send,
   AlertTriangle,
   Check,
@@ -33,7 +32,6 @@ interface BroadcastTabProps {
 const audienceOptions: { key: CommAudience; label: string; icon: typeof Users }[] = [
   { key: "teachers", label: "Teachers", icon: GraduationCap },
   { key: "parents", label: "Parents", icon: Users },
-  { key: "students", label: "Students", icon: BookUser },
 ];
 
 const templates = [

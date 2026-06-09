@@ -86,9 +86,9 @@ export const alertConfigRows: AlertConfigRow[] = [
   },
   {
     id: "alert-exam-score",
-    audience: "parents",
-    title: "Exam Score After Attempt",
-    description: "Sent to parents once a student's exam is graded.",
+    audience: "students",
+    title: "Exam Reports",
+    description: "Sent to the parent once a student's exam is graded.",
     enabledByDefault: true,
     previewBody:
       "Exam Result Notification\n\nDear Parent,\nRohan scored 82/100 in Mathematics Unit Test.\n\nRegards,\n" +
@@ -96,7 +96,7 @@ export const alertConfigRows: AlertConfigRow[] = [
   },
   {
     id: "alert-exam-timetable-parent",
-    audience: "parents",
+    audience: "students",
     title: "Exam Timetable",
     description: "When an upcoming exam schedule is published for the class.",
     enabledByDefault: true,
@@ -105,40 +105,10 @@ export const alertConfigRows: AlertConfigRow[] = [
       SCHOOL_NAME,
   },
   {
-    id: "alert-schedule-change",
-    audience: "parents",
-    title: "Academic Schedule Change",
-    description: "When holidays or class timings change.",
-    enabledByDefault: true,
-    previewBody:
-      "Schedule Update\n\nDear Parent,\nDue to a school event, classes on Jan 18 will close early at 12:30 PM.\n\nRegards,\n" +
-      SCHOOL_NAME,
-  },
-  {
-    id: "alert-attendance",
-    audience: "parents",
-    title: "Attendance / Absence",
-    description: "When a student is marked absent for the day.",
-    enabledByDefault: false,
-    previewBody:
-      "Attendance Alert\n\nDear Parent,\nRohan (Class 8A) was marked absent today, Jan 15. Please contact the office if this is unexpected.\n\nRegards,\n" +
-      SCHOOL_NAME,
-  },
-  {
-    id: "alert-holiday",
-    audience: "parents",
-    title: "Holiday Declared",
-    description: "When the institute declares a holiday.",
-    enabledByDefault: true,
-    previewBody:
-      "Holiday Notice\n\nDear Parent,\nThe school will remain closed on Jan 26 for Republic Day.\n\nRegards,\n" +
-      SCHOOL_NAME,
-  },
-  {
     id: "alert-announcement-parent",
-    audience: "parents",
-    title: "General Announcement",
-    description: "For PTM reminders and other institute-wide notices.",
+    audience: "students",
+    title: "General Announcements",
+    description: "PTM reminders and other institute-wide notices for parents.",
     enabledByDefault: false,
     previewBody:
       "Announcement\n\nDear Parent,\nThe Parent-Teacher Meeting is scheduled for Jan 25, 10:00 AM – 1:00 PM.\n\nRegards,\n" +

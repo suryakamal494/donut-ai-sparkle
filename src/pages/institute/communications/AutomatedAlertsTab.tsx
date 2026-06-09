@@ -121,7 +121,7 @@ const AutomatedAlertsTab = () => {
       return next;
     });
 
-  const audiences: CommAudience[] = ["teachers", "parents"];
+  const audiences: CommAudience[] = ["teachers", "students"];
 
   return (
     <div className="space-y-4">

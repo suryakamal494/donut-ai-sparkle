@@ -12,9 +12,9 @@ Institute panel **Communications** hub at `/institute/communications` (top-level
 
 **Global Auto-Pause banner** (non-negotiable): when balance is 0, a persistent banner renders above the tabs on EVERY tab. Sending is blocked. Prevents principals from toggling alerts and assuming they fire.
 
-**Automated Alerts**: toggle matrix grouped by audience (Teachers, Parents; Students off by default). Each row has a **mandatory always-visible** WhatsApp-style `MessagePreview` (not behind expand) with realistic merge fields. Toggles persist in `localStorage` key `institute_whatsapp_alert_toggles`.
+**Automated Alerts**: toggle matrix split into TWO segments the institute manages independently — **Teachers** (timetable updates, substitution, exam updates, syllabus lag) and **Students** (exam reports, exam timetable, general announcements). Student alerts are delivered to the parent's phone (previews read "Dear Parent,") but are labelled Students so teacher vs student alerts toggle separately. No attendance/holiday/schedule-change alerts. Each row has a **mandatory always-visible** WhatsApp-style `MessagePreview` with realistic merge fields. Toggles persist in `localStorage` key `institute_whatsapp_alert_toggles`.
 
-**Broadcast**: audience chips (teachers/parents/students) → cascading class→section selectors → message + live preview → review (recipient count = messages to deduct). Recipient math: teachers add `teacherHeadcount`; parents/students each add sum of selected section recipients. Blocked when over balance or paused.
+**Broadcast**: audience chips (Teachers, Parents only — students/parents are the same recipient, displayed as Parents) → cascading class→section selectors → message + live preview → review (recipient count = messages to deduct). Recipient math: teachers add `teacherHeadcount`; parents add sum of selected section recipients. Blocked when over balance or paused. Overview **Usage → By audience** shows Teachers + Parents only.
 
 **History (immutable audit log)**: each entry stores a FROZEN `audienceSnapshot` (resolved section labels + recipient count captured at send time) — never re-derived from live class data. Detail drawer shows snapshot + full message + delivery breakdown. Card layout on mobile, table on md+.
 
