@@ -42,9 +42,8 @@ const OverviewTab = ({ balance, level, history, onRecharge, onGoToHistory }: Ove
   const automatedUsed = Math.round(balance.usedThisMonth * 0.62);
   const broadcastUsed = balance.usedThisMonth - automatedUsed;
   const byAudience = [
-    { key: "parents", value: Math.round(balance.usedThisMonth * 0.7) },
+    { key: "parents", value: Math.round(balance.usedThisMonth * 0.78) },
     { key: "teachers", value: Math.round(balance.usedThisMonth * 0.22) },
-    { key: "students", value: Math.round(balance.usedThisMonth * 0.08) },
   ];
 
   const recent = history.slice(0, 4);
