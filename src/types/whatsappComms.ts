@@ -84,4 +84,3 @@ export interface CommClassOption {
   label: string; // e.g. "Class 8"
   sections: { id: string; label: string; recipients: number }[];
 }
-*** End Patch
