@@ -76,6 +76,9 @@ const InstitutePYPView = lazy(() => import("@/pages/institute/exams/PYPView"));
 const InstituteMasterData = lazy(() => import("@/pages/institute/masterdata/MasterData"));
 const InstituteRoles = lazy(() => import("@/pages/institute/roles/Roles"));
 
+// Communications (WhatsApp hub)
+const InstituteCommunications = lazy(() => import("@/pages/institute/communications/Communications"));
+
 // Reports
 const ReportsLanding = lazy(() => import("@/pages/institute/reports/ReportsLanding"));
 const BatchReports = lazy(() => import("@/pages/institute/reports/BatchReports"));
@@ -179,6 +182,9 @@ export default function InstituteRoutes() {
         {/* Master Data & Roles */}
         <Route path="master-data" element={<LazyPage><InstituteMasterData /></LazyPage>} />
         <Route path="roles" element={<LazyPage><InstituteRoles /></LazyPage>} />
+
+        {/* Communications (WhatsApp hub) */}
+        <Route path="communications" element={<LazyPage><InstituteCommunications /></LazyPage>} />
         
         {/* Reports */}
         <Route path="reports" element={<LazyPage><ReportsLanding /></LazyPage>} />
