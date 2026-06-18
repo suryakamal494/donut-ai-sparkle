@@ -7,22 +7,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { InfoTooltip } from "@/components/timetable/InfoTooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ChapterStudentBucket } from "@/data/teacher/reportsData";
-import type { SecondaryTag } from "@/lib/performanceIndex";
+import { FLAG_META } from "@/lib/performanceIndex";
 
 const bandStyles: Record<string, { dot: string; border: string; bg: string; badge: string }> = {
   mastery: { dot: "bg-emerald-500", border: "border-l-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/30", badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
   stable: { dot: "bg-teal-500", border: "border-l-teal-500", bg: "bg-teal-50 dark:bg-teal-950/30", badge: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" },
   reinforcement: { dot: "bg-amber-500", border: "border-l-amber-500", bg: "bg-amber-50 dark:bg-amber-950/30", badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
   risk: { dot: "bg-red-500", border: "border-l-red-500", bg: "bg-red-50 dark:bg-red-950/30", badge: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-};
-
-const tagStyles: Record<SecondaryTag, { label: string; className: string }> = {
-  improving: { label: "Improving", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
-  declining: { label: "Declining", className: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-  plateaued: { label: "Plateaued", className: "bg-gray-100 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400" },
-  inconsistent: { label: "Inconsistent", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
-  "speed-issue": { label: "Speed Issue", className: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
-  "low-attempt": { label: "Low Attempt", className: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" },
+  notAttempted: { dot: "bg-gray-400", border: "border-l-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30", badge: "bg-gray-100 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400" },
+  absent: { dot: "bg-gray-300", border: "border-l-gray-300", bg: "bg-gray-50 dark:bg-gray-900/30", badge: "bg-gray-100 text-gray-500 dark:bg-gray-800/40 dark:text-gray-400" },
 };
 
 const TrendIcon = ({ trend }: { trend: "up" | "down" | "flat" }) => {
@@ -68,6 +61,7 @@ export const StudentBuckets = ({ buckets, onGeneratePractice }: StudentBucketsPr
           const style = bandStyles[bucket.key];
           const isOpen = !!expanded[bucket.key];
           const isEmpty = bucket.count === 0;
+          const isNeutral = bucket.key === "notAttempted" || bucket.key === "absent";
 
           return (
             <div key={bucket.key} className={cn("rounded-xl border border-border bg-card overflow-hidden border-l-4", style.border, isEmpty && "opacity-60")}>
@@ -101,20 +95,22 @@ export const StudentBuckets = ({ buckets, onGeneratePractice }: StudentBucketsPr
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <p className="font-medium truncate text-foreground">{s.studentName}</p>
-                                <TrendIcon trend={s.trend} />
+                                {!isNeutral && <TrendIcon trend={s.trend} />}
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 <span className="text-xs text-muted-foreground">{s.rollNumber}</span>
-                                {s.secondaryTags.map((tag) => (
-                                  <span key={tag} className={cn("text-[10px] font-medium rounded-full px-1.5 py-0.5", tagStyles[tag].className)}>
-                                    {tagStyles[tag].label}
+                                {s.flags.map((flag) => (
+                                  <span key={flag} className={cn("text-[10px] font-medium rounded-full px-1.5 py-0.5", FLAG_META[flag].className)}>
+                                    {FLAG_META[flag].label}
                                   </span>
                                 ))}
                               </div>
                             </div>
                             <div className="text-right shrink-0 ml-3">
-                              <p className="font-semibold text-foreground">{s.avgPercentage}%</p>
-                              <p className="text-[10px] text-muted-foreground">{s.examsAttempted} exam{s.examsAttempted > 1 ? "s" : ""}</p>
+                              <p className="font-semibold text-foreground">{s.masteryScore === null ? "—" : `${s.masteryScore}%`}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {isNeutral ? (bucket.key === "absent" ? "no tests" : "0 attempted") : `${s.examsAttempted} exam${s.examsAttempted > 1 ? "s" : ""}`}
+                              </p>
                             </div>
                           </div>
                         </div>
