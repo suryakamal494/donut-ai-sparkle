@@ -305,7 +305,9 @@ export const buildResponseMatrix = (chapterId: string, batchId: string): Respons
           const rAttempt = rand();
           const rCorrect = rand();
           const rTime = rand();
-          const pAttempt = clampNum(s.ability * 0.7 + 0.3, 0, 1);
+          // Realistic engagement: students attempt most questions (0.62–0.91),
+          // so mastery (correct/asked) tracks accuracy without heavy-skip distortion.
+          const pAttempt = clampNum(0.55 + s.ability * 0.4, 0, 1);
           const attempted = s.neverAttempts ? false : rAttempt < pAttempt;
           const pCorrect = sigmoid((s.ability - topic.difficulty) * 5);
           const correct = attempted && rCorrect < pCorrect;
