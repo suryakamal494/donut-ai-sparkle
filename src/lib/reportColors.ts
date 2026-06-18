@@ -51,3 +51,23 @@ export function getStatusColor(status: "strong" | "moderate" | "weak"): Performa
   if (status === "moderate") return getPerformanceColor(50);
   return getPerformanceColor(0);
 }
+
+/**
+ * Topic-heatmap colour on the topic status scale (strong ≥65 / moderate ≥40 / weak).
+ * Distinct from getPerformanceColor (PI band scale 75/50/35) so a topic's colour
+ * always matches its strong/moderate/weak label.
+ */
+export function getTopicColor(status: "strong" | "moderate" | "weak"): PerformanceColors {
+  if (status === "strong") return getPerformanceColor(75);  // emerald
+  if (status === "moderate") return getPerformanceColor(35); // amber
+  return getPerformanceColor(0);                             // red
+}
+
+/** Neutral grey treatment for topics with no attempts (avgSuccessRate === null). */
+export const NEUTRAL_TOPIC_COLORS: PerformanceColors = {
+  bg: "bg-gray-400",
+  text: "text-gray-500 dark:text-gray-400",
+  light: "bg-gray-50 dark:bg-gray-900/30",
+  badge: "bg-gray-100 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400",
+  border: "border-l-gray-300",
+};

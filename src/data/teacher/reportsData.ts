@@ -4,7 +4,15 @@
 import { batchInfoMap } from "./examResults";
 import { teacherExams } from "./exams";
 import { mockGrandTests } from "@/data/examsData";
-import { computeStudentPI, type ExamHistoryEntry, type SecondaryTag, type Trend } from "@/lib/performanceIndex";
+import {
+  computeStudentSegregation,
+  type Trend,
+  type Band,
+  type AssessmentType,
+  type ResponseRecord,
+  type SegregationFlag,
+  LOW_DATA_THRESHOLD,
+} from "@/lib/performanceIndex";
 
 // ── Seeded PRNG (Park-Miller LCG + djb2 hash) ──
 
@@ -65,7 +73,8 @@ export interface ChapterTopicAnalysis {
   topicId: string;
   topicName: string;
   questionsAsked: number;
-  avgSuccessRate: number;
+  avgSuccessRate: number | null; // null = asked but nobody attempted
+  lowData?: boolean;             // attempts <= LOW_DATA_THRESHOLD — fragile
   status: "strong" | "moderate" | "weak";
   examsAppeared: number;
 }
@@ -74,19 +83,22 @@ export interface ChapterStudentEntry {
   id: string;
   studentName: string;
   rollNumber: string;
-  avgPercentage: number;
+  asked: number;                 // 0 => absent (excluded from bands)
+  attempted: boolean;            // false when asked > 0 but attempted 0
   examsAttempted: number;
-  performanceIndex: number;
-  consistency: number;
-  timeEfficiency: number;
-  attemptRate: number;
+  masteryScore: number | null;   // band decider + sort key; null for absent/not-attempted
+  band: Band;
+  testMastery: number | null;
+  practiceMastery: number | null;
+  dppEffort: number | null;
+  pacing: number | null;
+  consistency: number | null;
   trend: Trend;
-  secondaryTags: SecondaryTag[];
-  examHistory: ExamHistoryEntry[];
+  flags: SegregationFlag[];      // max 2, ordered by FLAG_PRIORITY
 }
 
 export interface ChapterStudentBucket {
-  key: "mastery" | "stable" | "reinforcement" | "risk";
+  key: Band;
   label: string;
   count: number;
   students: ChapterStudentEntry[];
@@ -187,88 +199,221 @@ const generateBatchExams = (batchId: string): BatchExamEntry[] => {
   }));
 };
 
+// ── Response Matrix (single source of truth for the chapter report) ──
+
+const clampNum = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+const pct = (correct: number, attempted: number): number | null =>
+  attempted === 0 ? null : Math.round((correct / attempted) * 100);
+
+interface ChapterAssessment {
+  examId: string;
+  examName: string;
+  date: string;
+  type: AssessmentType;
+  timed: boolean;
+  qPerTopic: number;
+  coverage: number; // fraction of topics covered
+}
+
+interface MatrixStudent {
+  id: string;
+  studentName: string;
+  rollNumber: string;
+  ability: number;
+  absent: boolean;        // never sat any assessment
+  neverAttempts: boolean; // sat assessments but attempted nothing
+}
+
+export interface ResponseMatrix {
+  records: ResponseRecord[];
+  students: MatrixStudent[];
+  assessments: ChapterAssessment[];
+  topics: { topicId: string; topicName: string; difficulty: number }[];
+}
+
+const ASSESSMENT_BLUEPRINT: Omit<ChapterAssessment, "examId" | "examName" | "date">[] = [
+  { type: "chapterTest", timed: true, qPerTopic: 3, coverage: 1.0 },
+  { type: "classTest", timed: true, qPerTopic: 2, coverage: 0.7 },
+  { type: "classTest", timed: true, qPerTopic: 2, coverage: 0.6 },
+  { type: "dpp", timed: false, qPerTopic: 2, coverage: 0.4 },
+  { type: "dpp", timed: false, qPerTopic: 2, coverage: 0.5 },
+  { type: "dpp", timed: false, qPerTopic: 1, coverage: 0.5 },
+];
+
+const STUDENT_NAMES = [
+  "Aarav Sharma", "Priya Patel", "Rohan Gupta", "Ananya Singh", "Vikram Reddy",
+  "Sneha Iyer", "Arjun Nair", "Kavya Menon", "Rahul Das", "Meera Joshi",
+  "Siddharth Kumar", "Divya Rao", "Aditya Verma", "Ishita Banerjee", "Karthik Subramaniam",
+  "Neha Agarwal", "Varun Mishra", "Riya Chauhan", "Harsh Pandey", "Pooja Deshmukh",
+  "Amit Tiwari", "Simran Kaur", "Nikhil Saxena", "Tanvi Kulkarni", "Deepak Yadav",
+];
+
+/**
+ * Deterministic response matrix for a (chapter, batch). Every value drawn from
+ * one seeded stream in fixed order (assessment → topic → question → student).
+ */
+export const buildResponseMatrix = (chapterId: string, batchId: string): ResponseMatrix => {
+  const chapter = physicsChapters.find((c) => c.id === chapterId)!;
+  const rand = seededRandom(hashString(`${chapterId}-${batchId}-matrix`));
+
+  // Latent topic difficulty (fixed order).
+  const topics = chapter.topics.map((name, i) => ({
+    topicId: `${chapterId}-t${i}`,
+    topicName: name,
+    difficulty: 0.2 + rand() * 0.7,
+  }));
+
+  // Students with latent ability. Last student = absent, second-last = never attempts.
+  const count = 20 + Math.floor(rand() * 5);
+  const students: MatrixStudent[] = STUDENT_NAMES.slice(0, count).map((studentName, i) => ({
+    id: `${chapterId}-s${i}`,
+    studentName,
+    rollNumber: `R${String(101 + i)}`,
+    ability: 0.2 + rand() * 0.7,
+    absent: i === count - 1,
+    neverAttempts: i === count - 2,
+  }));
+
+  // Assessments (chronological — oldest first), names/dates deterministic.
+  let classTestN = 0;
+  let dppN = 0;
+  const assessments: ChapterAssessment[] = ASSESSMENT_BLUEPRINT.map((b, i) => {
+    const examName =
+      b.type === "chapterTest" ? `${chapter.name} — Chapter Test` :
+      b.type === "classTest" ? `${chapter.name} — Class Test ${++classTestN}` :
+      `${chapter.name} — DPP ${++dppN}`;
+    const daysBack = (ASSESSMENT_BLUEPRINT.length - i) * 9;
+    return {
+      examId: `${chapterId}-${b.type}-${i}`,
+      examName,
+      date: new Date(Date.now() - daysBack * 86400000).toISOString().slice(0, 10),
+      ...b,
+    };
+  });
+
+  // Generate every (assessment → topic → question → student) record in order.
+  const records: ResponseRecord[] = [];
+  for (const a of assessments) {
+    for (const topic of topics) {
+      const covered = topic.difficulty <= a.coverage + 0.5; // deterministic coverage gate
+      if (!covered && topics.indexOf(topic) % 2 === 0) continue;
+      for (let q = 0; q < a.qPerTopic; q++) {
+        const questionId = `${a.examId}-${topic.topicId}-q${q}`;
+        for (const s of students) {
+          if (s.absent) continue; // no records → absent
+          const rAttempt = rand();
+          const rCorrect = rand();
+          const rTime = rand();
+          const pAttempt = clampNum(s.ability * 0.7 + 0.3, 0, 1);
+          const attempted = s.neverAttempts ? false : rAttempt < pAttempt;
+          const pCorrect = sigmoid((s.ability - topic.difficulty) * 5);
+          const correct = attempted && rCorrect < pCorrect;
+          const timeRatio = a.timed && attempted
+            ? clampNum(0.8 - s.ability * 0.4 + (rTime - 0.5) * 0.3, 0.1, 1)
+            : undefined;
+          records.push({
+            examId: a.examId,
+            assessmentType: a.type,
+            chapterId,
+            topicId: topic.topicId,
+            questionId,
+            studentId: s.id,
+            attempted,
+            correct,
+            timeRatio,
+          });
+        }
+      }
+    }
+  }
+
+  return { records, students, assessments, topics };
+};
+
 const generateChapterDetail = (chapterId: string, batchId: string): ChapterDetailReport => {
   const chapter = physicsChapters.find((c) => c.id === chapterId)!;
   const batchInfo = batchInfoMap[batchId];
-  const rand = seededRandom(hashString(chapterId + "-" + batchId + "-detail"));
+  const { records, students, assessments, topics: matrixTopics } = buildResponseMatrix(chapterId, batchId);
 
-  const topics: ChapterTopicAnalysis[] = chapter.topics.map((t, i) => {
-    const sr = 20 + Math.floor(rand() * 65);
+  // ── A. Topic Heatmap (pooled correct/attempted per topic) ──
+  const topics: ChapterTopicAnalysis[] = matrixTopics
+    .map((t) => {
+      const recs = records.filter((r) => r.topicId === t.topicId);
+      const attempted = recs.filter((r) => r.attempted).length;
+      const correct = recs.filter((r) => r.attempted && r.correct).length;
+      const questionsAsked = new Set(recs.map((r) => r.questionId)).size;
+      const examsAppeared = new Set(recs.map((r) => r.examId)).size;
+      const avgSuccessRate = pct(correct, attempted);
+      const status: "strong" | "moderate" | "weak" =
+        avgSuccessRate === null ? "weak" : avgSuccessRate >= 65 ? "strong" : avgSuccessRate >= 40 ? "moderate" : "weak";
+      return {
+        topicId: t.topicId,
+        topicName: t.topicName,
+        questionsAsked,
+        avgSuccessRate,
+        lowData: attempted <= LOW_DATA_THRESHOLD,
+        status,
+        examsAppeared,
+      };
+    })
+    .filter((t) => t.questionsAsked > 0); // hide never-tested topics
+
+  // ── Overall (pooled across ALL topics) ──
+  const totalAttempted = records.filter((r) => r.attempted).length;
+  const totalCorrect = records.filter((r) => r.attempted && r.correct).length;
+  const overallSuccessRate = pct(totalCorrect, totalAttempted) ?? 0;
+  const totalQuestionsAsked = new Set(records.map((r) => r.questionId)).size;
+
+  // ── Per-assessment breakdown ──
+  const examBreakdown: ChapterExamBreakdown[] = assessments.map((a) => {
+    const recs = records.filter((r) => r.examId === a.examId);
+    const att = recs.filter((r) => r.attempted).length;
+    const cor = recs.filter((r) => r.attempted && r.correct).length;
     return {
-      topicId: `${chapterId}-t${i}`,
-      topicName: t,
-      questionsAsked: 2 + Math.floor(rand() * 8),
-      avgSuccessRate: sr,
-      status: sr >= 65 ? "strong" : sr >= 40 ? "moderate" : "weak",
-      examsAppeared: 1 + Math.floor(rand() * 3),
+      examId: a.examId,
+      examName: a.examName,
+      date: a.date,
+      questionsFromChapter: new Set(recs.map((r) => r.questionId)).size,
+      avgSuccessRate: pct(cor, att) ?? 0,
     };
   });
 
-  const batchExams = teacherExams.filter(
-    (e) => e.batchIds.includes(batchId) && e.status === "completed"
-  );
-  const examBreakdown: ChapterExamBreakdown[] = batchExams.map((exam) => ({
-    examId: exam.id,
-    examName: exam.name,
-    date: exam.updatedAt,
-    questionsFromChapter: 2 + Math.floor(rand() * 5),
-    avgSuccessRate: 30 + Math.floor(rand() * 50),
-  }));
-
-  const overallSuccess = Math.round(topics.reduce((s, t) => s + t.avgSuccessRate, 0) / topics.length);
-
-  // Generate student buckets (mock aggregated data)
-  const studentNames = [
-    "Aarav Sharma", "Priya Patel", "Rohan Gupta", "Ananya Singh", "Vikram Reddy",
-    "Sneha Iyer", "Arjun Nair", "Kavya Menon", "Rahul Das", "Meera Joshi",
-    "Siddharth Kumar", "Divya Rao", "Aditya Verma", "Ishita Banerjee", "Karthik Subramaniam",
-    "Neha Agarwal", "Varun Mishra", "Riya Chauhan", "Harsh Pandey", "Pooja Deshmukh",
-    "Amit Tiwari", "Simran Kaur", "Nikhil Saxena", "Tanvi Kulkarni", "Deepak Yadav",
-  ];
-
-  const allStudents: ChapterStudentEntry[] = studentNames.slice(0, 20 + Math.floor(rand() * 5)).map((name, i) => {
-    const numExams = 1 + Math.floor(rand() * examBreakdown.length + 1);
-    
-    // Generate mock exam history
-    const examHistory: ExamHistoryEntry[] = Array.from({ length: numExams }, (_, j) => ({
-      examId: examBreakdown[j % examBreakdown.length]?.examId || `mock-exam-${j}`,
-      percentage: Math.round(10 + rand() * 85),
-      date: examBreakdown[j % examBreakdown.length]?.date || `2025-0${j + 1}-15`,
-      timeEfficiency: Math.round(25 + rand() * 70),
-      attemptRate: Math.round(40 + rand() * 60),
-    }));
-
-    const piResult = computeStudentPI(examHistory);
-    const avgPercentage = piResult.accuracy;
-
+  // ── B. Student Segregation (mastery band + flags) ──
+  const allStudents: ChapterStudentEntry[] = students.map((s) => {
+    const seg = computeStudentSegregation(records.filter((r) => r.studentId === s.id));
     return {
-      id: `${chapterId}-s${i}`,
-      studentName: name,
-      rollNumber: `R${String(101 + i)}`,
-      avgPercentage,
-      examsAttempted: numExams,
-      performanceIndex: piResult.performanceIndex,
-      consistency: piResult.consistency,
-      timeEfficiency: piResult.timeEfficiency,
-      attemptRate: piResult.attemptRate,
-      trend: piResult.trend,
-      secondaryTags: piResult.secondaryTags,
-      examHistory: piResult.examHistory,
+      id: s.id,
+      studentName: s.studentName,
+      rollNumber: s.rollNumber,
+      asked: seg.asked,
+      attempted: seg.attempted,
+      examsAttempted: seg.examsAttempted,
+      masteryScore: seg.masteryScore,
+      band: seg.band,
+      testMastery: seg.testMastery,
+      practiceMastery: seg.practiceMastery,
+      dppEffort: seg.dppEffort,
+      pacing: seg.pacing,
+      consistency: seg.consistency,
+      trend: seg.trend,
+      flags: seg.flags,
     };
   });
 
-  // Bucket by Performance Index instead of raw percentage
-  const mastery = allStudents.filter(s => s.performanceIndex >= 75);
-  const stable = allStudents.filter(s => s.performanceIndex >= 50 && s.performanceIndex < 75);
-  const reinforcement = allStudents.filter(s => s.performanceIndex >= 35 && s.performanceIndex < 50);
-  const risk = allStudents.filter(s => s.performanceIndex < 35);
-
+  const byBand = (band: Band) => allStudents.filter((s) => s.band === band);
   const studentBuckets: ChapterStudentBucket[] = [
-    { key: "mastery", label: "Mastery Ready", count: mastery.length, students: mastery },
-    { key: "stable", label: "Stable Progress", count: stable.length, students: stable },
-    { key: "reinforcement", label: "Reinforcement Needed", count: reinforcement.length, students: reinforcement },
-    { key: "risk", label: "Foundational Risk", count: risk.length, students: risk },
+    { key: "mastery", label: "Mastery Ready", count: byBand("mastery").length, students: byBand("mastery") },
+    { key: "stable", label: "Stable Progress", count: byBand("stable").length, students: byBand("stable") },
+    { key: "reinforcement", label: "Reinforcement Needed", count: byBand("reinforcement").length, students: byBand("reinforcement") },
+    { key: "risk", label: "Foundational Risk", count: byBand("risk").length, students: byBand("risk") },
+    { key: "notAttempted", label: "Not Attempted", count: byBand("notAttempted").length, students: byBand("notAttempted") },
+    { key: "absent", label: "Absent", count: byBand("absent").length, students: byBand("absent") },
   ];
+
+  // Dev reconciliation assertion (per scope).
+  const bucketTotal = studentBuckets.reduce((sum, b) => sum + b.count, 0);
+  console.assert(bucketTotal === students.length, "Bucket counts do not reconcile", { bucketTotal, students: students.length });
 
   return {
     chapterId,
@@ -276,8 +421,8 @@ const generateChapterDetail = (chapterId: string, batchId: string): ChapterDetai
     subject: "Physics",
     batchId,
     batchName: batchInfo?.name || batchId,
-    overallSuccessRate: overallSuccess,
-    totalQuestionsAsked: topics.reduce((s, t) => s + t.questionsAsked, 0),
+    overallSuccessRate,
+    totalQuestionsAsked,
     examsCovering: examBreakdown.length,
     topics,
     examBreakdown,
