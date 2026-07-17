@@ -1,102 +1,56 @@
-# Chapter Report — Calculation Spec & Implementation (v4)
 
-Deliverable order: (1) publish the spec doc the team can read, (2) implement so every number on the chapter report is computed and reconciles.
+# Codebase Health & Scalability Audit
 
-## Step 1 — Documentation (do first)
+## What I looked at
+- 944 TS/TSX files, ~186K lines of source, `src/` = 7.1 MB
+- 4 portals already: SuperAdmin, Institute, Teacher, Student (+ Docs)
+- Largest area: `src/components/teacher` (1.1 MB), `src/data` (1.4 MB — all mock data bundled)
+- Vite config is default (no chunking, no compression, no lazy tuning)
+- Routing is already module-split via `React.lazy` in `App.tsx`
 
-Create `docs/03-teacher/chapter-report-calculations.md` containing the full spec below, and refresh the [Chapter Insights](mem://features/teacher-module/chapter-insights-and-automation) and [Student Bucketing](mem://features/teacher-module/student-bucketing-and-pi-logic) memories to record the new contract (blended PI retired → mastery-band + flags). The doc is the source the team shares; code follows it exactly.
-
----
-
-## The problem today
-`generateChapterDetail()` fakes everything: topic % = `20 + rand()*65`, student accuracy from a separate random `examHistory`. A topic can read 30% while every student reads 80% — the cards never reconcile.
-
-**Fix:** build ONE deterministic **response matrix** per `(chapter, batch)`. Every displayed value is a reduction over it — never random.
-
-```text
-ResponseRecord = {
-  examId, assessmentType: "chapterTest"|"classTest"|"dpp",
-  chapterId, topicId, questionId, studentId,
-  attempted: bool, correct: bool (only if attempted),
-  timeRatio?: number   // timeUsed/allotted; absent on untimed DPPs
-}
-```
-Latent `studentAbility∈[0.2,0.9]`, `topicDifficulty∈[0.2,0.9]` make results realistic; all shown values are aggregates.
-
-## A. Topic Heatmap
-- `avgSuccessRate(topic) = round(Σcorrect / Σattempted × 100)` — pooled at response level (not mean of per-student %). `null` when `Σattempted===0`.
-- `questionsAsked` = total questions from topic in scope; `examsAppeared` = assessments with ≥1 question.
-- Status/colour: `strong≥65 / moderate≥40 / else weak`.
-- `overallSuccessRate` (banner) = pooled `Σcorrect/Σattempted` across ALL topics (reconciles with cards).
-- **Edges:** denom 0 → "—" neutral grey "Not attempted" (not 0%); `questionsAsked===0` → hide card; `LOW_DATA_THRESHOLD=2`, `lowData = attempted ≤ 2` (compute + flag fragile); round once, keep raw ratio for sorting.
-
-## B. Student Segregation — Band + Flags
-Blended PI retired (one averaged number ranks but doesn't segregate by need). One **mastery score** decides the band; everything else becomes a **flag** that names the intervention.
-
-**Scope rule:** chapter report aggregates all chapter assessments (chapterTest+classTest+dpp); single-test report uses that test only. Same student may differ by scope — intentional; assertion runs per scope.
-
-### B1 Mastery score (band decider)
-```text
-STAKES_WEIGHT = { chapterTest:1.0, classTest:0.6, dpp:0.3 }   // tunable
-mastery = round( Σ(w·correct) / Σ(w·asked) × 100 )            // 0–100
-```
-Skipped questions stay in `asked`, so avoiding questions lowers mastery — Accuracy + Attempt Rate folded honestly into one number; chapter test dominates. `DIFFICULTY_WEIGHTING=false` (when on, multiply `w` by question difficulty). `Σasked===0` → absent, excluded.
-
-### B2 Bands (inclusive lower bounds)
-```text
-Mastery Ready        ≥75 (provisional)
-Stable Progress      50–<75
-Reinforcement Needed 35–<50
-Foundational Risk    <35
-```
-**Thresholds are placeholders** — `correct/asked` runs harsher than the old PI; recalibrate against a real class distribution before launch (avoid 30/40 in Risk on a hard chapter).
-
-### B3 Diagnostic signals (feed flags, never the band)
-`testMastery` (graded only), `practiceMastery` (DPP only), `dppEffort = attempted/asked on DPPs`, `pacing = clamp(round(100−avg(timeRatio)×100),0,100)` on correct timed answers (suppressed if no timing), `perTestAccuracy[] = round(correct/attempted×100)` per assessment with `attempted ≥ MIN_ATTEMPTS_PER_EXAM (=1)`, `consistency` & `trend` from `perTestAccuracy[]` (0–100, population stdDev, slope ±2).
-
-### B4 Flags — max 2, priority-ordered
-```text
-cracks-under-pressure : practiceMastery − testMastery ≥ 20 (needs both)
-disengaged            : dppEffort < 60
-conceptual-gap        : practiceMastery <50 AND testMastery <50
-declining             : trend down
-topic-weakness        : ≥1 in-scope topic below weak cut (phase 2)
-pacing                : pacing < 40
-inconsistent          : ≥3 tests-with-attempts, stdDev >15
-plateaued             : ≥3 tests-with-attempts, stdDev <5, slope≈0, band<Mastery
-improving             : trend up
-```
-`FLAG_PRIORITY` = the order above; sort then `slice(0,2)`. Display: one band + ≤2 flags per student; mastery score is the sortable column, never shown without flags.
-
-### Bucket edges + assertion
-- **Absent** (`Σasked=0`): own line, excluded from 4 bands AND from "Not attempted".
-- **Not attempted** (`asked>0, attempted=0`): own line, mastery "—" (never 0).
-- Per-scope: `mastery+stable+reinforcement+risk+notAttempted+absent === studentsInScope`.
+## Verdict
+**The app will keep working when you add 3 more modules, but reload/HMR slowness will get significantly worse unless we fix a few structural issues first.** Nothing is broken — it's accumulated weight, not architectural rot.
 
 ---
 
-## Step 2 — Implementation
+## Why reload is slow today
 
-**`src/data/teacher/reportsData.ts`**
-- Add `buildResponseMatrix(chapterId, batchId)` — seeded mulberry32 on `hash(chapterId+batchId)`, drawn in fixed order (assessment→topic→question→student), tagging each record with `assessmentType`. Generator: `pCorrect=1/(1+e^(-(ability-difficulty)*5))`, `pAttempt=clamp(ability*0.7+0.3,0,1)`, `timeRatio=clamp(0.8-ability*0.4+noise,0.1,1)` (timed only).
-- Rewrite `generateChapterDetail()` to derive topics / overall / totals / examBreakdown / studentBuckets (4 bands + `notAttempted` + `absent`) from the matrix, scoped.
-- Types: `ChapterTopicAnalysis.avgSuccessRate: number|null` + `lowData?`; new `Band` union; `ChapterStudentEntry` → `asked`, `attempted`, `masteryScore: number|null`, `band`, optional diagnostics, `flags: string[]`; `ChapterStudentBucket.key` extended to the 6 band keys.
+1. **Mock data is huge and eagerly imported.** Files like `neetQuestions.ts` (3,130 lines), `questionsData.ts` (3,110), `academicScheduleData.ts` (1,911), `jeeAdvancedQuestions.ts` (1,762), `instituteData.ts` (1,435) get pulled into the module graph. Vite has to transform + hold all of them in memory on every HMR cycle.
+2. **No manualChunks / code splitting inside modules.** Each portal is lazy at the route level, but within Teacher (1.1 MB) everything loads in one chunk. Same for the giant page files (`AddStudent.tsx` 1,066 lines, `CreateGrandTest.tsx` 750, `ViewTimetable.tsx` 700).
+3. **Lots of heavy libs bundled together**: `fabric`, `html2canvas`, `jspdf`, `framer-motion`, `katex`, `@dnd-kit/*`, `embla`, `remotion`, full Radix set. Fine for prod, but Vite dev pre-bundles all of them.
+4. **`lovable-tagger` runs in dev** — adds transform cost per file. Necessary for the editor, not removable.
+5. **No `optimizeDeps.include` hints**, so cold starts re-discover deps.
 
-**`src/lib/performanceIndex.ts`** (segregation module)
-- Add `computeMastery({records, scope})` → 0–100 band score, and `computeFlags({records})` → signals + ordered flags. Reuse existing consistency/trend helpers. Keep a thin deprecated `computeStudentPI` shim so current importers (`studentReportData.ts`) compile until phase 2.
+## Will 3 more modules break support?
+- **Runtime / prod:** No. Route-level lazy loading means each new module only loads when visited. Bundle size grows, but users pay only for what they open.
+- **Dev experience:** Yes, it will degrade — HMR full-reloads already feel slow; adding 3 more modules of similar weight (~1 MB components + ~500 KB mock data each) would push `src/` past ~12 MB and file count past ~1,500. Vite handles this, but every reload gets noticeably slower.
+- **Team velocity:** The real risk. Big shared files (`masterData.ts`, `instituteData.ts`) are already touched by multiple portals → merge conflicts and cross-module coupling will grow.
 
-**UI (presentation only)**
-- `reportColors.ts`: add `getTopicColor(status)` on the 65/40 scale; keep `getPerformanceColor` for bands.
-- `TopicHeatmapGrid.tsx`: neutral grey "Not attempted / low data" when `avgSuccessRate===null`; colour tiles via `getTopicColor`.
-- `StudentBuckets.tsx`: update `bandStyles` to the 6 keys; render separate "Not attempted" and "Absent" lines (mastery "—"); show band + up to 2 flags per student.
-- Null-guard `getPerformanceColor` / sorts / filters anywhere `masteryScore` can be null (incl. `reportContext.ts`).
+---
 
-## Verification
-- One chapter: topic pooled %s, banner overall %, and per-student mastery all trace to the same matrix; per-scope reconciliation assertion passes; absent/not-attempted never render red.
-- Build clean; ChapterReport renders bands + flags; deep-dive card shows "—" not "null%".
+## Recommended cleanup before adding new modules
 
-## Out of scope
-- Real DB (stays deterministic mock).
-- Recalibrating final band thresholds (placeholders; needs real distribution).
-- `topic-weakness` per-student×topic flag — phase 2.
-- Batch roster / institute reports — Students-tab roster stays on the old generator for now (won't fully reconcile until phase 2).
+**Phase A — Quick wins (low risk, big HMR improvement)**
+1. Move giant mock datasets (`neetQuestions`, `jeeAdvancedQuestions`, `questionsData`, `examQuestionsData`, `academicScheduleData`) behind **dynamic imports** — load only when the page that needs them mounts.
+2. Add `build.rollupOptions.output.manualChunks` in `vite.config.ts` to split vendor bundles (`react`, `radix`, `fabric+html2canvas+jspdf`, `framer-motion`, `katex`).
+3. Add `optimizeDeps.include` for the heavy libs so dev cold-start is stable.
+
+**Phase B — Structural (before module #5)**
+4. Enforce a **per-portal data folder** rule: `src/data/<portal>/…` with no cross-imports. Split `masterData.ts` and `instituteData.ts` by consumer.
+5. Extract mock JSON out of `.ts` into `.json` files loaded lazily — Vite won't re-transform JSON on HMR.
+6. Break up the 700+ line page files (`AddStudent`, `CreateGrandTest`, `ViewTimetable`, `SectionsStep`) into feature folders. Not for perf — for merge safety once new modules land.
+
+**Phase C — Long-term**
+7. Introduce a shared `@/features/*` layer for anything used by ≥2 portals (reports engine, curriculum tree, exam blocks) so new modules import from `features`, not from another portal.
+8. Move mock data behind a thin service interface so swapping to Lovable Cloud later is a one-file change per feature.
+
+---
+
+## Suggested order
+1. Confirm which 3 modules you plan to add (so we know what they'll touch).
+2. Do **Phase A** (1–2 hours of edits, immediate reload speedup).
+3. Do **Phase B** in parallel with building module #5.
+4. Defer Phase C until modules #6–#7 are on the roadmap.
+
+## Question for you before I start
+Which 3 modules are you planning to add? (e.g., Parent portal, Accounts, Admissions, Library…) — that tells me whether Phase A alone is enough, or whether we should also split the shared data layer (Phase B step 4) up front.
