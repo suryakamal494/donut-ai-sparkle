@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { initialRubrics, assignmentFor, updateAssignment } from "@/data/ritx/rubricData";
 import { mockTeams } from "@/data/ritx/mockData";
@@ -44,6 +46,9 @@ export function ScoringPanel({ teamId, judgeId, onSubmitted, compact }: Props) {
   const pct = Math.round((scoredCount / rubric.criteria.length) * 100);
   const complete = scoredCount === rubric.criteria.length;
 
+  const snap = (v: number) => Math.max(0, Math.min(10, Math.round(v * 4) / 4));
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/\.?0+$/, ""));
+
   const submit = () => {
     if (!complete) return toast.error("Score every criterion before submitting");
     updateAssignment(judgeId, teamId, {
@@ -71,8 +76,9 @@ export function ScoringPanel({ teamId, judgeId, onSubmitted, compact }: Props) {
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {rubric.criteria.map((c) => {
           const val = scores[c.id];
+          const set = (n: number) => setScores((s) => ({ ...s, [c.id]: snap(n) }));
           return (
-            <div key={c.id} className="border rounded-lg p-2.5">
+            <div key={c.id} className="border rounded-lg p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-sm font-medium leading-snug">{c.label}</div>
@@ -80,24 +86,40 @@ export function ScoringPanel({ teamId, judgeId, onSubmitted, compact }: Props) {
                 </div>
                 <Badge variant="secondary" className="text-[10px] shrink-0">{Math.round(c.weight * 100)}%</Badge>
               </div>
-              <div className="mt-2 grid grid-cols-11 gap-1">
-                {Array.from({ length: c.maxScore + 1 }).map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setScores((s) => ({ ...s, [c.id]: i }))}
-                    className={cn(
-                      "h-7 text-[11px] font-medium rounded tabular-nums border transition-colors",
-                      val === i
-                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                        : "bg-background text-muted-foreground hover:bg-muted border-border"
-                    )}
-                    aria-label={`Score ${i}`}
-                  >
-                    {i}
-                  </button>
-                ))}
+              <div className="mt-3 flex items-center gap-3">
+                <Slider
+                  value={[val ?? 0]}
+                  min={0}
+                  max={c.maxScore}
+                  step={0.25}
+                  onValueChange={([n]) => set(n)}
+                  className={cn("flex-1", val == null && "opacity-70")}
+                  aria-label={`${c.label} score`}
+                />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={c.maxScore}
+                  step={0.25}
+                  value={val ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") { setScores((s) => { const n = { ...s }; delete n[c.id]; return n; }); return; }
+                    const n = parseFloat(raw);
+                    if (!Number.isNaN(n)) set(n);
+                  }}
+                  placeholder="—"
+                  className="w-16 h-8 text-center tabular-nums text-sm px-1"
+                />
+                <span className="text-[11px] text-muted-foreground tabular-nums w-8 text-right">/{c.maxScore}</span>
               </div>
+              <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground tabular-nums px-0.5">
+                <span>0</span><span>2.5</span><span>5</span><span>7.5</span><span>10</span>
+              </div>
+              {val != null && (
+                <div className="mt-1 text-[11px] text-muted-foreground">Selected: <span className="font-medium text-foreground tabular-nums">{fmt(val)}</span> · steps of 0.25</div>
+              )}
             </div>
           );
         })}

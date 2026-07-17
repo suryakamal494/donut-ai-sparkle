@@ -52,11 +52,14 @@ export function AdminScoreRecap({ teamId }: { teamId: string }) {
                     <div className="font-medium">{c.label}</div>
                     <div className="text-[10px] text-muted-foreground">{Math.round(c.weight * 100)}%</div>
                   </td>
-                  {assignments.map((a, i) => (
-                    <td key={i} className="text-center tabular-nums px-2 py-1.5">
-                      {a.criterionScores?.[c.id] ?? <span className="text-muted-foreground">—</span>}
-                    </td>
-                  ))}
+                  {assignments.map((a, i) => {
+                    const v = a.criterionScores?.[c.id];
+                    return (
+                      <td key={i} className="text-center tabular-nums px-2 py-1.5">
+                        {v == null ? <span className="text-muted-foreground">—</span> : Number.isInteger(v) ? v : v.toFixed(2)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
               <tr className="border-t bg-muted/20 font-semibold">
