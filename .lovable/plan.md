@@ -1,67 +1,125 @@
-# Refresh RiTX UI to match student-portal polish
 
-## Why the current RiTX feels dull
-Comparing screenshots 1–3 (student) vs 4 (RiTX Team):
+## Validation of your points (after reading the Concept Note)
 
-1. **Cold surface color.** RiTX shell uses `bg-muted/30` (flat grey) as the app background. Student portal uses warm cream + soft gradients (`from-amber-50 via-orange-50/80 to-white`) which reads as premium and inviting.
-2. **Sidebar is flat + grey.** Student sidebar is a full-height warm gradient with a glass profile card, gradient-filled active pill (`from-donut-coral to-donut-orange` + coral shadow), rounded-xl items, and a branded logo header. RiTX sidebar is white with a small purple square, thin text links, no profile card, no shadow, no gradient active state.
-3. **Cards are outline-only.** RiTX cards use default shadcn `Card` (1px border, no shadow, sharp corners). Student cards use `rounded-2xl`, subtle shadow, soft tinted backgrounds, and colored left accents / gradient icon tiles.
-4. **Icon tiles lack color system.** Student uses per-subject colored gradient squares (blue Math, teal Physics, purple Chemistry). RiTX uses uniform `bg-primary/10` circles — monotone.
-5. **Typography hierarchy is thin.** Student pages open with a large greeting + supportive subtitle + a hero stat chip (streak). RiTX pages open with a small PageHeader and a chip row, no hero moment.
-6. **Buttons/badges lack warmth.** RiTX "Join" button is flat coral; disabled state washes to pale pink with no visual grouping. Student CTAs are gradient (`from-donut-coral to-donut-orange`) with soft glow shadow.
-7. **No ambient depth.** Student pages have subtle background patterns (SubjectBackgroundPattern SVG), gradient hero banner behind the subject title. RiTX has none — everything sits on flat grey.
-8. **Spacing is dense.** RiTX uses `space-y-4` / `gap-3` and `p-4` cards. Student uses `space-y-5/6`, `p-5/6`, larger rounded-2xl — feels less cramped.
+Yes — your requirements match the document. The note explicitly defines **two submissions**: a **Progress submission** (Aug 2026, mid-programme check-in) and a **Final submission** (early Sept 2026, pitch/prototype). Every final submission must carry a **"Policy & SDG Lens"** (national mission + primary SDG + affected people + intended improvement + track/theme). Tracks are **Sustainability**, **Health & Well-being**, **Open Arena**. Judging rubric = 6 weighted criteria (problem relevance, investigation & evidence, scientific reasoning, originality, feasibility & impact, policy/SDG/ethics/communication). Outputs differ per track (evidence report / pitch deck / prototype / video). So your ask — **two submissions, tabbed form + evidence uploads, deadline countdown, admin extension, inline preview** — is fully aligned. ✅
 
-## What to change (scope: RiTX only, do not touch student/teacher/institute)
+---
 
-### 1. Shell + background
-`src/components/ritx/shared/RitxShell.tsx`
-- Replace `bg-muted/30` with warm gradient: `bg-gradient-to-b from-amber-50 via-orange-50/40 to-white`.
-- Sidebar: switch to student-style warm gradient panel, add coral-tinted border + shadow, replace the fuchsia→indigo logo tile with the DonutLogo + "RiTX" wordmark using `gradient-text`, add a small role card (Team/Admin/Staff + team code chip) mirroring the student profile card.
-- Active nav item: `bg-gradient-to-r from-donut-coral to-donut-orange text-white shadow-md shadow-donut-coral/30 rounded-xl`. Inactive: `hover:bg-white/70`.
-- Mobile top bar: same warm treatment.
+## What changes, at a glance
 
-### 2. Card system
-Introduce a shared `RitxCard` wrapper (or extend usage in place) that applies:
-- `rounded-2xl border border-orange-100/60 bg-white shadow-sm shadow-orange-100/30`
-- Hover: `hover:shadow-md hover:-translate-y-0.5 transition`
-- Section headers get a small colored icon tile (`w-10 h-10 rounded-xl bg-gradient-to-br from-<track>-400 to-<track>-500`) using per-track colors (Science = teal/cyan, Innovator = amber/orange, Open Arena = violet/fuchsia, matching existing `roleColor`).
+| Login | Page | Change |
+|---|---|---|
+| **Admin** | Submission forms | Per-track **× per-stage** builder (Progress / Final), each stage has an **Open date, Deadline, Extension controls**, and **multi-section tabs** (Form / Evidence / Deck) |
+| **Admin** | New: Submissions timeline strip | Enable/disable each stage, extend deadline (auto propagates timer), lock/unlock edits |
+| **Team** | Submission page | Two top-level cards: **Progress submission** & **Final submission**; each opens a tabbed form (Overview → Evidence/Survey → Deck/Prototype → Review & Submit) with a **live countdown**, autosave draft, lock after deadline |
+| **Team** | Resources | Add **inline preview** (PDF/image/video/doc via Google-viewer fallback) alongside Download |
+| **Staff (Judge)** | Score sheet | Read-only view now shows both Progress + Final submission tabs so judges can compare progression |
 
-### 3. Team Home hero (screenshot 4)
-`src/pages/ritx/team/Home.tsx`
-- Replace PageHeader with a hero banner: gradient background (`from-orange-50 to-white`), large team name, team code + status chips, small illustrative pattern on the right (reuse `SubjectBackgroundPattern` style or a lightweight SVG).
-- The three summary tiles (Track / Deadline / Members) become gradient-iconed cards with the new card system; deadline gets a countdown pill.
-- Consent-pending banner: keep amber palette but upgrade to `rounded-2xl`, add soft amber glow shadow.
-- Session cards: rounded-2xl, colored gradient icon tile per session type (mentor = coral, workshop = violet, office hours = teal), "Join" CTA becomes gradient coral→orange with glow.
+---
 
-### 4. Admin + Staff consoles
-Apply the same shell/card/hero patterns to:
-- `src/pages/ritx/admin/*` (Dashboard, Registrations, Submissions, Rubrics, JudgeAssignments, Results, Staff, Setup)
-- `src/pages/ritx/staff/Home.tsx`, `staff/judge/AssignedList.tsx`, `staff/judge/ScoreSheet.tsx`
-- Judging components (`AdminScoreRecap`, `ScoringPanel`, `SubmissionViewer`) — swap flat headers for warm tinted headers, keep functional layout intact.
+## 1. Team login — `/team/submissions`
 
-### 5. Landing + Login
-`src/pages/ritx/Landing.tsx`, `src/pages/ritx/Login.tsx`
-- Keep the tri-role structure but re-skin: warm cream background instead of fuchsia/indigo/cyan wash; role cards get gradient icon tiles + rounded-2xl + hover lift; primary CTAs use donut-coral→orange gradient.
+Rebuild `src/pages/ritx/team/Submission.tsx` as a **stage-picker shell**, not a single flat form.
 
-### 6. Design tokens (additive, no breaking changes)
-`src/index.css` — add RiTX-specific accents so we don't hardcode:
-- `--ritx-surface: warm cream gradient stops`
-- `--ritx-card-border`, `--ritx-card-shadow`
-- Track accent hues: `--ritx-science`, `--ritx-innovator`, `--ritx-open` (teal, amber, violet)
-Wire these into `tailwind.config.ts` under a `ritx` namespace.
+**Top area (compact, no wasted header space):**
+- Compact page header (title + team chip inline, no `PageHeader` vertical padding — replace with `<div className="flex items-center justify-between">`)
+- Two stage cards side-by-side:
+  - **Progress submission** — status pill, progress %, **countdown chip** ("Closes in 3d 4h"), CTA "Continue" / "Start" / "Locked"
+  - **Final submission** — same layout; disabled with tooltip "Opens after Progress deadline" until admin opens it
 
-### 7. Preserved behavior
-- All existing routes, data hooks, mock data, judging logic, and component APIs stay unchanged.
-- Only presentation layer (className, wrappers, small hero blocks) is touched.
-- No changes to student / teacher / institute / superadmin surfaces.
+**Inside a stage (route: `/team/submissions/:stageId`):**
+Tabbed form (shadcn `Tabs`, sticky under header):
+1. **Overview** — Project title, Track (readonly from registration), Sub-theme, **SDG multi-select**, **Government mission** select, **Problem statement**, People affected, Intended improvement, Abstract. (Progress stage = shorter version; Final = full "Policy & SDG Lens" per concept note §5.)
+2. **Evidence / Survey** — Multi-file upload block ("Add survey attachment"), each row: title + file + optional notes. Supports repeated attachments (photos, survey PDFs, data sheets). Show list with inline remove.
+3. **Deck / Prototype** — Pitch deck upload (PDF/PPTX), demo video URL (YouTube/Vimeo), optional prototype photos, optional GitHub/other link. On Progress stage this becomes **"Work-in-progress artifacts"** (looser, optional).
+4. **Review & Submit** — Field-by-field summary, missing-item checklist, big Submit button + Save draft.
 
-## Technical notes
-- No new deps.
-- Rollout order: shell → shared card/hero primitives → Team pages → Admin pages → Staff pages → Landing/Login. Each step is independently shippable and typechecks cleanly.
-- Verification after each step: `bunx tsgo --noEmit` + Playwright screenshot of `/team`, `/admin`, `/staff` to confirm the warm treatment matches the student portal density and hierarchy.
+**Header of the stage screen** (persistent, compact):
+```
+[← Back]  Progress submission   ● In progress   ⏱ 3d 04h to deadline   [Save draft] [Submit]
+```
+- Countdown recomputes every minute from `stage.deadlineAt`.
+- If `now > deadlineAt`: banner "Deadline passed — saved as draft, editing disabled", all inputs go `disabled`, Submit hidden.
+- If admin extends: mock data change re-renders new countdown automatically (state is derived).
 
-## Out of scope
-- Restructuring RiTX information architecture, nav items, or data models.
-- Dark mode (student portal is light-only per project memory; RiTX will follow suit).
-- Motion beyond the existing `animate-fade-in` + hover lift.
+**Compactness rules** applied everywhere:
+- Kill `PageHeader` on submission screens (replace with a 40px inline bar).
+- Card padding `p-4` → `p-3`; section `space-y-4` → `space-y-2`.
+- Field label + input in the same row on ≥md; helper text `text-[11px]`.
+- No decorative gradients inside form area — keep white surface for scan-ability (ERP feel), reserve warm gradient for outer shell only.
+
+---
+
+## 2. Admin login — `/admin/submission-forms`
+
+Extend `SubmissionForms.tsx` + `submissionData.ts`:
+
+**Data shape change** (`submissionData.ts`):
+```ts
+type StageId = "progress" | "final";
+interface FormSection { id: string; label: string; fields: SubmissionField[]; } // tab
+interface StageForm {
+  stageId: StageId;
+  openAt: string; deadlineAt: string;
+  status: "draft" | "open" | "closed";
+  editable: boolean;
+  sections: FormSection[];  // Overview / Evidence / Deck
+}
+interface TrackSubmissionForm { trackId: string; stages: Record<StageId, StageForm>; updatedAt: string; }
+```
+Team-side record gains `stageId` and stores answers per stage.
+
+**Builder UI** (compact ERP feel):
+- Track tabs (existing) → inside, **Stage sub-tabs** `Progress | Final`
+- Inside each stage:
+  - Top strip: `Open date` `Deadline` `[Extend +N days]` `Status pill` `Editable switch`
+  - Section tabs: Overview | Evidence | Deck (Add section button)
+  - Field editor list (existing `FieldEditor`) scoped to the active section
+- Right column: **Live preview** now renders the exact tabbed team view for that stage.
+
+**Deadline extension**: `[Extend deadline]` opens a small popover with +1d/+3d/+7d chips + custom date. Saves to mock state; team countdown updates.
+
+**Seed content** for defaults (mapped to concept note):
+- Progress → Overview only: title, track, sub-theme, SDG (multi), mission, problem, methodology outline, 150-word progress note. Evidence = optional early survey files. Deck = disabled.
+- Final → full 3 sections including "Policy & SDG Lens" fields, mandatory pitch deck + demo video, prototype stage select for Innovator track, sample-size for Sustainability, impact narrative for Open Arena.
+
+---
+
+## 3. Staff / Judge — `/staff/judge/:teamId`
+
+Add `Tabs` `Progress | Final` in the read-only scoresheet so judges scroll less and can compare stages. Rubric panel unchanged.
+
+---
+
+## 4. Resources — inline preview (both `team/Resources.tsx` and `staff/mentor/Resources.tsx`)
+
+- Add "Preview" icon button next to Download.
+- Click opens a `Dialog` (max-w-4xl, h-[80vh]) with a viewer routed by mime:
+  - **PDF** → `<iframe src={url} />`
+  - **image/*** → `<img>`
+  - **video** → `<video controls>`
+  - **YouTube/Vimeo URL** → embed iframe
+  - **DOC/PPT** → `<iframe src="https://docs.google.com/gview?url=...&embedded=true" />` fallback with a "Download to view" note.
+- Extend `Resource` type with `url` and `mime` (mock data update — use SAMPLE_PDF/SAMPLE_IMAGE already present in `submissionData.ts`).
+
+---
+
+## Technical section
+
+**Files to add/edit** (frontend only, mock data, no backend):
+- `src/data/ritx/submissionData.ts` — new stage/section schema + seed for Progress & Final per track; helper `stageStatus(stage, now)`, `timeToDeadline(stage)`.
+- `src/pages/ritx/team/Submission.tsx` — stage-picker landing.
+- `src/pages/ritx/team/SubmissionStage.tsx` (new) — tabbed form (Overview/Evidence/Deck/Review) with sticky compact header + countdown.
+- `src/components/ritx/shared/DeadlineTimer.tsx` (new) — recomputes with `setInterval(60_000)`; returns `{label, tone, expired}`.
+- `src/pages/ritx/admin/SubmissionForms.tsx` — stage sub-tabs, section tabs, deadline controls, live preview per stage.
+- `src/pages/ritx/staff/judge/ScoreSheet.tsx` — stage tabs for review.
+- `src/pages/ritx/team/Resources.tsx` + `src/pages/ritx/staff/mentor/Resources.tsx` — preview dialog.
+- `src/components/ritx/shared/ResourcePreviewDialog.tsx` (new).
+- `src/data/ritx/staffData.ts` — add `url`, `mime` to `Resource`.
+- `src/routes/RitxRoutes.tsx` — add `/team/submissions/:stageId` route.
+
+**Compactness pass:** on every RiTX submission-flow file, replace `PageHeader` with a 40-48px inline bar, drop card `p-4` → `p-3`, drop section `space-y-4` → `space-y-2`, tighten label text to `text-xs`.
+
+**No backend changes.** All state via React + module-level mock updates. Deadlines are ISO strings in mock data; extending updates the same object so the timer re-derives.
+
+**Verification:** `bunx tsgo --noEmit` + Playwright smoke on `/team/submissions`, `/team/submissions/progress`, `/team/submissions/final`, `/admin/submission-forms`, `/team/resources` (open preview dialog).
