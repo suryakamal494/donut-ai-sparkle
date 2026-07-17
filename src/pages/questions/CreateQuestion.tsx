@@ -14,44 +14,12 @@ import { getActiveCurriculums, getPublishedCourses, getAllCourseChapters } from 
 import { classes, subjects } from "@/data/mockData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
 import { countBlanks } from "@/lib/parseUtils";
-
-const cognitiveTypes = [
-  { id: "logical", label: "Logical" },
-  { id: "analytical", label: "Analytical" },
-  { id: "conceptual", label: "Conceptual" },
-  { id: "numerical", label: "Numerical" },
-  { id: "application", label: "Application" },
-  { id: "memory", label: "Memory" },
-];
-
-const questionTypes = [
-  { id: "mcq", label: "MCQ (Single Correct)" },
-  { id: "multiple", label: "Multiple Correct" },
-  { id: "numerical", label: "Numerical" },
-  { id: "truefalse", label: "True/False" },
-  { id: "assertion", label: "Assertion-Reasoning" },
-  { id: "fill", label: "Fill in Blanks" },
-  { id: "paragraph", label: "Paragraph Based" },
-  { id: "short", label: "Short Answer" },
-  { id: "long", label: "Long Answer" },
-];
-
-// Assertion-Reasoning standard options
-const assertionReasoningOptions = [
-  { id: "A", label: "Both Assertion and Reason are correct, and Reason is the correct explanation for Assertion" },
-  { id: "B", label: "Both Assertion and Reason are correct, but Reason is NOT the correct explanation for Assertion" },
-  { id: "C", label: "Assertion is correct, but Reason is incorrect" },
-  { id: "D", label: "Assertion is incorrect, but Reason is correct" },
-];
-
-// Sub-question type for paragraph questions
-interface SubQuestion {
-  type: 'mcq' | 'multiple' | 'numerical' | 'fill' | 'truefalse';
-  text: string;
-  options: string[];
-  correctAnswer: string;
-  blankAnswers?: string[];
-}
+import {
+  cognitiveTypes,
+  questionTypes,
+  assertionReasoningOptions,
+} from "./createQuestion.constants";
+import type { SubQuestion } from "./createQuestion.types";
 
 const CreateQuestion = () => {
   const [questionType, setQuestionType] = useState("mcq");
