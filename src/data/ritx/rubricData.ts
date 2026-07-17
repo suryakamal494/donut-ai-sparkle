@@ -86,11 +86,12 @@ function generateAssignments(): JudgeAssignment[] {
         const criterionScores: Record<string, number> = {};
         let weighted = 0;
         criteria.forEach((c) => {
-          // bias each judge slightly to add spread
+          // bias each judge slightly to add spread; snap to 0.25 steps
           const bias = jIdx === 0 ? 0 : (rand() - 0.5) * 2;
-          const raw = Math.max(3, Math.min(c.maxScore, Math.round(6 + rand() * 4 + bias)));
-          criterionScores[c.id] = raw;
-          weighted += (raw / c.maxScore) * 10 * c.weight;
+          const rawFloat = 6 + rand() * 4 + bias;
+          const snapped = Math.max(3, Math.min(c.maxScore, Math.round(rawFloat * 4) / 4));
+          criterionScores[c.id] = snapped;
+          weighted += (snapped / c.maxScore) * 10 * c.weight;
         });
         result.push({
           judgeId: j.id,
@@ -106,7 +107,7 @@ function generateAssignments(): JudgeAssignment[] {
         const criterionScores: Record<string, number> = {};
         const half = Math.floor(criteria.length / 2);
         criteria.slice(0, half).forEach((c) => {
-          criterionScores[c.id] = Math.round(5 + rand() * 4);
+          criterionScores[c.id] = Math.round((5 + rand() * 4) * 4) / 4;
         });
         result.push({ judgeId: j.id, teamId: team.id, status, criterionScores });
       } else {
