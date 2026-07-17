@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
 import { CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { getWorkspaceForUser, loginOrRegister } from "@/data/ritx/workspaceState";
+import { toast } from "sonner";
 
 type Role = "admin" | "team" | "staff";
 
@@ -32,13 +33,26 @@ export default function RitxLogin() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === "team") {
-      if (!name.trim() || !email.trim() || !klass) return;
+      if (!name.trim() || !email.trim() || !klass) {
+        toast.error("Fill in name, email and class to continue");
+        return;
+      }
       const user = loginOrRegister({ name, email, class: klass });
       const ws = getWorkspaceForUser(user.id);
       navigate(ws ? "/team" : "/team/join");
       return;
     }
     navigate(roleConfig[role].redirect);
+  };
+
+  const continueAsDemo = () => {
+    const user = loginOrRegister({
+      name: "Demo Student",
+      email: "demo.student@ritx.test",
+      class: "9",
+    });
+    const ws = getWorkspaceForUser(user.id);
+    navigate(ws ? "/team" : "/team/join");
   };
 
   return (
@@ -116,9 +130,18 @@ export default function RitxLogin() {
             {role === "team" ? "Continue" : "Sign in"}
           </Button>
           {role === "team" && (
-            <p className="text-[11px] text-center text-muted-foreground">
-              After sign-in you'll either <span className="font-medium">create a new team workspace</span> or <span className="font-medium">paste an invite code</span> to join one.
-            </p>
+            <>
+              <p className="text-[11px] text-center text-muted-foreground">
+                After sign-in you'll either <span className="font-medium">create a new team workspace</span> or <span className="font-medium">paste an invite code</span> to join one.
+              </p>
+              <button
+                type="button"
+                onClick={continueAsDemo}
+                className="w-full text-xs text-donut-coral hover:underline font-medium"
+              >
+                Continue as demo student →
+              </button>
+            </>
           )}
         </form>
       </Card>

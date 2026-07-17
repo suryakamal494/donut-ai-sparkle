@@ -18,7 +18,7 @@ export default function RitxStaffLayout() {
     { to: "/staff", label: "Overview", icon: LayoutDashboard, visible: true },
     { to: "/staff/mentor/resources", label: "Resources", icon: FolderOpen, visible: currentStaff.mentorAccess },
     { to: "/staff/mentor/sessions", label: "Sessions", icon: Video, visible: currentStaff.mentorAccess },
-    { to: "/staff/judge", label: "Judging (blind)", icon: Gavel, visible: currentStaff.judgeAccess },
+    { to: "/staff/judge", label: "Judging", icon: Gavel, visible: currentStaff.judgeAccess },
   ];
   const visibleNav = nav.filter((n) => n.visible);
 

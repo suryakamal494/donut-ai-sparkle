@@ -36,7 +36,7 @@ export default function RitxJudgeScoreSheet() {
       <Button variant="ghost" size="sm" onClick={() => navigate("/staff/judge")}>
         <ArrowLeft className="w-4 h-4 mr-1" /> Back to queue
       </Button>
-      <div className="text-xs text-muted-foreground">Blind evaluation</div>
+      <div className="text-xs text-muted-foreground">Judging</div>
     </div>
   );
 

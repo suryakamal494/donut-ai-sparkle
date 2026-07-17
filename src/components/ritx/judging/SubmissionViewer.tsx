@@ -7,7 +7,7 @@ import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { defaultFields, submissionForTeam, type AnswerValue, type SubmissionField } from "@/data/ritx/submissionData";
 import { assignmentsForTeam } from "@/data/ritx/rubricData";
 import { mockStaff } from "@/data/ritx/staffData";
-import { FileText, Film, Image as ImageIcon, EyeOff } from "lucide-react";
+import { FileText, Film, Image as ImageIcon } from "lucide-react";
 
 function isYouTube(url: string) {
   return /youtube\.com|youtu\.be/.test(url);
@@ -72,13 +72,7 @@ export function SubmissionViewer({ teamId, mode }: Props) {
           <TeamIdChip code={team.teamCode} />
           <Badge variant="outline">{track?.name}</Badge>
           <Badge variant="secondary">{team.subTheme}</Badge>
-          {mode === "admin" ? (
-            <span className="text-xs text-muted-foreground">· {team.teamName} · {team.school}</span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full ml-auto">
-              <EyeOff className="w-3 h-3" /> Blind mode
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground">· {team.teamName} · {team.school}</span>
         </div>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -104,7 +98,7 @@ export function SubmissionViewer({ teamId, mode }: Props) {
                 const s = mockStaff.find((x) => x.id === a.judgeId);
                 return (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span>{mode === "admin" ? s?.name : `Judge ${i + 1}`}</span>
+                    <span>{s?.name ?? `Judge ${i + 1}`}</span>
                     <Badge variant={a.status === "scored" ? "default" : "secondary"} className="capitalize text-[10px]">{a.status.replace("-", " ")}</Badge>
                   </div>
                 );
