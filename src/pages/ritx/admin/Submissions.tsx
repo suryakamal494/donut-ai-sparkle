@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
@@ -177,6 +178,7 @@ export default function RitxAdminSubmissions() {
 
       <Sheet open={!!reviewTeamId} onOpenChange={(v) => !v && setReviewTeamId(null)}>
         <SheetContent side="right" className="w-full sm:max-w-[min(1100px,95vw)] p-0 flex flex-col">
+          <VisuallyHidden><SheetTitle>Submission review</SheetTitle></VisuallyHidden>
           {reviewTeamId && (
             <div className="flex flex-col h-full">
               <div className="px-4 py-2 border-b flex items-center gap-2 bg-muted/30 text-xs">
