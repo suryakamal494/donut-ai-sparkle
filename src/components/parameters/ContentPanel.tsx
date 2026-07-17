@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { classes, subjects } from "@/data/ritx/mockData";
+import { classes, subjects } from "@/data/mockData";
 import { allCBSEChapters, allCBSETopics, type CBSEChapter, type CBSETopic } from "@/data/cbseMasterData";
 import { SubjectBadge } from "@/components/subject";
 import { ChapterFormDialog } from "./ChapterFormDialog";

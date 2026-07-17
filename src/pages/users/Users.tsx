@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { mockUsers, User } from "@/data/ritx/mockData";
+import { mockUsers, User } from "@/data/mockData";
 import { UserViewDialog } from "@/components/users";
 
 const Users = () => {

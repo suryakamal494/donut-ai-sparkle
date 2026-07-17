@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { assignedTracks } from "@/data/instituteData";
 import { getChaptersByClassAndSubject } from "@/data/cbseMasterData";
 import { getSubjectsForCourse, getChaptersForCourseBySubject, subjects as masterSubjects } from "@/data/masterData";
-import { classes } from "@/data/ritx/mockData";
+import { classes } from "@/data/mockData";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
