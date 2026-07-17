@@ -42,7 +42,7 @@ export default function RitxRegistrations() {
           {mockCompetition.tracks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </Card>
-      <Card>
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -65,6 +65,9 @@ export default function RitxRegistrations() {
                 <TableCell><AccessBadge status={t.status} /></TableCell>
               </TableRow>
             ))}
+            {filtered.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">No teams match your search.</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
