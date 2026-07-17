@@ -15,14 +15,21 @@ const AdminLayout = lazy(() => import("@/pages/ritx/admin/Layout"));
 const AdminDashboard = lazy(() => import("@/pages/ritx/admin/Dashboard"));
 const AdminSetup = lazy(() => import("@/pages/ritx/admin/CompetitionSetup"));
 const AdminRegistrations = lazy(() => import("@/pages/ritx/admin/Registrations"));
+const AdminStaff = lazy(() => import("@/pages/ritx/admin/Staff"));
+const AdminCommunications = lazy(() => import("@/pages/ritx/admin/Communications"));
+const AdminPayment = lazy(() => import("@/pages/ritx/admin/Payment"));
 
 const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
 const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
 const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
 const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
+const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
 
 const StaffLayout = lazy(() => import("@/pages/ritx/staff/Layout"));
 const StaffHome = lazy(() => import("@/pages/ritx/staff/Home"));
+const StaffMentorResources = lazy(() => import("@/pages/ritx/staff/mentor/Resources"));
+const StaffMentorSessions = lazy(() => import("@/pages/ritx/staff/mentor/Sessions"));
+const StaffJudgeAssigned = lazy(() => import("@/pages/ritx/staff/judge/AssignedList"));
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
@@ -43,18 +50,23 @@ export default function RitxRoutes() {
         <Route index element={<AdminDashboard />} />
         <Route path="setup" element={<AdminSetup />} />
         <Route path="registrations" element={<AdminRegistrations />} />
+        <Route path="staff" element={<AdminStaff />} />
+        <Route path="communications" element={<AdminCommunications />} />
+        <Route path="payment" element={<AdminPayment />} />
       </Route>
 
       <Route path="team" element={<Lazy><TeamLayout /></Lazy>}>
         <Route index element={<TeamHome />} />
         <Route path="members" element={<TeamMembers />} />
+        <Route path="resources" element={<TeamResources />} />
         <Route path="submissions" element={<Navigate to="/ritx/team" replace />} />
       </Route>
 
       <Route path="staff" element={<Lazy><StaffLayout /></Lazy>}>
         <Route index element={<StaffHome />} />
-        <Route path="judge" element={<StaffHome />} />
-        <Route path="mentor" element={<StaffHome />} />
+        <Route path="mentor/resources" element={<StaffMentorResources />} />
+        <Route path="mentor/sessions" element={<StaffMentorSessions />} />
+        <Route path="judge" element={<StaffJudgeAssigned />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/ritx" replace />} />
