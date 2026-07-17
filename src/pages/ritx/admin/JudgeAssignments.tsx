@@ -59,7 +59,7 @@ export default function RitxAdminJudgeAssignments() {
     <div className="space-y-4">
       <PageHeader
         title="Judge assignments"
-        description="Assign judges to teams. Each cell locks a submission into that judge's blind queue."
+        description="Assign judges to teams. Each cell locks a submission into that judge's queue."
       />
 
       <div className="grid sm:grid-cols-3 gap-3">

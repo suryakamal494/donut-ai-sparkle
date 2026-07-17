@@ -48,8 +48,8 @@ export default function RitxStaffHome() {
         {currentStaff.judgeAccess && (
           <Card className="p-5 md:col-span-2">
             <Gavel className="w-5 h-5 text-primary mb-2" />
-            <div className="font-semibold">Judging (blind view)</div>
-            <p className="text-sm text-muted-foreground mt-1 mb-3">Assigned submissions show only Team IDs. Rubric scoring opens in Phase 3.</p>
+            <div className="font-semibold">Judging</div>
+            <p className="text-sm text-muted-foreground mt-1 mb-3">Review assigned submissions and score against the rubric.</p>
             <Button variant="outline" size="sm" onClick={() => nav("/staff/judge")}>Open queue <ArrowRight className="w-3 h-3 ml-1" /></Button>
           </Card>
         )}

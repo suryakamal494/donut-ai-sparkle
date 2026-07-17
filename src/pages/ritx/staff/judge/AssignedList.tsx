@@ -9,7 +9,7 @@ import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
 import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { assignmentsForJudge, scoreTone, statusLabel } from "@/data/ritx/rubricData";
-import { EyeOff, ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Mock: current judge is s3 (Anita), matches staff/Layout demo
@@ -50,7 +50,7 @@ export default function RitxJudgeAssigned() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Judging queue" description={`Blind view — ${totals.assigned} submissions assigned to you`} />
+      <PageHeader title="Judging queue" description={`${totals.assigned} submissions assigned to you`} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         <Card className="p-3"><div className="text-xs text-muted-foreground">Assigned</div><div className="text-xl font-bold">{totals.assigned}</div></Card>
@@ -58,11 +58,6 @@ export default function RitxJudgeAssigned() {
         <Card className="p-3"><div className="text-xs text-muted-foreground">In progress</div><div className="text-xl font-bold text-amber-600">{totals.inProgress}</div></Card>
         <Card className="p-3"><div className="text-xs text-muted-foreground">Pending</div><div className="text-xl font-bold text-slate-500">{totals.pending}</div></Card>
       </div>
-
-      <Card className="p-3 flex items-center gap-2 bg-indigo-50 border-indigo-200">
-        <EyeOff className="w-4 h-4 text-indigo-700 shrink-0" />
-        <div className="text-sm text-indigo-900">Blind mode — you see only Team IDs, track and sub-theme. School, member and location details are hidden.</div>
-      </Card>
 
       <Card className="p-3">
         <div className="flex flex-wrap gap-2 items-center">
