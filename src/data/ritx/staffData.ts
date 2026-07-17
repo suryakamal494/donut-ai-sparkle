@@ -30,13 +30,15 @@ export interface Resource {
   uploadedBy: string;
   uploadedOn: string;
   sizeKb: number;
+  url?: string;
+  mime?: string;
 }
 
 export const mockResources: Resource[] = [
-  { id: "r1", title: "How to frame a scientific problem", trackId: "sci-investigator", type: "guide", uploadedBy: "Dr. Vikram Rao", uploadedOn: "2026-06-12", sizeKb: 420 },
-  { id: "r2", title: "Prototype video pitch template", trackId: "innovator", type: "template", uploadedBy: "Ms. Anita Kaur", uploadedOn: "2026-06-14", sizeKb: 180 },
-  { id: "r3", title: "SDG mapping worksheet", trackId: "open-arena", type: "worksheet", uploadedBy: "Ms. Anita Kaur", uploadedOn: "2026-06-16", sizeKb: 92 },
-  { id: "r4", title: "Ethics & consent primer", trackId: "sci-investigator", type: "video", uploadedBy: "Dr. Vikram Rao", uploadedOn: "2026-06-18", sizeKb: 15200 },
+  { id: "r1", title: "How to frame a scientific problem", trackId: "sci-investigator", type: "guide", uploadedBy: "Dr. Vikram Rao", uploadedOn: "2026-06-12", sizeKb: 420, url: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf", mime: "application/pdf" },
+  { id: "r2", title: "Prototype video pitch template", trackId: "innovator", type: "template", uploadedBy: "Ms. Anita Kaur", uploadedOn: "2026-06-14", sizeKb: 180, url: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf", mime: "application/pdf" },
+  { id: "r3", title: "SDG mapping worksheet", trackId: "open-arena", type: "worksheet", uploadedBy: "Ms. Anita Kaur", uploadedOn: "2026-06-16", sizeKb: 92, url: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=1600&q=70", mime: "image/jpeg" },
+  { id: "r4", title: "Ethics & consent primer", trackId: "sci-investigator", type: "video", uploadedBy: "Dr. Vikram Rao", uploadedOn: "2026-06-18", sizeKb: 15200, url: "https://www.youtube.com/watch?v=ZbdPjooZBcs", mime: "video/youtube" },
 ];
 
 export interface Session {

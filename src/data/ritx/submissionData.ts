@@ -227,3 +227,250 @@ export const fieldTypeLabel: Record<FieldType, string> = {
   file: "File upload",
   "video-url": "Video URL",
 };
+
+// =========================================================================
+// PHASE 3 — Two-stage submission model (Progress + Final)
+// Kept alongside the legacy `initialForms` above so SubmissionViewer/judging
+// keep working. New team & admin flows read from `stageForms` below.
+// =========================================================================
+
+export type StageId = "progress" | "final";
+
+export interface FormSection {
+  id: string;
+  label: string;
+  /** If true, team renderer prepends a built-in Attachments uploader. */
+  builtInAttachments?: boolean;
+  /** If true, team renderer prepends a built-in Deck/Video block. */
+  builtInDeck?: boolean;
+  fields: SubmissionField[];
+}
+
+export interface StageForm {
+  stageId: StageId;
+  label: string;
+  openAt: string; // ISO
+  deadlineAt: string; // ISO
+  editable: boolean;
+  sections: FormSection[];
+}
+
+export interface TrackStageForms {
+  trackId: string;
+  updatedAt: string;
+  stages: Record<StageId, StageForm>;
+}
+
+export const GOI_MISSIONS = [
+  "Mission LiFE",
+  "Swachh Bharat Mission",
+  "Jal Jeevan Mission",
+  "National Clean Air Programme",
+  "PM E-DRIVE",
+  "PM Surya Ghar: Muft Bijli Yojana",
+  "Ayushman Bharat",
+  "School Health & Wellness Programme",
+  "National AYUSH Mission",
+  "Fit India",
+  "FSSAI Eat Right India",
+  "POSHAN Abhiyaan",
+  "Atal Innovation Mission",
+  "Startup India",
+  "Digital India",
+  "Make in India",
+  "Pradhan Mantri Jan-Dhan Yojana",
+  "MyGov citizen participation",
+];
+
+export const SDG_OPTIONS = [
+  "SDG 1 No Poverty",
+  "SDG 2 Zero Hunger",
+  "SDG 3 Good Health & Well-being",
+  "SDG 4 Quality Education",
+  "SDG 5 Gender Equality",
+  "SDG 6 Clean Water & Sanitation",
+  "SDG 7 Affordable & Clean Energy",
+  "SDG 8 Decent Work & Growth",
+  "SDG 9 Industry, Innovation & Infrastructure",
+  "SDG 10 Reduced Inequalities",
+  "SDG 11 Sustainable Cities",
+  "SDG 12 Responsible Consumption",
+  "SDG 13 Climate Action",
+  "SDG 16 Peace & Justice",
+  "SDG 17 Partnerships",
+];
+
+function isoOffsetDays(days: number, hours = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(d.getHours() + hours, 0, 0, 0);
+  return d.toISOString();
+}
+
+function baseOverviewFields(trackId: string): SubmissionField[] {
+  const track = trackId;
+  const subThemeOptions =
+    track === "sci-investigator"
+      ? ["Health & Wellbeing", "Environment", "Energy", "Food & Agriculture", "Other"]
+      : track === "innovator"
+      ? ["Assistive Tech", "Climate Tech", "EdTech", "Rural Solutions", "Other"]
+      : ["SDG 3", "SDG 4", "SDG 7", "SDG 11", "SDG 13", "Other"];
+  return [
+    { id: "title", type: "short-text", label: "Project title", required: true, min: 4, max: 90 },
+    { id: "sub-theme", type: "select", label: "Sub-theme", required: true, options: subThemeOptions },
+    { id: "sdgs", type: "multi-select", label: "Primary SDGs addressed", required: true, options: SDG_OPTIONS, helper: "Pick 1–3 SDGs your project targets." },
+    { id: "mission", type: "select", label: "Government of India mission", required: true, options: GOI_MISSIONS, helper: "Aligns with concept note §5 – Policy & SDG Lens." },
+    { id: "problem", type: "long-text", label: "Problem statement", required: true, min: 60, max: 500 },
+    { id: "people-affected", type: "short-text", label: "People affected", required: true, min: 4, max: 120, helper: "e.g. Students of Class 8 in our school." },
+  ];
+}
+
+function progressStage(trackId: string): StageForm {
+  return {
+    stageId: "progress",
+    label: "Progress submission",
+    openAt: isoOffsetDays(-3),
+    deadlineAt: isoOffsetDays(4, 6),
+    editable: true,
+    sections: [
+      {
+        id: "overview",
+        label: "Overview & Policy lens",
+        fields: [
+          ...baseOverviewFields(trackId),
+          { id: "progress-note", type: "long-text", label: "Progress so far", required: true, min: 100, max: 800, helper: "What have you done in the last 3–4 weeks?" },
+          { id: "next-steps", type: "long-text", label: "Next steps", required: true, min: 40, max: 400 },
+        ],
+      },
+      {
+        id: "evidence",
+        label: "Evidence / Survey",
+        builtInAttachments: true,
+        fields: [
+          { id: "sample-size", type: "number", label: "Sample size / observations", required: false, min: 0, max: 100000 },
+          { id: "survey-summary", type: "long-text", label: "Survey summary", required: false, min: 0, max: 600 },
+        ],
+      },
+    ],
+  };
+}
+
+function finalStage(trackId: string): StageForm {
+  const trackFields: SubmissionField[] =
+    trackId === "sci-investigator"
+      ? [
+          { id: "hypothesis", type: "long-text", label: "Hypothesis", required: true, min: 40, max: 500 },
+          { id: "methodology", type: "long-text", label: "Methodology", required: true, min: 100, max: 1200 },
+          { id: "sample-size", type: "number", label: "Sample size / observations", required: true, min: 1, max: 100000 },
+        ]
+      : trackId === "innovator"
+      ? [
+          { id: "solution", type: "long-text", label: "Proposed solution", required: true, min: 100, max: 1200 },
+          { id: "prototype-stage", type: "select", label: "Prototype stage", required: true, options: ["Concept", "Paper prototype", "Working model", "Deployed pilot"] },
+          { id: "materials", type: "multi-select", label: "Materials used", required: false, options: ["Electronics", "3D print", "Wood", "Recycled", "Software only", "Other"] },
+        ]
+      : [
+          { id: "impact", type: "long-text", label: "Impact narrative", required: true, min: 100, max: 1000 },
+          { id: "beneficiaries", type: "short-text", label: "Direct beneficiaries", required: true, min: 4, max: 160 },
+        ];
+  return {
+    stageId: "final",
+    label: "Final submission",
+    openAt: isoOffsetDays(5),
+    deadlineAt: isoOffsetDays(22, 0),
+    editable: true,
+    sections: [
+      {
+        id: "overview",
+        label: "Overview & Policy lens",
+        fields: [
+          ...baseOverviewFields(trackId),
+          { id: "intended-improvement", type: "long-text", label: "Intended improvement", required: true, min: 60, max: 500, helper: "What will improve if your solution is adopted?" },
+          { id: "abstract", type: "long-text", label: "Abstract", required: true, min: 150, max: 300 },
+          ...trackFields,
+        ],
+      },
+      {
+        id: "evidence",
+        label: "Evidence / Survey",
+        builtInAttachments: true,
+        fields: [
+          { id: "data-sources", type: "long-text", label: "Data sources & references", required: false, min: 0, max: 800 },
+        ],
+      },
+      {
+        id: "deck",
+        label: "Deck / Prototype",
+        builtInDeck: true,
+        fields: [
+          { id: "github", type: "url", label: "GitHub / code repository (optional)", required: false },
+        ],
+      },
+    ],
+  };
+}
+
+export const stageForms: TrackStageForms[] = ["sci-investigator", "innovator", "open-arena"].map(
+  (trackId) => ({
+    trackId,
+    updatedAt: new Date().toISOString().slice(0, 10),
+    stages: {
+      progress: progressStage(trackId),
+      final: finalStage(trackId),
+    },
+  })
+);
+
+export function getStageForm(trackId: string, stageId: StageId): StageForm | undefined {
+  return stageForms.find((f) => f.trackId === trackId)?.stages[stageId];
+}
+
+export function updateStageForm(trackId: string, stageId: StageId, next: StageForm): void {
+  const tf = stageForms.find((f) => f.trackId === trackId);
+  if (!tf) return;
+  tf.stages[stageId] = next;
+  tf.updatedAt = new Date().toISOString().slice(0, 10);
+}
+
+export function extendDeadline(trackId: string, stageId: StageId, days: number): void {
+  const s = getStageForm(trackId, stageId);
+  if (!s) return;
+  const d = new Date(s.deadlineAt);
+  d.setDate(d.getDate() + days);
+  s.deadlineAt = d.toISOString();
+}
+
+export type StageWindowStatus = "upcoming" | "open" | "closed";
+
+export function stageWindowStatus(stage: StageForm, now: Date = new Date()): StageWindowStatus {
+  const open = new Date(stage.openAt).getTime();
+  const close = new Date(stage.deadlineAt).getTime();
+  const n = now.getTime();
+  if (n < open) return "upcoming";
+  if (n > close) return "closed";
+  return "open";
+}
+
+export function timeToDeadline(stage: StageForm, now: Date = new Date()): {
+  ms: number;
+  label: string;
+  tone: "safe" | "warn" | "danger" | "closed" | "upcoming";
+  expired: boolean;
+} {
+  const close = new Date(stage.deadlineAt).getTime();
+  const open = new Date(stage.openAt).getTime();
+  const ms = close - now.getTime();
+  if (now.getTime() < open) {
+    const dOpen = open - now.getTime();
+    const days = Math.ceil(dOpen / 86400000);
+    return { ms, label: `Opens in ${days}d`, tone: "upcoming", expired: false };
+  }
+  if (ms <= 0) return { ms, label: "Deadline passed", tone: "closed", expired: true };
+  const days = Math.floor(ms / 86400000);
+  const hrs = Math.floor((ms % 86400000) / 3600000);
+  const mins = Math.floor((ms % 3600000) / 60000);
+  const label =
+    days > 0 ? `${days}d ${hrs}h to deadline` : hrs > 0 ? `${hrs}h ${mins}m to deadline` : `${mins}m to deadline`;
+  const tone: "safe" | "warn" | "danger" = days >= 3 ? "safe" : days >= 1 ? "warn" : "danger";
+  return { ms, label, tone, expired: false };
+}

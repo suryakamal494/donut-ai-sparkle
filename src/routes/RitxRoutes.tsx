@@ -31,6 +31,7 @@ const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
 const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
 const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
 const TeamSubmission = lazy(() => import("@/pages/ritx/team/Submission"));
+const TeamSubmissionStage = lazy(() => import("@/pages/ritx/team/SubmissionStage"));
 const TeamResults = lazy(() => import("@/pages/ritx/team/Results"));
 
 const StaffLayout = lazy(() => import("@/pages/ritx/staff/Layout"));
@@ -75,6 +76,7 @@ export default function RitxRoutes() {
         <Route path="members" element={<TeamMembers />} />
         <Route path="resources" element={<TeamResources />} />
         <Route path="submissions" element={<TeamSubmission />} />
+        <Route path="submissions/:stageId" element={<TeamSubmissionStage />} />
         <Route path="results" element={<TeamResults />} />
       </Route>
 
