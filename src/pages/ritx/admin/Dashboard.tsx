@@ -1,7 +1,11 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { Users, School, CheckCircle2, Clock, Trophy } from "lucide-react";
-import { registrationStats, mockCompetition } from "@/data/ritx/mockData";
+import { Progress } from "@/components/ui/progress";
+import { Users, School, CheckCircle2, Clock, Trophy, Gavel } from "lucide-react";
+import { registrationStats, mockCompetition, mockTeams } from "@/data/ritx/mockData";
+import { mockAssignments } from "@/data/ritx/rubricData";
+import { mockStaff } from "@/data/ritx/staffData";
+import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
 
 function Stat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
   return (
@@ -21,6 +25,15 @@ function Stat({ label, value, icon: Icon }: { label: string; value: string | num
 
 export default function RitxAdminDashboard() {
   const s = registrationStats;
+  const judges = mockStaff.filter((x) => x.judgeAccess);
+  const totalAssignments = mockAssignments.length;
+  const scored = mockAssignments.filter((a) => a.status === "scored").length;
+  const pct = totalAssignments ? Math.round((scored / totalAssignments) * 100) : 0;
+  const perTeam = mockTeams.map((t) => {
+    const rows = mockAssignments.filter((a) => a.teamId === t.id);
+    const done = rows.filter((r) => r.status === "scored").length;
+    return { team: t, done, total: rows.length };
+  });
   return (
     <div className="space-y-6">
       <PageHeader title="Overview" description={mockCompetition.name} />
@@ -30,6 +43,24 @@ export default function RitxAdminDashboard() {
         <Stat label="Active teams" value={s.activeTeams} icon={CheckCircle2} />
         <Stat label="Consents pending" value={s.consentPending} icon={Clock} />
       </div>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="font-semibold flex items-center gap-2"><Gavel className="w-4 h-4" />Judging progress</div>
+          <div className="text-sm text-muted-foreground">{scored}/{totalAssignments} scored across {judges.length} judges</div>
+        </div>
+        <Progress value={pct} className="h-2 mb-4" />
+        <div className="space-y-2">
+          {perTeam.map(({ team, done, total }) => (
+            <div key={team.id} className="flex items-center gap-3 text-sm">
+              <TeamIdChip code={team.teamCode} />
+              <div className="flex-1"><Progress value={total ? (done / total) * 100 : 0} className="h-1.5" /></div>
+              <div className="text-xs text-muted-foreground w-16 text-right">{done}/{total} judges</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="p-5">
           <div className="font-semibold mb-3">By registration mode</div>

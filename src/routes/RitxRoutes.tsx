@@ -20,6 +20,8 @@ const AdminCommunications = lazy(() => import("@/pages/ritx/admin/Communications
 const AdminPayment = lazy(() => import("@/pages/ritx/admin/Payment"));
 const AdminSubmissionForms = lazy(() => import("@/pages/ritx/admin/SubmissionForms"));
 const AdminSubmissions = lazy(() => import("@/pages/ritx/admin/Submissions"));
+const AdminRubrics = lazy(() => import("@/pages/ritx/admin/Rubrics"));
+const AdminJudgeAssignments = lazy(() => import("@/pages/ritx/admin/JudgeAssignments"));
 
 const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
 const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
@@ -33,6 +35,7 @@ const StaffHome = lazy(() => import("@/pages/ritx/staff/Home"));
 const StaffMentorResources = lazy(() => import("@/pages/ritx/staff/mentor/Resources"));
 const StaffMentorSessions = lazy(() => import("@/pages/ritx/staff/mentor/Sessions"));
 const StaffJudgeAssigned = lazy(() => import("@/pages/ritx/staff/judge/AssignedList"));
+const StaffJudgeScoreSheet = lazy(() => import("@/pages/ritx/staff/judge/ScoreSheet"));
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
@@ -58,6 +61,8 @@ export default function RitxRoutes() {
         <Route path="payment" element={<AdminPayment />} />
         <Route path="submission-forms" element={<AdminSubmissionForms />} />
         <Route path="submissions" element={<AdminSubmissions />} />
+        <Route path="rubrics" element={<AdminRubrics />} />
+        <Route path="judge-assignments" element={<AdminJudgeAssignments />} />
       </Route>
 
       <Route path="team" element={<Lazy><TeamLayout /></Lazy>}>
@@ -72,6 +77,7 @@ export default function RitxRoutes() {
         <Route path="mentor/resources" element={<StaffMentorResources />} />
         <Route path="mentor/sessions" element={<StaffMentorSessions />} />
         <Route path="judge" element={<StaffJudgeAssigned />} />
+        <Route path="judge/:teamId" element={<StaffJudgeScoreSheet />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/ritx" replace />} />
