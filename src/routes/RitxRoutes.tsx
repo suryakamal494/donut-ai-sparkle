@@ -18,12 +18,15 @@ const AdminRegistrations = lazy(() => import("@/pages/ritx/admin/Registrations")
 const AdminStaff = lazy(() => import("@/pages/ritx/admin/Staff"));
 const AdminCommunications = lazy(() => import("@/pages/ritx/admin/Communications"));
 const AdminPayment = lazy(() => import("@/pages/ritx/admin/Payment"));
+const AdminSubmissionForms = lazy(() => import("@/pages/ritx/admin/SubmissionForms"));
+const AdminSubmissions = lazy(() => import("@/pages/ritx/admin/Submissions"));
 
 const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
 const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
 const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
 const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
 const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
+const TeamSubmission = lazy(() => import("@/pages/ritx/team/Submission"));
 
 const StaffLayout = lazy(() => import("@/pages/ritx/staff/Layout"));
 const StaffHome = lazy(() => import("@/pages/ritx/staff/Home"));
@@ -53,13 +56,15 @@ export default function RitxRoutes() {
         <Route path="staff" element={<AdminStaff />} />
         <Route path="communications" element={<AdminCommunications />} />
         <Route path="payment" element={<AdminPayment />} />
+        <Route path="submission-forms" element={<AdminSubmissionForms />} />
+        <Route path="submissions" element={<AdminSubmissions />} />
       </Route>
 
       <Route path="team" element={<Lazy><TeamLayout /></Lazy>}>
         <Route index element={<TeamHome />} />
         <Route path="members" element={<TeamMembers />} />
         <Route path="resources" element={<TeamResources />} />
-        <Route path="submissions" element={<Navigate to="/ritx/team" replace />} />
+        <Route path="submissions" element={<TeamSubmission />} />
       </Route>
 
       <Route path="staff" element={<Lazy><StaffLayout /></Lazy>}>
