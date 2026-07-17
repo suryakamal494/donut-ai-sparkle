@@ -3,7 +3,7 @@ import { Shield, Crown, BookOpen, FileText, Building2, Edit, Trash2, Users, Lock
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SuperAdminRole } from "./types";
-import { classes, subjects } from "@/data/ritx/mockData";
+import { classes, subjects } from "@/data/mockData";
 
 interface RoleCardProps {
   role: SuperAdminRole;

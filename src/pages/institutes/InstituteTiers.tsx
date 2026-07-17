@@ -1,7 +1,7 @@
 import { Check, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { instituteTiers, featureCategoryLabels, FeatureCategory } from "@/data/ritx/mockData";
+import { instituteTiers, featureCategoryLabels, FeatureCategory } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import {

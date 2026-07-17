@@ -28,7 +28,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { parseBulkInput } from "@/lib/parseUtils";
 import { getActiveCurriculums } from "@/data/masterData";
-import { classes, subjects } from "@/data/ritx/mockData";
+import { classes, subjects } from "@/data/mockData";
 import { toast } from "sonner";
 import { X, Plus, FileText } from "lucide-react";
 

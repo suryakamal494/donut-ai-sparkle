@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { assignedTracks } from "@/data/instituteData";
-import { classes } from "@/data/ritx/mockData";
+import { classes } from "@/data/mockData";
 
 interface ExamDetailsStepProps {
   examName: string;

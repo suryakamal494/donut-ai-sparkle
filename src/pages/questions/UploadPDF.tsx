@@ -10,7 +10,7 @@ import { SourceTypeSelector } from "@/components/parameters";
 import { ContentSourceType } from "@/components/parameters/SourceTypeSelector";
 import { getActiveCurriculums, getPublishedCourses, getAllCourseChapters } from "@/data/masterData";
 import { getChaptersByClassAndSubject } from "@/data/cbseMasterData";
-import { classes, subjects } from "@/data/ritx/mockData";
+import { classes, subjects } from "@/data/mockData";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 

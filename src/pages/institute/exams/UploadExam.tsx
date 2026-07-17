@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { batches, assignedTracks } from "@/data/instituteData";
 import { examPatternConfig } from "@/data/examsData";
-import { classes } from "@/data/ritx/mockData";
+import { classes } from "@/data/mockData";
 import { getSubjectsForCourse, subjects as masterSubjects } from "@/data/masterData";
 import { getSubjectsByClass } from "@/data/cbseMasterData";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

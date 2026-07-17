@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getActiveCurriculums } from "@/data/masterData";
-import { classes, subjects } from "@/data/ritx/mockData";
+import { classes, subjects } from "@/data/mockData";
 
 interface Chapter {
   id: string;
