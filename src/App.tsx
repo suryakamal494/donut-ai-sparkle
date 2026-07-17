@@ -23,6 +23,7 @@ const InstituteRoutes = lazy(() => import("./routes/InstituteRoutes"));
 const TeacherRoutes = lazy(() => import("./routes/TeacherRoutes"));
 const StudentRoutes = lazy(() => import("./routes/StudentRoutes"));
 const DocsRoutes = lazy(() => import("./routes/DocsRoutes"));
+const RitxRoutes = lazy(() => import("./routes/RitxRoutes"));
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,9 @@ function AppContent() {
         } />
         <Route path="/docs/*" element={
           <ModuleBoundary><DocsRoutes /></ModuleBoundary>
+        } />
+        <Route path="/ritx/*" element={
+          <ModuleBoundary><RitxRoutes /></ModuleBoundary>
         } />
         
         {/* 404 */}

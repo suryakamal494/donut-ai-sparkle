@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Building2, Shield, ArrowRight, GraduationCap, BookHeart } from "lucide-react";
+import { Sparkles, Building2, Shield, ArrowRight, GraduationCap, BookHeart, Trophy } from "lucide-react";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const Landing = () => {
         </div>
 
         {/* Portal Selection Cards */}
-        <div className="grid md:grid-cols-4 gap-4 px-4">
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 px-4">
           {/* Superadmin Card */}
           <button
             onClick={() => navigate("/superadmin/dashboard")}
@@ -148,6 +148,34 @@ const Landing = () => {
               
               <div className="mt-4 md:mt-6 flex items-center gap-2 text-sm font-medium text-amber-600">
                 <span>Start Learning</span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* RiTX Competition Card - separate row */}
+        <div className="mt-4 px-4">
+          <button
+            onClick={() => navigate("/ritx")}
+            className="group relative overflow-hidden rounded-3xl p-6 md:p-8 text-left transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl w-full"
+          >
+            <div className="absolute inset-0 bg-white/90 backdrop-blur-2xl border border-white/30" />
+            <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/0 to-indigo-500/0 group-hover:from-fuchsia-500/10 group-hover:to-indigo-500/10 transition-all duration-500" />
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Trophy className="w-7 h-7 md:w-8 md:h-8 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl md:text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
+                  RiTX — Young Innovators Challenge
+                  <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                </h2>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Competition management for schools · Admin, Team & Judge portals
+                </p>
+              </div>
+              <div className="hidden md:flex items-center gap-2 text-sm font-medium text-fuchsia-600">
+                <span>Enter</span>
               </div>
             </div>
           </button>
