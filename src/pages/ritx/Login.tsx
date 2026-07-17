@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Users, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
+import { CLASS_OPTIONS } from "@/data/ritx/mockData";
+import { getWorkspaceForUser, loginOrRegister } from "@/data/ritx/workspaceState";
 
 type Role = "admin" | "team" | "staff";
 
 const roleConfig: Record<Role, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; redirect: string; hint: string }> = {
   admin: { label: "Admin", icon: Shield, color: "from-violet-500 to-fuchsia-500", redirect: "/admin", hint: "Program organiser" },
-  team: { label: "Team", icon: Users, color: "from-donut-coral to-donut-orange", redirect: "/team", hint: "Student team login" },
+  team: { label: "Student", icon: Users, color: "from-donut-coral to-donut-orange", redirect: "/team", hint: "Sign in with your own email — you'll join a team workspace next" },
   staff: { label: "Mentor / Judge", icon: Gavel, color: "from-teal-500 to-cyan-500", redirect: "/staff", hint: "Access granted by admin" },
 };
 
@@ -22,10 +25,19 @@ export default function RitxLogin() {
   const [role, setRole] = useState<Role>(initial);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [klass, setKlass] = useState("");
   const navigate = useNavigate();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (role === "team") {
+      if (!name.trim() || !email.trim() || !klass) return;
+      const user = loginOrRegister({ name, email, class: klass });
+      const ws = getWorkspaceForUser(user.id);
+      navigate(ws ? "/team" : "/team/join");
+      return;
+    }
     navigate(roleConfig[role].redirect);
   };
 
@@ -68,19 +80,45 @@ export default function RitxLogin() {
         <p className="text-xs text-muted-foreground mb-5 text-center">{roleConfig[role].hint}</p>
 
         <form onSubmit={submit} className="space-y-3">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
-          <Button type="submit" className="w-full bg-gradient-to-r from-donut-coral to-donut-orange hover:opacity-95 shadow-lg shadow-donut-coral/30 border-0">Sign in</Button>
+          {role === "team" ? (
+            <>
+              <div>
+                <Label htmlFor="name">Your name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ananya Rao" />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              </div>
+              <div>
+                <Label>Class</Label>
+                <Select value={klass} onValueChange={setKlass}>
+                  <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                  <SelectContent>
+                    {CLASS_OPTIONS.map((c) => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              </div>
+            </>
+          )}
+          <Button type="submit" className="w-full bg-gradient-to-r from-donut-coral to-donut-orange hover:opacity-95 shadow-lg shadow-donut-coral/30 border-0">
+            {role === "team" ? "Continue" : "Sign in"}
+          </Button>
           {role === "team" && (
-            <Button type="button" variant="outline" className="w-full border-orange-200 hover:bg-orange-50/50" onClick={() => navigate("/team/register")}>
-              New team? Register here
-            </Button>
+            <p className="text-[11px] text-center text-muted-foreground">
+              After sign-in you'll either <span className="font-medium">create a new team workspace</span> or <span className="font-medium">paste an invite code</span> to join one.
+            </p>
           )}
         </form>
       </Card>
