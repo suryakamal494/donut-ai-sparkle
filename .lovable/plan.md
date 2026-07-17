@@ -1,132 +1,76 @@
 
-## Goal
+## 1. Drop the "Blind" wording in the staff/judge panel
 
-Two additions to the RiTX UI, kept mock-only so the dev team wires the real backend later:
+Any judge-facing surface that currently says "Blind evaluation", "Blind queue", "Blind scoring" etc. becomes plain "Judging" / "Scoring". The judge continues to see the full submission — no data is hidden.
 
-1. **Paid vs Free gating** — if the competition is paid, submissions and results stay locked until the team lead pays. If free, everything is open.
-2. **Workspace model** — individual student logins that share one team Workspace. Lead creates it, invites 2–3 members with a short code they paste in. Submissions/resources/results are shared; certificates list every member; edits are attributed per user.
+Files touched:
+- `src/pages/ritx/staff/judge/AssignedList.tsx` — page title/description → "Judging queue".
+- `src/pages/ritx/staff/judge/ScoreSheet.tsx` — top bar chip "Blind evaluation" → "Judging".
+- `src/pages/ritx/staff/Layout.tsx` and `src/pages/ritx/staff/Home.tsx` — nav label / card copy.
+- `src/components/ritx/judging/SubmissionViewer.tsx` — remove any "blind" banners/tooltips.
+- `src/pages/ritx/admin/JudgeAssignments.tsx` — copy update (matrix still exists, just no "blind" adjective).
 
-No change to the existing components (RitxShell, Team layout, Submission stage forms, Certificate, Resources) — we add small wrappers and one new dialog. This avoids any architectural rewrite.
+No route or component renames — only user-visible strings.
 
-## Feasibility summary
+## 2. Fix "can't get into student panel from login"
 
-Everything below is UI + local mock state. The current app already treats "team" as the entity that owns submissions, so we just:
-- Rename what a team is (a Workspace with N member users) in mock data.
-- Add a `paid: boolean` flag on the competition + `workspace.paidAt` timestamp.
-- Add a `PaywallGate` wrapper around the two screens that must lock (Submission, Result).
-- Add an invite-code join screen.
-- Add a lightweight "edited by" stamp on submission autosave.
+Root cause (unconfirmed until reproduced but consistent with the code): `RitxLogin` requires **Name + Email + Class** for the Student role and silently no-ops on submit when any field is empty — so clicking Sign in appears to do nothing.
 
-No routing overhaul, no new auth system in the UI, no email/WhatsApp plumbing.
+Fixes in `src/pages/ritx/Login.tsx`:
+- Show inline validation + a toast when a required field is missing (so the failure is visible).
+- Prefill sensible demo values when the form is empty and the user hits Continue (Name = "Demo Student", Email = `demo.student@ritx.test`, Class = 9) so the flow always reaches `/team/join` or `/team`.
+- Add a small "Continue as demo student" quick-link under the Student form for one-click access.
 
-## Phase A — Paid vs Free gating
+After sign-in, keep the existing `getWorkspaceForUser` → `/team` vs `/team/join` routing untouched.
 
-**Data (`src/data/ritx/mockData.ts`)**
-- Add `competition.pricing: { mode: "free" | "paid"; amount: number; currency: "INR" }`.
-- Add `workspace.paidAt: string | null` and `workspace.paidBy: userId | null`.
-- Admin toggle in mock data so we can demo both modes.
+## 3. Fractional judging scores (6.25, 6.5, 7.25, …)
 
-**New component `PaywallGate.tsx`** (shared)
-- Props: `children`, `feature: "submission" | "result"`.
-- Reads `competition.pricing.mode` and `workspace.paidAt`.
-- If `free` OR already paid → render children.
-- Else → render a warm-styled lock card: "Payment required to start your submission" with amount, a **Pay ₹X and unlock** button (mock — flips `paidAt` and shows a success toast), and a "Only the team lead can pay" note for non-lead members (their button is disabled with tooltip).
+The current 0–10 chip strip in `src/components/ritx/judging/ScoringPanel.tsx` only allows integers. Replace it with a **0.25-step slider + numeric input** per criterion:
 
-**Where it wraps**
-- `team/Submission.tsx` (stage picker) — gate the stage cards, keep header/brochure visible.
-- `team/SubmissionStage.tsx` — safety net gate.
-- `team/Result.tsx` — gate the result + certificate.
-- **Not gated:** Home, Resources, Webinars, brochure/theme selector, Track & Theme card. These stay visible for free-tier browsing.
+- Slider: min 0, max `criterion.maxScore` (10), step **0.25**, with tick marks at every whole number.
+- A compact numeric input next to the slider accepts direct typing (0.00–10.00, snapped to 0.25).
+- Selected value badge shows two-decimals when needed ("7.25", else "7").
+- Weighted total keeps the existing formula — it already tolerates floats.
 
-**Home page nudge**
-- When paid mode + unpaid, add a coral banner above the Track & Theme card: "Complete payment to unlock submissions." Single CTA opens the same Pay dialog.
+Storage stays a number in `criterionScores`; no data-model change.
 
-**Admin side**
-- In `admin/Dashboard.tsx` add a small "Pricing" chip (Free / Paid ₹X) that opens a dialog to switch mode and set amount. Mock only.
-- In `admin/Registrations.tsx` (or wherever teams list lives) add a `Payment` column: Paid ✓ / Pending / Free.
+Also update `AdminScoreRecap` and any read-only display to render `toFixed(2)` when the value isn't a whole number.
 
-## Phase B — Workspace + individual logins
+## 4. Redesign Admin "Submissions & judging" like the Evalato reference
 
-**Mental model**
-- A **Workspace** = what today's mock calls a Team. Owns submission, track selection, payment, result.
-- A **Member** = a user account (email + name + class). Belongs to at most one Workspace.
-- **Roles inside workspace:** `lead` (creator, can pay + invite + remove) and `member` (can view/edit submissions).
+Goal: turn the current dense table into a clean, filter-forward "Entries"-style list that stays scalable to hundreds of teams.
 
-**Data changes (`mockData.ts`)**
-- Add `users: Array<{ id, name, email, class }>`.
-- Change `team` → `workspace` with: `id, name, code (6-char), leadUserId, memberIds[], maxMembers: 4, paidAt, trackId, subTheme`.
-- Add helper `getCurrentUser()` reading from localStorage (mock login).
-- Add helper `getWorkspaceForUser(userId)`.
-- Seed 2–3 sample workspaces so demos work.
+Changes to `src/pages/ritx/admin/Submissions.tsx`:
 
-**Login (`team/Login.tsx` — existing)**
-- Change from "team login" to individual login: name + email + class (mock, no password). On submit stores the user in localStorage and routes to a **Post-login switchboard**.
+- **Top bar of chip filters** (like Set Status / Set Rounds / Set Tags):
+  - Status chip (Submitted / In progress / Not started / Returned / Locked)
+  - Track chip
+  - Judging chip (Awaiting / Partial / Complete / Conflict)
+  - Search box on the right
+  - Bulk-select checkbox column with "Set status ▾ · Assign judges ▾" bulk actions
+- **Table columns** (Evalato-style, comfortable row height, avatar-style team icon):
+  - ☐ · Team (avatar chip + team name + `RITX-2026-xxxx` code muted)
+  - Track / Sub-theme
+  - Stage badge
+  - Judges (compact "3/3 scored" with tiny avatars + status dot)
+  - Avg score (large, tabular)
+  - Score spread (min–max, flags outliers ≥ 1.5)
+  - Actions (Review • ⋮)
+- **Per-judge drill-down**: expanding a row (or the Review side-sheet) shows a small table of every judge who scored this team with their individual weighted score, spread from mean, submitted-on, and comment preview. Admin cannot edit — read-only as today.
+- **Column visibility toggle** so admins can hide Team Name if they want a more anonymous view (addresses "name may not be necessary").
+- Keep pagination + empty state; drop the four summary Cards into a single slim strip above the filter bar so the table gets more vertical space.
 
-**New page `team/JoinOrCreate.tsx`** (post-login switchboard)
-- Two cards side by side:
-  - **Create a workspace** → opens dialog: workspace name → creates workspace with this user as `lead`, generates a 6-char code, routes to Home.
-  - **Join a workspace** → single input for the 6-char code. Paste + Enter joins immediately if: code is valid, workspace has <4 members, and user isn't already in another workspace. Errors surface inline.
-- If the user is already in a workspace, this page auto-redirects to Home.
+No changes to underlying data models (`mockTeamSubmissions`, `judgingSummaryForTeam`) — this is purely a presentation refactor.
 
-**Existing Home page updates**
-- Replace the "Members" list mock with real workspace members from `workspace.memberIds`.
-- Add a **Members & invite** card:
-  - Lists members with role chips (Lead / Member) and "You" tag.
-  - Shows the invite code in a large mono chip with a **Copy code** button.
-  - Under it: "Share this code with up to 3 teammates. They sign up and paste it to join."
-  - Lead-only: "Remove" icon on each member row (before submission deadline).
-  - When full (4 members) the code chip switches to "Workspace full".
+## Out of scope
 
-**Invite code UX (the "easiest way" per your answer)**
-- 6 uppercase alphanumerics, no ambiguous chars (no 0/O/1/I). Generated at workspace creation.
-- Copy button uses `navigator.clipboard`; toast confirms.
-- Join input auto-uppercases and validates on paste.
-- No email, no WhatsApp, no deep-link — pure paste-the-code.
+- No backend / persistence changes.
+- No new routes.
+- Judge scoring math and rubric weights unchanged.
 
-**Guardrails (client-side mock checks)**
-- One workspace per user: join button disabled with reason "You're already in workspace <name>".
-- Max 4 members: 5th attempt shows "This workspace is full".
-- Payment can only be initiated by the lead.
-- After submission deadline the invite code is hidden and joining is blocked with "Registrations closed".
+## Technical notes
 
-## Phase C — Shared work + attribution (small, no architectural pain)
-
-**Shared** — no change needed, submission is already keyed by workspace/team id. All members read/write the same record.
-
-**Attribution on submission autosave**
-- Extend the existing autosave in `SubmissionStage.tsx` to append a lightweight entry to `workspace.editHistory[]`: `{ userId, userName, section, field, at }`.
-- Add a small "Last edited by <Name> · 2m ago" line in the stage header.
-- Add a collapsible **Edit history** panel (last 20 entries) at the bottom of the stage form. No diffing, no snapshots — just a log. This is what you asked for and it costs almost nothing.
-
-**Certificates & result**
-- `team/Result.tsx` and the certificate preview iterate `workspace.memberIds` and render one certificate card per member (same team score, individual name). Downloadable per-member is out of scope for this pass — just previewed.
-
-## What we deliberately do NOT change (keeps architecture flat)
-
-- No real auth, no Supabase, no RLS. All state stays in mock data + localStorage, as the rest of the RiTX UI already does.
-- No payment provider integration. The Pay button just flips `paidAt`. Dev team wires Razorpay/Stripe later; the gate + button placement stay identical.
-- No per-field locking or optimistic concurrency. Autosave + edit log is enough for the demo.
-- Judge / Admin / Staff modules are untouched.
-
-## Files touched (approximate)
-
-- `src/data/ritx/mockData.ts` — pricing, workspace shape, users, invite code, editHistory helpers.
-- `src/components/ritx/shared/PaywallGate.tsx` — **new**.
-- `src/components/ritx/shared/PayDialog.tsx` — **new** (mock payment sheet).
-- `src/pages/ritx/team/Login.tsx` — individual login fields.
-- `src/pages/ritx/team/JoinOrCreate.tsx` — **new** switchboard.
-- `src/pages/ritx/team/Home.tsx` — Members & invite card, pay-required banner.
-- `src/pages/ritx/team/Submission.tsx` + `SubmissionStage.tsx` — wrap in `PaywallGate`, add "last edited by" + edit history panel.
-- `src/pages/ritx/team/Result.tsx` — wrap in `PaywallGate`, render per-member certificates.
-- `src/pages/ritx/admin/Dashboard.tsx` — Pricing chip + dialog.
-- `src/pages/ritx/admin/Registrations.tsx` — Payment column.
-- `src/routes/RitxRoutes.tsx` — add `/team/join` route for JoinOrCreate.
-
-## Suggested build order
-
-1. Data model + login/JoinOrCreate + Members & invite card on Home.
-2. PaywallGate + PayDialog + Submission/Result wrappers + Home banner.
-3. Admin pricing toggle + Registrations payment column.
-4. Autosave attribution + edit history panel.
-
-Each step is independently shippable; if you want to stop after step 1 you already have the workspace UX.
+- Slider uses the existing `@/components/ui/slider` (Radix). Step `0.25`, with a paired `Input type="number" step="0.25" min="0" max="10"` that writes back into the same state.
+- Snap helper: `Math.round(v * 4) / 4`.
+- Avatars: derive initials + a stable colour from `team.teamCode` (deterministic hash) to match the Evalato look without needing images.
+- Column visibility: local `useState<Record<col, boolean>>` + a small dropdown; no persistence needed for the UI pass.
