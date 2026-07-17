@@ -1,125 +1,66 @@
+# Plan: Privacy-first registration + dashboard theme selection
 
-## Validation of your points (after reading the Concept Note)
+## 1. Slim the registration form (`src/pages/ritx/team/Register.tsx`)
 
-Yes — your requirements match the document. The note explicitly defines **two submissions**: a **Progress submission** (Aug 2026, mid-programme check-in) and a **Final submission** (early Sept 2026, pitch/prototype). Every final submission must carry a **"Policy & SDG Lens"** (national mission + primary SDG + affected people + intended improvement + track/theme). Tracks are **Sustainability**, **Health & Well-being**, **Open Arena**. Judging rubric = 6 weighted criteria (problem relevance, investigation & evidence, scientific reasoning, originality, feasibility & impact, policy/SDG/ethics/communication). Outputs differ per track (evidence report / pitch deck / prototype / video). So your ask — **two submissions, tabbed form + evidence uploads, deadline countdown, admin extension, inline preview** — is fully aligned. ✅
+Remove all track/sub-theme fields from registration. Registration collects only what's needed to create the team account:
 
----
+**Kept fields (single step):**
+- Team name
+- Team lead name
+- School
+- Class / grade (dropdown: 6-12)
+- State (dropdown)
+- City
+- Team lead email (for OTP)
 
-## What changes, at a glance
+**Removed fields:** Track, Sub-theme, full address, anything beyond the above.
 
-| Login | Page | Change |
-|---|---|---|
-| **Admin** | Submission forms | Per-track **× per-stage** builder (Progress / Final), each stage has an **Open date, Deadline, Extension controls**, and **multi-section tabs** (Form / Evidence / Deck) |
-| **Admin** | New: Submissions timeline strip | Enable/disable each stage, extend deadline (auto propagates timer), lock/unlock edits |
-| **Team** | Submission page | Two top-level cards: **Progress submission** & **Final submission**; each opens a tabbed form (Overview → Evidence/Survey → Deck/Prototype → Review & Submit) with a **live countdown**, autosave draft, lock after deadline |
-| **Team** | Resources | Add **inline preview** (PDF/image/video/doc via Google-viewer fallback) alongside Download |
-| **Staff (Judge)** | Score sheet | Read-only view now shows both Progress + Final submission tabs so judges can compare progression |
+**Wizard:** collapse from 3 steps → 2 steps (Details → OTP verify). On success, land the user on `/team` with a banner: "Pick your track & theme to unlock resources and submissions."
 
----
+## 2. Add track/theme selection to the Team dashboard
 
-## 1. Team login — `/team/submissions`
+New card on `src/pages/ritx/team/Home.tsx`, placed above "Upcoming sessions":
 
-Rebuild `src/pages/ritx/team/Submission.tsx` as a **stage-picker shell**, not a single flat form.
+**Track & Theme card** with three selectors:
+- **Track** (main): Science Investigator · Innovator Challenge · Open Arena
+- **Sub-theme / Challenge theme:** dependent list based on Track (from existing `mockCompetition.tracks[].subThemes`)
+- **Save** button → toasts "Theme updated"
 
-**Top area (compact, no wasted header space):**
-- Compact page header (title + team chip inline, no `PageHeader` vertical padding — replace with `<div className="flex items-center justify-between">`)
-- Two stage cards side-by-side:
-  - **Progress submission** — status pill, progress %, **countdown chip** ("Closes in 3d 4h"), CTA "Continue" / "Start" / "Locked"
-  - **Final submission** — same layout; disabled with tooltip "Opens after Progress deadline" until admin opens it
+Current values from mockData:
+- Science Investigator → Health & Wellbeing, Environment, Energy, Food & Agriculture, Other
+- Innovator Challenge → Assistive Tech, Climate Tech, EdTech, Rural Solutions, Other
+- Open Arena → SDG 3, SDG 4, SDG 7, SDG 11, SDG 13, Other
 
-**Inside a stage (route: `/team/submissions/:stageId`):**
-Tabbed form (shadcn `Tabs`, sticky under header):
-1. **Overview** — Project title, Track (readonly from registration), Sub-theme, **SDG multi-select**, **Government mission** select, **Problem statement**, People affected, Intended improvement, Abstract. (Progress stage = shorter version; Final = full "Policy & SDG Lens" per concept note §5.)
-2. **Evidence / Survey** — Multi-file upload block ("Add survey attachment"), each row: title + file + optional notes. Supports repeated attachments (photos, survey PDFs, data sheets). Show list with inline remove.
-3. **Deck / Prototype** — Pitch deck upload (PDF/PPTX), demo video URL (YouTube/Vimeo), optional prototype photos, optional GitHub/other link. On Progress stage this becomes **"Work-in-progress artifacts"** (looser, optional).
-4. **Review & Submit** — Field-by-field summary, missing-item checklist, big Submit button + Save draft.
+**Edit-lock rule:** selectors are enabled only while `now < competition.submissionDeadline`. After deadline the card renders read-only with a "Locked after submission deadline" chip. Uses existing `timeToDeadline`-style logic against `mockCompetition.submissionDeadline`.
 
-**Header of the stage screen** (persistent, compact):
-```
-[← Back]  Progress submission   ● In progress   ⏱ 3d 04h to deadline   [Save draft] [Submit]
-```
-- Countdown recomputes every minute from `stage.deadlineAt`.
-- If `now > deadlineAt`: banner "Deadline passed — saved as draft, editing disabled", all inputs go `disabled`, Submit hidden.
-- If admin extends: mock data change re-renders new countdown automatically (state is derived).
+**First-time state:** if track is unset, card shows a soft coral "Pick your track" prompt and the sidebar entries for Resources / Submissions show a "Select track first" tooltip on hover but remain visible.
 
-**Compactness rules** applied everywhere:
-- Kill `PageHeader` on submission screens (replace with a 40px inline bar).
-- Card padding `p-4` → `p-3`; section `space-y-4` → `space-y-2`.
-- Field label + input in the same row on ≥md; helper text `text-[11px]`.
-- No decorative gradients inside form area — keep white surface for scan-ability (ERP feel), reserve warm gradient for outer shell only.
+If the actual RiTX brief you referenced has a richer theme/sub-theme list than the three currently in `mockData.ts`, share it and I'll swap the arrays in — the UI is data-driven, no component changes needed.
 
----
+## 3. Data model tweaks (`src/data/ritx/mockData.ts`)
 
-## 2. Admin login — `/admin/submission-forms`
+- `Team` already has `trackId` + `subTheme` — make them optional (`trackId?: string; subTheme?: string;`).
+- Team `t1` (Curious Cosmos, the logged-in mock team) keeps its current track so existing screens still render populated; other teams unchanged.
+- Add `updateTeamTrack(teamId, trackId, subTheme)` helper that mutates the module-level array (same pattern used for `stageForms`).
 
-Extend `SubmissionForms.tsx` + `submissionData.ts`:
+## 4. Downstream screens that read `team.trackId`
 
-**Data shape change** (`submissionData.ts`):
-```ts
-type StageId = "progress" | "final";
-interface FormSection { id: string; label: string; fields: SubmissionField[]; } // tab
-interface StageForm {
-  stageId: StageId;
-  openAt: string; deadlineAt: string;
-  status: "draft" | "open" | "closed";
-  editable: boolean;
-  sections: FormSection[];  // Overview / Evidence / Deck
-}
-interface TrackSubmissionForm { trackId: string; stages: Record<StageId, StageForm>; updatedAt: string; }
-```
-Team-side record gains `stageId` and stores answers per stage.
+Verify they gracefully handle an unset track:
+- `team/Resources.tsx` — if no track, show empty state "Pick a track to see resources"
+- `team/Submission.tsx` / `SubmissionStage.tsx` — if no track, disable submission with same prompt
+- Admin `Registrations.tsx` table — Track column shows "—" when unset
 
-**Builder UI** (compact ERP feel):
-- Track tabs (existing) → inside, **Stage sub-tabs** `Progress | Final`
-- Inside each stage:
-  - Top strip: `Open date` `Deadline` `[Extend +N days]` `Status pill` `Editable switch`
-  - Section tabs: Overview | Evidence | Deck (Add section button)
-  - Field editor list (existing `FieldEditor`) scoped to the active section
-- Right column: **Live preview** now renders the exact tabbed team view for that stage.
+No changes needed in judge/admin flows beyond null-safe rendering.
 
-**Deadline extension**: `[Extend deadline]` opens a small popover with +1d/+3d/+7d chips + custom date. Saves to mock state; team countdown updates.
+## 5. Out of scope
 
-**Seed content** for defaults (mapped to concept note):
-- Progress → Overview only: title, track, sub-theme, SDG (multi), mission, problem, methodology outline, 150-word progress note. Evidence = optional early survey files. Deck = disabled.
-- Final → full 3 sections including "Policy & SDG Lens" fields, mandatory pitch deck + demo video, prototype stage select for Innovator track, sample-size for Sustainability, impact narrative for Open Arena.
+- Submission form itself stays as the admin-configured staged form (that structure is set by the institute admin, not something the student fills at registration).
+- No new DPDP/consent copy changes beyond keeping the existing consent banner — the privacy improvement here is *collecting less data*, which is the right primary control.
 
----
+## Files touched
 
-## 3. Staff / Judge — `/staff/judge/:teamId`
-
-Add `Tabs` `Progress | Final` in the read-only scoresheet so judges scroll less and can compare stages. Rubric panel unchanged.
-
----
-
-## 4. Resources — inline preview (both `team/Resources.tsx` and `staff/mentor/Resources.tsx`)
-
-- Add "Preview" icon button next to Download.
-- Click opens a `Dialog` (max-w-4xl, h-[80vh]) with a viewer routed by mime:
-  - **PDF** → `<iframe src={url} />`
-  - **image/*** → `<img>`
-  - **video** → `<video controls>`
-  - **YouTube/Vimeo URL** → embed iframe
-  - **DOC/PPT** → `<iframe src="https://docs.google.com/gview?url=...&embedded=true" />` fallback with a "Download to view" note.
-- Extend `Resource` type with `url` and `mime` (mock data update — use SAMPLE_PDF/SAMPLE_IMAGE already present in `submissionData.ts`).
-
----
-
-## Technical section
-
-**Files to add/edit** (frontend only, mock data, no backend):
-- `src/data/ritx/submissionData.ts` — new stage/section schema + seed for Progress & Final per track; helper `stageStatus(stage, now)`, `timeToDeadline(stage)`.
-- `src/pages/ritx/team/Submission.tsx` — stage-picker landing.
-- `src/pages/ritx/team/SubmissionStage.tsx` (new) — tabbed form (Overview/Evidence/Deck/Review) with sticky compact header + countdown.
-- `src/components/ritx/shared/DeadlineTimer.tsx` (new) — recomputes with `setInterval(60_000)`; returns `{label, tone, expired}`.
-- `src/pages/ritx/admin/SubmissionForms.tsx` — stage sub-tabs, section tabs, deadline controls, live preview per stage.
-- `src/pages/ritx/staff/judge/ScoreSheet.tsx` — stage tabs for review.
-- `src/pages/ritx/team/Resources.tsx` + `src/pages/ritx/staff/mentor/Resources.tsx` — preview dialog.
-- `src/components/ritx/shared/ResourcePreviewDialog.tsx` (new).
-- `src/data/ritx/staffData.ts` — add `url`, `mime` to `Resource`.
-- `src/routes/RitxRoutes.tsx` — add `/team/submissions/:stageId` route.
-
-**Compactness pass:** on every RiTX submission-flow file, replace `PageHeader` with a 40-48px inline bar, drop card `p-4` → `p-3`, drop section `space-y-4` → `space-y-2`, tighten label text to `text-xs`.
-
-**No backend changes.** All state via React + module-level mock updates. Deadlines are ISO strings in mock data; extending updates the same object so the timer re-derives.
-
-**Verification:** `bunx tsgo --noEmit` + Playwright smoke on `/team/submissions`, `/team/submissions/progress`, `/team/submissions/final`, `/admin/submission-forms`, `/team/resources` (open preview dialog).
+- `src/pages/ritx/team/Register.tsx` — rewrite as 2-step minimal form
+- `src/pages/ritx/team/Home.tsx` — add Track & Theme card
+- `src/data/ritx/mockData.ts` — optional trackId/subTheme + updater helper
+- `src/pages/ritx/team/Resources.tsx`, `Submission.tsx`, `SubmissionStage.tsx` — null-safe empty states
+- `src/pages/ritx/admin/Registrations.tsx` — render "—" for missing track
