@@ -22,6 +22,8 @@ const AdminSubmissionForms = lazy(() => import("@/pages/ritx/admin/SubmissionFor
 const AdminSubmissions = lazy(() => import("@/pages/ritx/admin/Submissions"));
 const AdminRubrics = lazy(() => import("@/pages/ritx/admin/Rubrics"));
 const AdminJudgeAssignments = lazy(() => import("@/pages/ritx/admin/JudgeAssignments"));
+const AdminResults = lazy(() => import("@/pages/ritx/admin/Results"));
+const AdminAnnouncements = lazy(() => import("@/pages/ritx/admin/Announcements"));
 
 const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
 const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
@@ -29,6 +31,7 @@ const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
 const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
 const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
 const TeamSubmission = lazy(() => import("@/pages/ritx/team/Submission"));
+const TeamResults = lazy(() => import("@/pages/ritx/team/Results"));
 
 const StaffLayout = lazy(() => import("@/pages/ritx/staff/Layout"));
 const StaffHome = lazy(() => import("@/pages/ritx/staff/Home"));
@@ -63,6 +66,8 @@ export default function RitxRoutes() {
         <Route path="submissions" element={<AdminSubmissions />} />
         <Route path="rubrics" element={<AdminRubrics />} />
         <Route path="judge-assignments" element={<AdminJudgeAssignments />} />
+        <Route path="results" element={<AdminResults />} />
+        <Route path="announcements" element={<AdminAnnouncements />} />
       </Route>
 
       <Route path="team" element={<Lazy><TeamLayout /></Lazy>}>
@@ -70,6 +75,7 @@ export default function RitxRoutes() {
         <Route path="members" element={<TeamMembers />} />
         <Route path="resources" element={<TeamResources />} />
         <Route path="submissions" element={<TeamSubmission />} />
+        <Route path="results" element={<TeamResults />} />
       </Route>
 
       <Route path="staff" element={<Lazy><StaffLayout /></Lazy>}>

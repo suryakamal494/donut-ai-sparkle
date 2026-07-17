@@ -1,5 +1,5 @@
 import { RitxShell } from "@/components/ritx/shared/RitxShell";
-import { LayoutDashboard, Settings, Users, UserCog, MessageCircle, CreditCard, FileEdit, FileText, Scale, Gavel } from "lucide-react";
+import { LayoutDashboard, Settings, Users, UserCog, MessageCircle, CreditCard, FileEdit, FileText, Scale, Gavel, Trophy, Megaphone } from "lucide-react";
 
 export default function RitxAdminLayout() {
   return (
@@ -15,6 +15,8 @@ export default function RitxAdminLayout() {
         { to: "/ritx/admin/submissions", label: "Submissions", icon: FileText },
         { to: "/ritx/admin/rubrics", label: "Rubrics", icon: Scale },
         { to: "/ritx/admin/judge-assignments", label: "Judge assignments", icon: Gavel },
+        { to: "/ritx/admin/results", label: "Results", icon: Trophy },
+        { to: "/ritx/admin/announcements", label: "Announcements", icon: Megaphone },
         { to: "/ritx/admin/communications", label: "WhatsApp", icon: MessageCircle },
         { to: "/ritx/admin/payment", label: "Payment gateway", icon: CreditCard },
       ]}

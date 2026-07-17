@@ -1,5 +1,5 @@
 import { RitxShell } from "@/components/ritx/shared/RitxShell";
-import { Home, Users, FileText, FolderOpen } from "lucide-react";
+import { Home, Users, FileText, FolderOpen, Trophy } from "lucide-react";
 
 export default function RitxTeamLayout() {
   return (
@@ -11,6 +11,7 @@ export default function RitxTeamLayout() {
         { to: "/ritx/team/members", label: "Members & consent", icon: Users },
         { to: "/ritx/team/resources", label: "Resources", icon: FolderOpen },
         { to: "/ritx/team/submissions", label: "Submissions", icon: FileText },
+        { to: "/ritx/team/results", label: "Results", icon: Trophy },
       ]}
     />
   );
