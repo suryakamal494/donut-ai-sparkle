@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
-import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
-import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
-import { assignmentsForJudge, scoreTone, statusLabel } from "@/data/ritx/rubricData";
+import { TeamIdChip } from "@/components/shared/AccessBadge";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { mockTeams, mockCompetition } from "@/data/mockData";
+import { assignmentsForJudge, scoreTone, statusLabel } from "@/data/rubricData";
 import { EyeOff, ArrowRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -111,7 +111,7 @@ export default function RitxJudgeAssigned() {
                   <TableCell><span className={`text-[10px] px-2 py-0.5 rounded-full border ${scoreTone(a.status)}`}>{statusLabel(a.status)}</span></TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{a.status === "scored" && a.score != null ? `${a.score.toFixed(2)}/10` : "—"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant={a.status === "scored" ? "outline" : "default"} onClick={() => navigate(`/ritx/staff/judge/${team.id}`)}>
+                    <Button size="sm" variant={a.status === "scored" ? "outline" : "default"} onClick={() => navigate(`/staff/judge/${team.id}`)}>
                       {actionLabel(a.status)} <ArrowRight className="w-3 h-3 ml-1" />
                     </Button>
                   </TableCell>

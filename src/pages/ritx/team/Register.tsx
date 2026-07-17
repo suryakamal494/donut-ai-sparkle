@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCompetition } from "@/data/ritx/mockData";
+import { mockCompetition } from "@/data/mockData";
 import { toast } from "sonner";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -70,7 +70,7 @@ export default function RitxTeamRegister() {
               </InputOTPGroup>
             </InputOTP>
             <Button
-              onClick={() => { toast.success("Team registered! Add your members next."); nav("/ritx/team/members"); }}
+              onClick={() => { toast.success("Team registered! Add your members next."); nav("/team/members"); }}
               className="w-full"
               disabled={otp.length !== 6}
             >

@@ -6,10 +6,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Shuffle, Save, Users, Gavel } from "lucide-react";
-import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
-import { mockStaff } from "@/data/ritx/staffData";
-import { mockAssignments, statusLabel, scoreTone } from "@/data/ritx/rubricData";
-import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { mockTeams, mockCompetition } from "@/data/mockData";
+import { mockStaff } from "@/data/staffData";
+import { mockAssignments, statusLabel, scoreTone } from "@/data/rubricData";
+import { TeamIdChip } from "@/components/shared/AccessBadge";
 import { toast } from "sonner";
 
 export default function RitxAdminJudgeAssignments() {

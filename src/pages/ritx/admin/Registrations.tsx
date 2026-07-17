@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
-import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
+import { AccessBadge, TeamIdChip } from "@/components/shared/AccessBadge";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { Download, Upload, Search } from "lucide-react";
-import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { mockTeams, mockCompetition } from "@/data/mockData";
 import { toast } from "sonner";
 
 export default function RitxRegistrations() {

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Sparkles, Trophy, Users, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { mockCompetition } from "@/data/ritx/mockData";
+import { mockCompetition } from "@/data/mockData";
 
 export default function RitxLanding() {
   const navigate = useNavigate();
@@ -27,10 +27,10 @@ export default function RitxLanding() {
             Team up, pick a track, and build something that matters.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => navigate("/ritx/login?role=team")} className="gap-2">
+            <Button size="lg" onClick={() => navigate("/login?role=team")} className="gap-2">
               Register your team <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/ritx/login")}>
+            <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
               Sign in
             </Button>
           </div>

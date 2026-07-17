@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Megaphone, Send, Calendar, MessageCircle, Mail, Bell } from "lucide-react";
-import { mockAnnouncements, type Announcement } from "@/data/ritx/resultsData";
+import { mockAnnouncements, type Announcement } from "@/data/resultsData";
 import { toast } from "sonner";
 
 const channels = [

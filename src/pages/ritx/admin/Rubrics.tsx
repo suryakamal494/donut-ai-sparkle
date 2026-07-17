@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
-import { mockCompetition } from "@/data/ritx/mockData";
-import { initialRubrics, type RubricCriterion, type TrackRubric } from "@/data/ritx/rubricData";
+import { mockCompetition } from "@/data/mockData";
+import { initialRubrics, type RubricCriterion, type TrackRubric } from "@/data/rubricData";
 import { toast } from "sonner";
 
 function newCriterion(): RubricCriterion {

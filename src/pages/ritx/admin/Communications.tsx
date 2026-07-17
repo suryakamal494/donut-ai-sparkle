@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, Wallet, Send, History } from "lucide-react";
-import { mockWaTemplates, waWallet } from "@/data/ritx/staffData";
+import { mockWaTemplates, waWallet } from "@/data/staffData";
 import { toast } from "sonner";
 
 export default function RitxCommunications() {

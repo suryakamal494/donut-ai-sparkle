@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Award, Download, Sparkles, Trophy } from "lucide-react";
-import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
-import { initialResults, awardLabel, awardTone } from "@/data/ritx/resultsData";
+import { mockTeams, mockCompetition } from "@/data/mockData";
+import { initialResults, awardLabel, awardTone } from "@/data/resultsData";
 import { toast } from "sonner";
 
 // Mock: currently signed-in team is t2 (Neon Neurons)

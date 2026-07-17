@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical, Plus, Trash2, ArrowUp, ArrowDown, Save, Eye } from "lucide-react";
-import { mockCompetition } from "@/data/ritx/mockData";
-import { initialForms, fieldTypeLabel, type FieldType, type SubmissionField, type TrackSubmissionForm } from "@/data/ritx/submissionData";
+import { mockCompetition } from "@/data/mockData";
+import { initialForms, fieldTypeLabel, type FieldType, type SubmissionField, type TrackSubmissionForm } from "@/data/submissionData";
 import { toast } from "sonner";
 
 const TYPES: FieldType[] = ["short-text", "long-text", "number", "url", "select", "multi-select", "file", "video-url"];

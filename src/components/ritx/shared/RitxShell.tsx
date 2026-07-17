@@ -55,7 +55,7 @@ export function RitxShell({ role, roleColor = "from-fuchsia-500 to-indigo-500", 
           ))}
         </nav>
         <div className="p-3 border-t">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={() => navigate("/ritx/login")}>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={() => navigate("/login")}>
             <LogOut className="w-4 h-4" /> Sign out
           </Button>
         </div>
@@ -93,7 +93,7 @@ export function RitxShell({ role, roleColor = "from-fuchsia-500 to-indigo-500", 
                 {item.label}
               </NavLink>
             ))}
-            <Button variant="ghost" className="w-full justify-start gap-2 mt-4" onClick={() => navigate("/ritx/login")}>
+            <Button variant="ghost" className="w-full justify-start gap-2 mt-4" onClick={() => navigate("/login")}>
               <LogOut className="w-4 h-4" /> Sign out
             </Button>
           </nav>

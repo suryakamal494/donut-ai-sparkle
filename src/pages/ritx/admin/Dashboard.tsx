@@ -2,10 +2,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Users, School, CheckCircle2, Clock, Trophy, Gavel } from "lucide-react";
-import { registrationStats, mockCompetition, mockTeams } from "@/data/ritx/mockData";
-import { mockAssignments } from "@/data/ritx/rubricData";
-import { mockStaff } from "@/data/ritx/staffData";
-import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { registrationStats, mockCompetition, mockTeams } from "@/data/mockData";
+import { mockAssignments } from "@/data/rubricData";
+import { mockStaff } from "@/data/staffData";
+import { TeamIdChip } from "@/components/shared/AccessBadge";
 
 function Stat({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
   return (

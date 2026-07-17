@@ -2,8 +2,8 @@ import { useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { mockResources } from "@/data/ritx/staffData";
-import { mockCompetition, mockTeams } from "@/data/ritx/mockData";
+import { mockResources } from "@/data/staffData";
+import { mockCompetition, mockTeams } from "@/data/mockData";
 import { FileText, Video, FileType, Wrench, Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

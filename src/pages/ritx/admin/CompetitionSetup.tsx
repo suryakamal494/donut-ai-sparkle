@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { mockCompetition, type CompetitionMode } from "@/data/ritx/mockData";
+import { mockCompetition, type CompetitionMode } from "@/data/mockData";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 

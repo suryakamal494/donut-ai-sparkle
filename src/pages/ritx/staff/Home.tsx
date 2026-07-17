@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Gavel, BookOpen, Video, FolderOpen, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { mockStaff, mockSessions, mockResources } from "@/data/ritx/staffData";
+import { mockStaff, mockSessions, mockResources } from "@/data/staffData";
 
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
 
@@ -35,13 +35,13 @@ export default function RitxStaffHome() {
               <FolderOpen className="w-5 h-5 text-primary mb-2" />
               <div className="font-semibold">Resources</div>
               <p className="text-sm text-muted-foreground mt-1 mb-3">Upload theme-wise guides, videos and templates for teams.</p>
-              <Button variant="outline" size="sm" onClick={() => nav("/ritx/staff/mentor/resources")}>Manage <ArrowRight className="w-3 h-3 ml-1" /></Button>
+              <Button variant="outline" size="sm" onClick={() => nav("/staff/mentor/resources")}>Manage <ArrowRight className="w-3 h-3 ml-1" /></Button>
             </Card>
             <Card className="p-5">
               <Video className="w-5 h-5 text-primary mb-2" />
               <div className="font-semibold">Webinars & office hours</div>
               <p className="text-sm text-muted-foreground mt-1 mb-3">Schedule live sessions; teams see them in their calendar with a join countdown.</p>
-              <Button variant="outline" size="sm" onClick={() => nav("/ritx/staff/mentor/sessions")}>Schedule <ArrowRight className="w-3 h-3 ml-1" /></Button>
+              <Button variant="outline" size="sm" onClick={() => nav("/staff/mentor/sessions")}>Schedule <ArrowRight className="w-3 h-3 ml-1" /></Button>
             </Card>
           </>
         )}
@@ -50,7 +50,7 @@ export default function RitxStaffHome() {
             <Gavel className="w-5 h-5 text-primary mb-2" />
             <div className="font-semibold">Judging (blind view)</div>
             <p className="text-sm text-muted-foreground mt-1 mb-3">Assigned submissions show only Team IDs. Rubric scoring opens in Phase 3.</p>
-            <Button variant="outline" size="sm" onClick={() => nav("/ritx/staff/judge")}>Open queue <ArrowRight className="w-3 h-3 ml-1" /></Button>
+            <Button variant="outline" size="sm" onClick={() => nav("/staff/judge")}>Open queue <ArrowRight className="w-3 h-3 ml-1" /></Button>
           </Card>
         )}
         {!currentStaff.mentorAccess && !currentStaff.judgeAccess && (
