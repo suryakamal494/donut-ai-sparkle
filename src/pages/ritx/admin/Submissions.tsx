@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -261,8 +261,8 @@ export default function RitxAdminSubmissions() {
               const outlier = spread != null && spread >= 1.5;
               const avg = judging.average;
               return (
-                <>
-                  <TableRow key={team.id} className={cn("hover:bg-muted/30", selected.has(team.id) && "bg-orange-50/60")}>
+                <Fragment key={team.id}>
+                  <TableRow className={cn("hover:bg-muted/30", selected.has(team.id) && "bg-orange-50/60")}>
                     <TableCell className="w-10">
                       <Checkbox checked={selected.has(team.id)} onCheckedChange={() => toggleSelect(team.id)} aria-label={`Select ${team.teamName}`} />
                     </TableCell>
@@ -412,7 +412,7 @@ export default function RitxAdminSubmissions() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
             {pageRows.length === 0 && (
