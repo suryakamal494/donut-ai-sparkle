@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getActiveCurriculums } from "@/data/masterData";
-import { classes } from "@/data/mockData";
+import { classes } from "@/data/ritx/mockData";
 import { Course } from "@/types/masterData";
 import { NewCourseForm } from "@/hooks/useCourseBuilder";
 

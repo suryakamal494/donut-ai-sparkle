@@ -28,7 +28,7 @@ import {
 import { MessageCircle } from "lucide-react";
 import { Package as PackageIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import DonutLogo from "@/components/shared/DonutLogo";
+import DonutLogo from "@/components/ritx/shared/DonutLogo";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface InstituteSidebarProps {

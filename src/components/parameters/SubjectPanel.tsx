@@ -3,7 +3,7 @@ import { Plus, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { subjects } from "@/data/mockData";
+import { subjects } from "@/data/ritx/mockData";
 import { allCBSEChapters } from "@/data/cbseMasterData";
 import { SubjectFormDialog } from "./SubjectFormDialog";
 

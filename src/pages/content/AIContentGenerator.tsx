@@ -14,7 +14,7 @@ import { SourceTypeSelector, VisibilitySelector } from "@/components/parameters"
 import { ContentSourceType } from "@/components/parameters/SourceTypeSelector";
 import { getActiveCurriculums, getPublishedCourses, getAllCourseChapters } from "@/data/masterData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 
 const stylePresets = [
   { id: "detailed", label: "Detailed", description: "Comprehensive with examples" },

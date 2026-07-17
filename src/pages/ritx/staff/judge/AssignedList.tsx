@@ -111,7 +111,7 @@ export default function RitxJudgeAssigned() {
                   <TableCell><span className={`text-[10px] px-2 py-0.5 rounded-full border ${scoreTone(a.status)}`}>{statusLabel(a.status)}</span></TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{a.status === "scored" && a.score != null ? `${a.score.toFixed(2)}/10` : "—"}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant={a.status === "scored" ? "outline" : "default"} onClick={() => navigate(`/ritx/staff/judge/${team.id}`)}>
+                    <Button size="sm" variant={a.status === "scored" ? "outline" : "default"} onClick={() => navigate(`/staff/judge/${team.id}`)}>
                       {actionLabel(a.status)} <ArrowRight className="w-3 h-3 ml-1" />
                     </Button>
                   </TableCell>

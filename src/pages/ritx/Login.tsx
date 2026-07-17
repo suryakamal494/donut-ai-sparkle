@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 type Role = "admin" | "team" | "staff";
 
 const roleConfig: Record<Role, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; redirect: string; hint: string }> = {
-  admin: { label: "Admin", icon: Shield, color: "from-violet-500 to-indigo-600", redirect: "/ritx/admin", hint: "Program organiser" },
-  team: { label: "Team", icon: Users, color: "from-fuchsia-500 to-rose-500", redirect: "/ritx/team", hint: "Student team login" },
-  staff: { label: "Mentor / Judge", icon: Gavel, color: "from-emerald-500 to-cyan-500", redirect: "/ritx/staff", hint: "Access granted by admin" },
+  admin: { label: "Admin", icon: Shield, color: "from-violet-500 to-indigo-600", redirect: "/admin", hint: "Program organiser" },
+  team: { label: "Team", icon: Users, color: "from-fuchsia-500 to-rose-500", redirect: "/team", hint: "Student team login" },
+  staff: { label: "Mentor / Judge", icon: Gavel, color: "from-emerald-500 to-cyan-500", redirect: "/staff", hint: "Access granted by admin" },
 };
 
 export default function RitxLogin() {
@@ -77,7 +77,7 @@ export default function RitxLogin() {
           </div>
           <Button type="submit" className="w-full">Sign in</Button>
           {role === "team" && (
-            <Button type="button" variant="outline" className="w-full" onClick={() => navigate("/ritx/team/register")}>
+            <Button type="button" variant="outline" className="w-full" onClick={() => navigate("/team/register")}>
               New team? Register here
             </Button>
           )}

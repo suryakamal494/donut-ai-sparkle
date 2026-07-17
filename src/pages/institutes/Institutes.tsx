@@ -9,7 +9,7 @@ import { PlanBadge } from "@/components/ui/plan-badge";
 import { VirtualizedTable, VirtualTableColumn } from "@/components/ui/virtualized-table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockInstitutes, Institute } from "@/data/mockData";
+import { mockInstitutes, Institute } from "@/data/ritx/mockData";
 import { InstituteEditDialog } from "@/components/institutes/InstituteEditDialog";
 import { AssignCurriculumCourseDialog } from "@/components/institutes/AssignCurriculumCourseDialog";
 import { toast } from "sonner";

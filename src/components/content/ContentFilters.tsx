@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ContentType } from "./ContentTypeIcon";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 
 interface ContentFiltersProps {
   searchQuery: string;

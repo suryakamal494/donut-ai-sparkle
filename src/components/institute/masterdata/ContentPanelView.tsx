@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 import { allCBSEChapters, allCBSETopics, CBSEChapter } from "@/data/cbseMasterData";
 import { courseChapterMappings, courseOwnedChapters, courseOwnedChapterTopics, curriculums } from "@/data/masterData";
 import { cn } from "@/lib/utils";

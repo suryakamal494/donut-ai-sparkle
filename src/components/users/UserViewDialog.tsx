@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { User } from "@/data/mockData";
+import { User } from "@/data/ritx/mockData";
 import { Mail, Phone, GraduationCap, BookOpen, UserCircle, Calendar } from "lucide-react";
 
 interface UserViewDialogProps {

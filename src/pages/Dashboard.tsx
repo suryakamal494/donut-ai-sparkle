@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PageHeader } from "@/components/ui/page-header";
-import { mockDashboardStats, monthlyGrowthData, revenueByTierData, userDistributionData, recentActivities } from "@/data/mockData";
+import { mockDashboardStats, monthlyGrowthData, revenueByTierData, userDistributionData, recentActivities } from "@/data/ritx/mockData";
 import { Link } from "react-router-dom";
 
 const COLORS = ["hsl(175, 70%, 45%)", "hsl(24, 95%, 65%)", "hsl(0, 85%, 70%)"];

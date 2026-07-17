@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DonutLogo from "@/components/shared/DonutLogo";
+import DonutLogo from "@/components/ritx/shared/DonutLogo";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,

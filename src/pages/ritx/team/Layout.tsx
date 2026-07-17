@@ -7,11 +7,11 @@ export default function RitxTeamLayout() {
       role="Team"
       roleColor="from-fuchsia-500 to-rose-500"
       nav={[
-        { to: "/ritx/team", label: "Home", icon: Home },
-        { to: "/ritx/team/members", label: "Members & consent", icon: Users },
-        { to: "/ritx/team/resources", label: "Resources", icon: FolderOpen },
-        { to: "/ritx/team/submissions", label: "Submissions", icon: FileText },
-        { to: "/ritx/team/results", label: "Results", icon: Trophy },
+        { to: "/team", label: "Home", icon: Home },
+        { to: "/team/members", label: "Members & consent", icon: Users },
+        { to: "/team/resources", label: "Resources", icon: FolderOpen },
+        { to: "/team/submissions", label: "Submissions", icon: FileText },
+        { to: "/team/results", label: "Results", icon: Trophy },
       ]}
     />
   );

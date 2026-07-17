@@ -14,10 +14,10 @@ export default function RitxStaffLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const nav: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; visible: boolean }[] = [
-    { to: "/ritx/staff", label: "Overview", icon: LayoutDashboard, visible: true },
-    { to: "/ritx/staff/mentor/resources", label: "Resources", icon: FolderOpen, visible: currentStaff.mentorAccess },
-    { to: "/ritx/staff/mentor/sessions", label: "Sessions", icon: Video, visible: currentStaff.mentorAccess },
-    { to: "/ritx/staff/judge", label: "Judging (blind)", icon: Gavel, visible: currentStaff.judgeAccess },
+    { to: "/staff", label: "Overview", icon: LayoutDashboard, visible: true },
+    { to: "/staff/mentor/resources", label: "Resources", icon: FolderOpen, visible: currentStaff.mentorAccess },
+    { to: "/staff/mentor/sessions", label: "Sessions", icon: Video, visible: currentStaff.mentorAccess },
+    { to: "/staff/judge", label: "Judging (blind)", icon: Gavel, visible: currentStaff.judgeAccess },
   ];
   const visibleNav = nav.filter((n) => n.visible);
 
@@ -54,7 +54,7 @@ export default function RitxStaffLayout() {
           ))}
         </nav>
         <div className="p-3 border-t">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={() => navigate("/ritx/login")}>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={() => navigate("/login")}>
             <LogOut className="w-4 h-4" /> Sign out
           </Button>
         </div>

@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Institute } from "@/data/mockData";
+import { Institute } from "@/data/ritx/mockData";
 
 interface InstituteEditDialogProps {
   open: boolean;

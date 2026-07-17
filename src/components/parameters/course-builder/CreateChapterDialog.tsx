@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subjects } from "@/data/mockData";
+import { subjects } from "@/data/ritx/mockData";
 import { NewChapterForm } from "@/hooks/useCourseBuilder";
 
 interface CreateChapterDialogProps {

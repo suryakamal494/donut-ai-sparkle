@@ -30,7 +30,7 @@ import { questionTypeLabels, QuestionType } from "@/data/questionsData";
 import { assignedTracks } from "@/data/instituteData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
 import { getSubjectsForCourse, getChaptersForCourseBySubject, subjects as masterSubjects } from "@/data/masterData";
-import { classes } from "@/data/mockData";
+import { classes } from "@/data/ritx/mockData";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TypeConfigPanel, TypeConfig } from "@/components/questions/TypeConfigPanel";

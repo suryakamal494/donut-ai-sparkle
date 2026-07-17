@@ -8,37 +8,37 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PageSkeleton } from "@/components/ui/page-skeleton";
 import LazyErrorBoundary from "@/components/ui/lazy-error-boundary";
 
-const Landing = lazy(() => import("@/pages/ritx/Landing"));
-const Login = lazy(() => import("@/pages/ritx/Login"));
+const Landing = lazy(() => import("@/pages/Landing"));
+const Login = lazy(() => import("@/pages/Login"));
 
-const AdminLayout = lazy(() => import("@/pages/ritx/admin/Layout"));
-const AdminDashboard = lazy(() => import("@/pages/ritx/admin/Dashboard"));
-const AdminSetup = lazy(() => import("@/pages/ritx/admin/CompetitionSetup"));
-const AdminRegistrations = lazy(() => import("@/pages/ritx/admin/Registrations"));
-const AdminStaff = lazy(() => import("@/pages/ritx/admin/Staff"));
-const AdminCommunications = lazy(() => import("@/pages/ritx/admin/Communications"));
-const AdminPayment = lazy(() => import("@/pages/ritx/admin/Payment"));
-const AdminSubmissionForms = lazy(() => import("@/pages/ritx/admin/SubmissionForms"));
-const AdminSubmissions = lazy(() => import("@/pages/ritx/admin/Submissions"));
-const AdminRubrics = lazy(() => import("@/pages/ritx/admin/Rubrics"));
-const AdminJudgeAssignments = lazy(() => import("@/pages/ritx/admin/JudgeAssignments"));
-const AdminResults = lazy(() => import("@/pages/ritx/admin/Results"));
-const AdminAnnouncements = lazy(() => import("@/pages/ritx/admin/Announcements"));
+const AdminLayout = lazy(() => import("@/pages/admin/Layout"));
+const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard"));
+const AdminSetup = lazy(() => import("@/pages/admin/CompetitionSetup"));
+const AdminRegistrations = lazy(() => import("@/pages/admin/Registrations"));
+const AdminStaff = lazy(() => import("@/pages/admin/Staff"));
+const AdminCommunications = lazy(() => import("@/pages/admin/Communications"));
+const AdminPayment = lazy(() => import("@/pages/admin/Payment"));
+const AdminSubmissionForms = lazy(() => import("@/pages/admin/SubmissionForms"));
+const AdminSubmissions = lazy(() => import("@/pages/admin/Submissions"));
+const AdminRubrics = lazy(() => import("@/pages/admin/Rubrics"));
+const AdminJudgeAssignments = lazy(() => import("@/pages/admin/JudgeAssignments"));
+const AdminResults = lazy(() => import("@/pages/admin/Results"));
+const AdminAnnouncements = lazy(() => import("@/pages/admin/Announcements"));
 
-const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
-const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
-const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
-const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
-const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
-const TeamSubmission = lazy(() => import("@/pages/ritx/team/Submission"));
-const TeamResults = lazy(() => import("@/pages/ritx/team/Results"));
+const TeamLayout = lazy(() => import("@/pages/team/Layout"));
+const TeamHome = lazy(() => import("@/pages/team/Home"));
+const TeamRegister = lazy(() => import("@/pages/team/Register"));
+const TeamMembers = lazy(() => import("@/pages/team/Members"));
+const TeamResources = lazy(() => import("@/pages/team/Resources"));
+const TeamSubmission = lazy(() => import("@/pages/team/Submission"));
+const TeamResults = lazy(() => import("@/pages/team/Results"));
 
-const StaffLayout = lazy(() => import("@/pages/ritx/staff/Layout"));
-const StaffHome = lazy(() => import("@/pages/ritx/staff/Home"));
-const StaffMentorResources = lazy(() => import("@/pages/ritx/staff/mentor/Resources"));
-const StaffMentorSessions = lazy(() => import("@/pages/ritx/staff/mentor/Sessions"));
-const StaffJudgeAssigned = lazy(() => import("@/pages/ritx/staff/judge/AssignedList"));
-const StaffJudgeScoreSheet = lazy(() => import("@/pages/ritx/staff/judge/ScoreSheet"));
+const StaffLayout = lazy(() => import("@/pages/staff/Layout"));
+const StaffHome = lazy(() => import("@/pages/staff/Home"));
+const StaffMentorResources = lazy(() => import("@/pages/staff/mentor/Resources"));
+const StaffMentorSessions = lazy(() => import("@/pages/staff/mentor/Sessions"));
+const StaffJudgeAssigned = lazy(() => import("@/pages/staff/judge/AssignedList"));
+const StaffJudgeScoreSheet = lazy(() => import("@/pages/staff/judge/ScoreSheet"));
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
@@ -86,7 +86,7 @@ export default function RitxRoutes() {
         <Route path="judge/:teamId" element={<StaffJudgeScoreSheet />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/ritx" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

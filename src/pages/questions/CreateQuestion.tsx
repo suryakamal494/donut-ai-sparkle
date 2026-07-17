@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { SourceTypeSelector } from "@/components/parameters";
 import { ContentSourceType } from "@/components/parameters/SourceTypeSelector";
 import { getActiveCurriculums, getPublishedCourses, getAllCourseChapters } from "@/data/masterData";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
 import { countBlanks } from "@/lib/parseUtils";
 import {

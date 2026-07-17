@@ -70,7 +70,7 @@ export default function RitxTeamRegister() {
               </InputOTPGroup>
             </InputOTP>
             <Button
-              onClick={() => { toast.success("Team registered! Add your members next."); nav("/ritx/team/members"); }}
+              onClick={() => { toast.success("Team registered! Add your members next."); nav("/team/members"); }}
               className="w-full"
               disabled={otp.length !== 6}
             >

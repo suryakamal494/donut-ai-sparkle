@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 import { ScopeConfig } from "./types";
 import { cn } from "@/lib/utils";
 

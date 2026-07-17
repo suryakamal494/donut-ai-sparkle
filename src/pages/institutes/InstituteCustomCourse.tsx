@@ -62,7 +62,7 @@ import {
   allCBSEChapters, 
   getChaptersByClassAndSubject 
 } from "@/data/cbseMasterData";
-import { classes, subjects, mockInstitutes } from "@/data/mockData";
+import { classes, subjects, mockInstitutes } from "@/data/ritx/mockData";
 import { Course } from "@/types/masterData";
 import { SortableChapterItem } from "@/components/parameters/SortableChapterItem";
 

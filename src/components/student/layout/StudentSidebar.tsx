@@ -13,7 +13,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DonutLogo from "@/components/shared/DonutLogo";
+import DonutLogo from "@/components/ritx/shared/DonutLogo";
 import { studentProfile } from "@/data/student/profile";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
