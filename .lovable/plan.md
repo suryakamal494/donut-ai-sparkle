@@ -1,66 +1,132 @@
-# Plan: Privacy-first registration + dashboard theme selection
 
-## 1. Slim the registration form (`src/pages/ritx/team/Register.tsx`)
+## Goal
 
-Remove all track/sub-theme fields from registration. Registration collects only what's needed to create the team account:
+Two additions to the RiTX UI, kept mock-only so the dev team wires the real backend later:
 
-**Kept fields (single step):**
-- Team name
-- Team lead name
-- School
-- Class / grade (dropdown: 6-12)
-- State (dropdown)
-- City
-- Team lead email (for OTP)
+1. **Paid vs Free gating** — if the competition is paid, submissions and results stay locked until the team lead pays. If free, everything is open.
+2. **Workspace model** — individual student logins that share one team Workspace. Lead creates it, invites 2–3 members with a short code they paste in. Submissions/resources/results are shared; certificates list every member; edits are attributed per user.
 
-**Removed fields:** Track, Sub-theme, full address, anything beyond the above.
+No change to the existing components (RitxShell, Team layout, Submission stage forms, Certificate, Resources) — we add small wrappers and one new dialog. This avoids any architectural rewrite.
 
-**Wizard:** collapse from 3 steps → 2 steps (Details → OTP verify). On success, land the user on `/team` with a banner: "Pick your track & theme to unlock resources and submissions."
+## Feasibility summary
 
-## 2. Add track/theme selection to the Team dashboard
+Everything below is UI + local mock state. The current app already treats "team" as the entity that owns submissions, so we just:
+- Rename what a team is (a Workspace with N member users) in mock data.
+- Add a `paid: boolean` flag on the competition + `workspace.paidAt` timestamp.
+- Add a `PaywallGate` wrapper around the two screens that must lock (Submission, Result).
+- Add an invite-code join screen.
+- Add a lightweight "edited by" stamp on submission autosave.
 
-New card on `src/pages/ritx/team/Home.tsx`, placed above "Upcoming sessions":
+No routing overhaul, no new auth system in the UI, no email/WhatsApp plumbing.
 
-**Track & Theme card** with three selectors:
-- **Track** (main): Science Investigator · Innovator Challenge · Open Arena
-- **Sub-theme / Challenge theme:** dependent list based on Track (from existing `mockCompetition.tracks[].subThemes`)
-- **Save** button → toasts "Theme updated"
+## Phase A — Paid vs Free gating
 
-Current values from mockData:
-- Science Investigator → Health & Wellbeing, Environment, Energy, Food & Agriculture, Other
-- Innovator Challenge → Assistive Tech, Climate Tech, EdTech, Rural Solutions, Other
-- Open Arena → SDG 3, SDG 4, SDG 7, SDG 11, SDG 13, Other
+**Data (`src/data/ritx/mockData.ts`)**
+- Add `competition.pricing: { mode: "free" | "paid"; amount: number; currency: "INR" }`.
+- Add `workspace.paidAt: string | null` and `workspace.paidBy: userId | null`.
+- Admin toggle in mock data so we can demo both modes.
 
-**Edit-lock rule:** selectors are enabled only while `now < competition.submissionDeadline`. After deadline the card renders read-only with a "Locked after submission deadline" chip. Uses existing `timeToDeadline`-style logic against `mockCompetition.submissionDeadline`.
+**New component `PaywallGate.tsx`** (shared)
+- Props: `children`, `feature: "submission" | "result"`.
+- Reads `competition.pricing.mode` and `workspace.paidAt`.
+- If `free` OR already paid → render children.
+- Else → render a warm-styled lock card: "Payment required to start your submission" with amount, a **Pay ₹X and unlock** button (mock — flips `paidAt` and shows a success toast), and a "Only the team lead can pay" note for non-lead members (their button is disabled with tooltip).
 
-**First-time state:** if track is unset, card shows a soft coral "Pick your track" prompt and the sidebar entries for Resources / Submissions show a "Select track first" tooltip on hover but remain visible.
+**Where it wraps**
+- `team/Submission.tsx` (stage picker) — gate the stage cards, keep header/brochure visible.
+- `team/SubmissionStage.tsx` — safety net gate.
+- `team/Result.tsx` — gate the result + certificate.
+- **Not gated:** Home, Resources, Webinars, brochure/theme selector, Track & Theme card. These stay visible for free-tier browsing.
 
-If the actual RiTX brief you referenced has a richer theme/sub-theme list than the three currently in `mockData.ts`, share it and I'll swap the arrays in — the UI is data-driven, no component changes needed.
+**Home page nudge**
+- When paid mode + unpaid, add a coral banner above the Track & Theme card: "Complete payment to unlock submissions." Single CTA opens the same Pay dialog.
 
-## 3. Data model tweaks (`src/data/ritx/mockData.ts`)
+**Admin side**
+- In `admin/Dashboard.tsx` add a small "Pricing" chip (Free / Paid ₹X) that opens a dialog to switch mode and set amount. Mock only.
+- In `admin/Registrations.tsx` (or wherever teams list lives) add a `Payment` column: Paid ✓ / Pending / Free.
 
-- `Team` already has `trackId` + `subTheme` — make them optional (`trackId?: string; subTheme?: string;`).
-- Team `t1` (Curious Cosmos, the logged-in mock team) keeps its current track so existing screens still render populated; other teams unchanged.
-- Add `updateTeamTrack(teamId, trackId, subTheme)` helper that mutates the module-level array (same pattern used for `stageForms`).
+## Phase B — Workspace + individual logins
 
-## 4. Downstream screens that read `team.trackId`
+**Mental model**
+- A **Workspace** = what today's mock calls a Team. Owns submission, track selection, payment, result.
+- A **Member** = a user account (email + name + class). Belongs to at most one Workspace.
+- **Roles inside workspace:** `lead` (creator, can pay + invite + remove) and `member` (can view/edit submissions).
 
-Verify they gracefully handle an unset track:
-- `team/Resources.tsx` — if no track, show empty state "Pick a track to see resources"
-- `team/Submission.tsx` / `SubmissionStage.tsx` — if no track, disable submission with same prompt
-- Admin `Registrations.tsx` table — Track column shows "—" when unset
+**Data changes (`mockData.ts`)**
+- Add `users: Array<{ id, name, email, class }>`.
+- Change `team` → `workspace` with: `id, name, code (6-char), leadUserId, memberIds[], maxMembers: 4, paidAt, trackId, subTheme`.
+- Add helper `getCurrentUser()` reading from localStorage (mock login).
+- Add helper `getWorkspaceForUser(userId)`.
+- Seed 2–3 sample workspaces so demos work.
 
-No changes needed in judge/admin flows beyond null-safe rendering.
+**Login (`team/Login.tsx` — existing)**
+- Change from "team login" to individual login: name + email + class (mock, no password). On submit stores the user in localStorage and routes to a **Post-login switchboard**.
 
-## 5. Out of scope
+**New page `team/JoinOrCreate.tsx`** (post-login switchboard)
+- Two cards side by side:
+  - **Create a workspace** → opens dialog: workspace name → creates workspace with this user as `lead`, generates a 6-char code, routes to Home.
+  - **Join a workspace** → single input for the 6-char code. Paste + Enter joins immediately if: code is valid, workspace has <4 members, and user isn't already in another workspace. Errors surface inline.
+- If the user is already in a workspace, this page auto-redirects to Home.
 
-- Submission form itself stays as the admin-configured staged form (that structure is set by the institute admin, not something the student fills at registration).
-- No new DPDP/consent copy changes beyond keeping the existing consent banner — the privacy improvement here is *collecting less data*, which is the right primary control.
+**Existing Home page updates**
+- Replace the "Members" list mock with real workspace members from `workspace.memberIds`.
+- Add a **Members & invite** card:
+  - Lists members with role chips (Lead / Member) and "You" tag.
+  - Shows the invite code in a large mono chip with a **Copy code** button.
+  - Under it: "Share this code with up to 3 teammates. They sign up and paste it to join."
+  - Lead-only: "Remove" icon on each member row (before submission deadline).
+  - When full (4 members) the code chip switches to "Workspace full".
 
-## Files touched
+**Invite code UX (the "easiest way" per your answer)**
+- 6 uppercase alphanumerics, no ambiguous chars (no 0/O/1/I). Generated at workspace creation.
+- Copy button uses `navigator.clipboard`; toast confirms.
+- Join input auto-uppercases and validates on paste.
+- No email, no WhatsApp, no deep-link — pure paste-the-code.
 
-- `src/pages/ritx/team/Register.tsx` — rewrite as 2-step minimal form
-- `src/pages/ritx/team/Home.tsx` — add Track & Theme card
-- `src/data/ritx/mockData.ts` — optional trackId/subTheme + updater helper
-- `src/pages/ritx/team/Resources.tsx`, `Submission.tsx`, `SubmissionStage.tsx` — null-safe empty states
-- `src/pages/ritx/admin/Registrations.tsx` — render "—" for missing track
+**Guardrails (client-side mock checks)**
+- One workspace per user: join button disabled with reason "You're already in workspace <name>".
+- Max 4 members: 5th attempt shows "This workspace is full".
+- Payment can only be initiated by the lead.
+- After submission deadline the invite code is hidden and joining is blocked with "Registrations closed".
+
+## Phase C — Shared work + attribution (small, no architectural pain)
+
+**Shared** — no change needed, submission is already keyed by workspace/team id. All members read/write the same record.
+
+**Attribution on submission autosave**
+- Extend the existing autosave in `SubmissionStage.tsx` to append a lightweight entry to `workspace.editHistory[]`: `{ userId, userName, section, field, at }`.
+- Add a small "Last edited by <Name> · 2m ago" line in the stage header.
+- Add a collapsible **Edit history** panel (last 20 entries) at the bottom of the stage form. No diffing, no snapshots — just a log. This is what you asked for and it costs almost nothing.
+
+**Certificates & result**
+- `team/Result.tsx` and the certificate preview iterate `workspace.memberIds` and render one certificate card per member (same team score, individual name). Downloadable per-member is out of scope for this pass — just previewed.
+
+## What we deliberately do NOT change (keeps architecture flat)
+
+- No real auth, no Supabase, no RLS. All state stays in mock data + localStorage, as the rest of the RiTX UI already does.
+- No payment provider integration. The Pay button just flips `paidAt`. Dev team wires Razorpay/Stripe later; the gate + button placement stay identical.
+- No per-field locking or optimistic concurrency. Autosave + edit log is enough for the demo.
+- Judge / Admin / Staff modules are untouched.
+
+## Files touched (approximate)
+
+- `src/data/ritx/mockData.ts` — pricing, workspace shape, users, invite code, editHistory helpers.
+- `src/components/ritx/shared/PaywallGate.tsx` — **new**.
+- `src/components/ritx/shared/PayDialog.tsx` — **new** (mock payment sheet).
+- `src/pages/ritx/team/Login.tsx` — individual login fields.
+- `src/pages/ritx/team/JoinOrCreate.tsx` — **new** switchboard.
+- `src/pages/ritx/team/Home.tsx` — Members & invite card, pay-required banner.
+- `src/pages/ritx/team/Submission.tsx` + `SubmissionStage.tsx` — wrap in `PaywallGate`, add "last edited by" + edit history panel.
+- `src/pages/ritx/team/Result.tsx` — wrap in `PaywallGate`, render per-member certificates.
+- `src/pages/ritx/admin/Dashboard.tsx` — Pricing chip + dialog.
+- `src/pages/ritx/admin/Registrations.tsx` — Payment column.
+- `src/routes/RitxRoutes.tsx` — add `/team/join` route for JoinOrCreate.
+
+## Suggested build order
+
+1. Data model + login/JoinOrCreate + Members & invite card on Home.
+2. PaywallGate + PayDialog + Submission/Result wrappers + Home banner.
+3. Admin pricing toggle + Registrations payment column.
+4. Autosave attribution + edit history panel.
+
+Each step is independently shippable; if you want to stop after step 1 you already have the workspace UX.
