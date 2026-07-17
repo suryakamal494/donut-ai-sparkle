@@ -51,7 +51,7 @@ export default function RitxStaff() {
         description="One account per staff member. Grant Mentor or Judge access — or both."
         actions={<Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-1" />Invite</Button>}
       />
-      <Card>
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
