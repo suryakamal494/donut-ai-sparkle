@@ -41,12 +41,12 @@ export default function RitxTeamJoinOrCreate() {
   };
 
   const doJoin = () => {
-    const r = joinByCode(code, user.id) as { ok: true; workspace: { name: string } } | { ok: false; reason: string };
-    if (r.ok) {
+    const r: { ok: boolean; workspace?: { name: string }; reason?: string } = joinByCode(code, user.id);
+    if (r.ok && r.workspace) {
       toast.success(`Joined "${r.workspace.name}"`);
       navigate("/team");
     } else {
-      toast.error(r.reason);
+      toast.error(r.reason ?? "Unable to join workspace");
     }
   };
 
