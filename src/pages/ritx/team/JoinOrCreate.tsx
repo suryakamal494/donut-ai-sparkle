@@ -41,7 +41,7 @@ export default function RitxTeamJoinOrCreate() {
   };
 
   const doJoin = () => {
-    const r = joinByCode(code, user.id);
+    const r = joinByCode(code, user.id) as { ok: true; workspace: { name: string } } | { ok: false; reason: string };
     if (r.ok) {
       toast.success(`Joined "${r.workspace.name}"`);
       navigate("/team");
