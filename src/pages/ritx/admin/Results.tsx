@@ -10,17 +10,21 @@ import { AlertTriangle, Award, Download, Send, Trophy } from "lucide-react";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { initialResults, awardLabel, awardTone, type TeamResult } from "@/data/ritx/resultsData";
 import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
 import { toast } from "sonner";
 
 export default function RitxAdminResults() {
   const [results, setResults] = useState<TeamResult[]>(initialResults);
   const [reveal, setReveal] = useState(false);
   const [trackFilter, setTrackFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
     if (trackFilter === "all") return results;
     return results.filter((r) => mockTeams.find((t) => t.id === r.teamId)?.trackId === trackFilter);
   }, [results, trackFilter]);
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const flagged = results.filter((r) => r.spread >= 1.5);
   const publishedCount = results.filter((r) => r.status === "published").length;
@@ -86,7 +90,7 @@ export default function RitxAdminResults() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => {
+                {pageRows.map((r) => {
                   const t = team(r.teamId);
                   return (
                     <tr key={r.teamId} className="border-t">
@@ -113,6 +117,7 @@ export default function RitxAdminResults() {
               </tbody>
             </table>
           </Card>
+          <DataTablePagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} />
         </TabsContent>
 
         <TabsContent value="moderation" className="mt-4 space-y-3">

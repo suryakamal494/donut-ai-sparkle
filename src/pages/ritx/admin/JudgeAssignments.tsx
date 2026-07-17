@@ -74,11 +74,11 @@ export default function RitxAdminJudgeAssignments() {
         <Button size="sm" onClick={() => toast.success("Assignments saved")}><Save className="w-4 h-4 mr-1" />Save</Button>
       </div>
 
-      <Card className="p-0 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
+      <Card className="p-0 overflow-x-auto max-h-[520px]">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-muted/40 sticky top-0 z-10">
             <tr>
-              <th className="text-left p-3 min-w-[200px]">Judge</th>
+              <th className="text-left p-3 min-w-[200px] sticky left-0 bg-muted/60 z-20 border-r">Judge</th>
               {mockTeams.map((t) => (
                 <th key={t.id} className="p-2 min-w-[130px] text-left">
                   <TeamIdChip code={t.teamCode} />
@@ -90,7 +90,7 @@ export default function RitxAdminJudgeAssignments() {
           <tbody>
             {judges.map((j) => (
               <tr key={j.id} className="border-t">
-                <td className="p-3">
+                <td className="p-3 sticky left-0 bg-background z-10 border-r">
                   <div className="font-medium">{j.name}</div>
                   <div className="text-xs text-muted-foreground">{j.organisation}</div>
                 </td>

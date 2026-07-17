@@ -1,185 +1,135 @@
 
-# RiTX Young Innovators Challenge — UI Build Plan
-UI-only, mock data, composed from existing donut components. New `/ritx/*` module, zero impact on the four existing portals.
+# RiTX — Judging & submissions review overhaul (v2)
 
-## Corrections applied from your feedback
+## What I'm changing my mind on
 
-1. **3 login types only:** Admin, Team (shared by team members), Staff.
-   - "Staff" is one login row created by Admin with two toggles: **Mentor access** and **Judge access**. Enable one, the other, or both.
-   - On login, the Staff shell shows Mentor tools, Judge tools, or both tabs depending on flags.
-2. **Rubric builder ≠ question builder.** Rubric is a per-submission scoring sheet: 6 fixed criteria (editable label + weight in Admin setup), judge enters a mark per criterion, weighted total auto-computed and shown against Team ID. No stepper/wizard.
-3. **Admin judging dashboard** shows per-team rubric aggregation (each judge's marks side-by-side + consolidated total), per-judge progress bars, per-stage pending counts. Multi-judge automatically pivots the table to N columns.
-
-## Roles & login model
-
-| Login | Who creates | Sees |
-|---|---|---|
-| Admin | Seeded | Everything |
-| Team | Self-registers (or admin bulk-imports) | Their team only |
-| Staff (Mentor and/or Judge) | Admin invites, ticks access flags | Mentor panel and/or Judge blind panel based on flags |
-
-Single `/ritx/login` screen. Role determined by the account, not chosen at login. Staff with both flags gets a top-tab switcher inside the shell.
-
-## Reuse map (what already exists → what we compose)
-
-Every screen composes from `src/components/ui/*`, `src/components/shared/*`, and portal patterns already in the repo. New RiTX files are thin.
-
-| RiTX need | Reused | New (thin) |
-|---|---|---|
-| Login shell | `pages/Login.tsx` styling, `Input`, `Button` | Route + mock auth |
-| Public landing | `pages/Landing.tsx` pattern, `stats-card` | RiTX content |
-| Admin layout | Institute sidebar (`SidebarProvider`, collapsible), `PageHeader` | `RitxAdminLayout` |
-| Staff layout | `StudentLayout` shell + tabs when dual role | `RitxStaffLayout` |
-| Team layout | `StudentLayout` shell | `RitxTeamLayout` |
-| Admin dashboards | `stats-card`, `chart.tsx` (Recharts), `virtualized-table` | Data wiring |
-| Registrations table + Excel export | `virtualized-table`, `lib/exportReport.ts` | Column config |
-| Bulk import | Institute `pages/institute/students/` bulk import UI | Point at RiTX schema |
-| Competition config | Institute MasterData/Parameters forms, `Form`, `Select`, `Switch`, `Calendar` | Composition |
-| Access Status badges | `ui/status-badge.tsx` | 5 variants |
-| Team registration wizard | Institute `AddStudent` multi-step pattern, `input-otp` for email verify | Field list per spec §8 |
-| Members + consent tracker | `responsive-dialog`, `checkbox`, `status-badge`, `input-otp` (parent OTP mock) | `ConsentTracker` |
-| Resources (theme-wise) | `student/subjects/*` card grid, `student/content-viewer/*` | Data swap |
-| Team calendar | `ui/calendar` + `StudentWeekNavigator` + `TimetableDayCard` | Webinar cell variant |
-| Webinar create | `CreateAssessmentDialog` shape | `WebinarDialog` (title, mentor, URL, time) |
-| Join-link countdown | Existing badge patterns | Countdown util |
-| Submission form-builder (admin) | `Form` + drag-order pattern from `institute/exams-new` step components | `FieldRow` primitives |
-| Team submission form | `student/tests/*` player state, `useTestSessionPersistence` reference for edit-lock | Lock indicator |
-| Blind judge submission view | `student/ContentViewer` layout, identity stripped | `TeamIdChip` component |
-| **Rubric scoring sheet (Judge)** | `ui/input`, `ui/slider`, `ui/textarea`, `Card` | `RubricSheet` — 6 rows, weighted total auto-calc |
-| **Rubric aggregation (Admin)** | `ui/table`, `virtualized-table`, `PermissionSection` layout, `chart` | `RubricMatrix` — pivots N judges |
-| Judge assignment (1/2/3) | `roles/ScopeSelector`, `AssignBatchesDialog` pattern | `JudgeAssignmentMatrix` |
-| Publish results | `AlertDialog` + institute reports publish patterns | Wire mock |
-| Mentor resources upload | `content` library components | Trim to upload + list |
-| WhatsApp notification screens | `useWhatsAppWallet`, `institute/communications/*` | Direct reuse |
-| Toasts, skeletons, errors | `sonner`, `page-skeleton`, `lazy-error-boundary` | Direct reuse |
-
-## Rubric — exact spec
-
-- **Admin setup (one time):** 6 criteria rows with label + weight (%). Total weight must equal 100. Default labels from spec §7 Phase 3: Problem relevance, Investigation & evidence, Scientific reasoning, Originality, Feasibility & impact, Policy/SDG/ethics/communication.
-- **Judge scoring sheet (per submission):** table of 6 rows, each with a 0–10 numeric input (or slider), optional comment. Weighted total = Σ(score × weight/10) auto-shown at bottom. Decision radio (select / reject / review) + overall comment. Save = draft, Submit = final.
-- **Admin rubric matrix (per team):**
-
-  ```text
-  Team ID  Criterion       J1   J2   J3   Avg
-  R-0421   Problem rel.    8    7    9    8.0
-  R-0421   Investigation   7    6    8    7.0
-  ...
-  R-0421   Weighted Total  76   72   81   76.3
-  ```
-
-  When Admin sets 1/2/3 judges per submission, columns auto-adjust. Row highlight if judge variance > threshold (e.g. >2 pts) to flag review.
-- **Admin judging progress:** stats cards (Assigned / Reviewed / Pending / Completed) + per-judge progress bars (`Progress` component) + per-stage pending count.
-
-## Module structure
-
-```text
-src/pages/ritx/
-├── Landing.tsx
-├── Login.tsx
-├── admin/
-│   ├── Dashboard.tsx           registration + submission + judging stats
-│   ├── CompetitionSetup.tsx    mode, fee, tracks, sub-themes, dates
-│   ├── Registrations.tsx       table + bulk import + export
-│   ├── Staff.tsx               invite Mentor/Judge accounts w/ access flags
-│   ├── SubmissionFormBuilder.tsx
-│   ├── Submissions.tsx         tracking per stage
-│   ├── RubricSetup.tsx         6 criteria + weights
-│   ├── JudgeAssignment.tsx     1/2/3 judges per submission
-│   ├── JudgingProgress.tsx     per-judge + per-team matrix
-│   └── PublishResults.tsx
-├── team/
-│   ├── Register.tsx
-│   ├── Home.tsx                calendar + upcoming
-│   ├── Members.tsx             list + consent tracker
-│   ├── Resources.tsx           theme-wise
-│   ├── Submissions.tsx         progress + final stages
-│   └── History.tsx             past submissions
-└── staff/
-    ├── Home.tsx                tabs when dual role
-    ├── mentor/
-    │   ├── Sessions.tsx
-    │   └── Resources.tsx
-    └── judge/
-        ├── AssignedList.tsx    blind list
-        └── ScoreSheet.tsx      rubric sheet per submission
-
-src/components/ritx/
-├── shared/                     TeamIdChip, RoleBadge, RitxHeader
-├── admin/                      RubricMatrix, JudgeAssignmentMatrix, RegistrationsTable, StaffInviteDialog
-├── team/                       RegistrationWizard, ConsentTracker, SubmissionForm
-└── staff/                      RubricSheet, WebinarDialog, ResourceUploader, BlindSubmissionView
-
-src/data/ritx/                  mock competition, teams, submissions, rubric, judges
-src/routes/RitxRoutes.tsx       lazy-loaded, mounted at /ritx/*
-```
-
-Added as a 5th lazy module in `App.tsx` — no change to existing four.
-
-## Phased delivery (5 phases, no UI compromise)
-
-Each phase is a shippable slice. You preview and sign off before the next.
-
-**Phase 0 — Foundation & Registration** (matches spec Phase 0)
-- `/ritx` landing (public, no login): brief, 3 tracks, rules, FAQ, timeline
-- `/ritx/login` + mock auth for 3 roles
-- Admin layout, Team layout, Staff layout shells
-- `admin/CompetitionSetup` — mode (Free/Paid/Sponsored/Invite), fee, team size, tracks, sub-themes with "Other", dates
-- `admin/Registrations` — table, filters, bulk import, Excel export
-- `admin/Dashboard` — Phase-0 stat cards only (registrations, schools, activation, mode split)
-- `team/Register` — wizard with email OTP verification
-- `team/Members` — add members + `ConsentTracker` (per-member parent OTP mock, signed-form upload fallback)
-- `team/Home` — empty calendar placeholder using student timetable shell
-- Access Status badges wired everywhere
-
-**Phase 1 — Resources, Sessions, Staff, Notifications**
-- `admin/Staff` — invite dialog with **Mentor** and **Judge** access checkboxes (this is the "single staff login" mechanism)
-- `staff/Home` — top-tab switcher visible only when both flags set
-- `staff/mentor/Resources` — upload theme-wise materials
-- `staff/mentor/Sessions` — create webinar (title, mentor, URL, date/time)
-- `team/Resources` — theme-wise cards (reuses subject grid)
-- `team/Home` — populated calendar with countdown → Join button 10 min before
-- WhatsApp notification composer + template list (UI only, reuses institute comms)
-- Payment gateway config screen (UI only, reuses form patterns)
-
-**Phase 2 — Submission Form Builder & Submissions**
-- `admin/SubmissionFormBuilder` — drag-order field rows (short text, long text, single select, multi select, video URL with validator, file link). Two form variants (Challenges 1&2 vs Open Arena)
-- `admin/Submissions` — per-team stage tracker (Progress / Final / Locked), search, filters
-- `team/Submissions` — progress + final stages, autosave, edit-lock badge, submit button disabled until all consents confirmed
-- `team/History` — read-only past submissions
-
-**Phase 3 — Rubric, Judging, Publish** (the "no compromise" phase)
-- `admin/RubricSetup` — 6 criteria rows with label + weight sliders, live weight-total validator
-- `admin/JudgeAssignment` — matrix picking 1/2/3 judges per team, "assigned only vs all" toggle per judge, auto-balancer helper
-- `staff/judge/AssignedList` — blind cards (TeamIdChip + title + theme only)
-- `staff/judge/ScoreSheet` — 6-row rubric sheet with per-criterion input + comment, weighted total auto-calc, decision radio, draft/submit
-- `admin/JudgingProgress` — per-judge progress bars + per-team **RubricMatrix** (auto-pivots to N judges, variance highlighting)
-- `admin/PublishResults` — confirm dialog, publish flag, results become visible on team dashboard, judge comments flow back anonymised
-
-**Phase 4 — Polish & Deferred**
-- Certificate template preview (UI only)
-- Advanced analytics tab (charts on registrations, submissions, judging distributions)
-- Mobile refinement pass across all screens (320px audit)
-- Empty states, loading skeletons, error boundaries everywhere
-
-## UI quality guardrails
-
-- Every table/filter matches existing donut density (padding, hover, sticky headers)
-- All colors via existing tokens in `index.css` — no hardcoded hex
-- Mobile-first: bottom nav on Team + Staff shells, sidebar on Admin
-- Blind-view rule enforced by a `<BlindBoundary>` wrapper — any prop containing name/school/mobile is filtered in Judge routes
-- `TeamIdChip` used everywhere a team is referenced in Judge/Public contexts
-- Consent-complete precondition rendered as a persistent banner on team submission page until satisfied
-
-## Out of scope (per your direction)
-
-- No backend, no Supabase tables, no edge functions — all mock data in `src/data/ritx/`
-- No changes to existing four portals or their components
-- No net-new design system, no new primitive components
-
-## Deliverable of Phase 0 (first checkpoint)
-
-Login → Landing → Admin sets up competition → Team registers → adds members with parent consent → sees a team dashboard with empty calendar. Admin sees registrations table with bulk import + export. End-to-end clickable with mock data.
+- **Dataset size:** 36 teams (12 per track) is enough to prove pagination, filters, and score aggregation without bloating the bundle. Pagination still ships (page size 10) so behaviour at scale is visible.
+- **Layout:** rather than a rigid 3-pane split, I'll use a **two-pane workspace with a resizable divider** (`react-resizable-panels` is already in shadcn stack). Judges on smaller laptops can shrink the viewer; on tablets it collapses to tabs. Cleaner than a hard-coded 360px sidebar.
+- **Scoring input:** drop sliders entirely. A **segmented 0–10 chip row** (11 tiny buttons) reads faster than a slider + number stepper and is much more compact. Keyboard `0–9` shortcuts jump between values.
+- **Admin viewing:** no separate "Judging" page. I'll fold judge-progress columns into the existing **Submissions** table (that's the natural home) and reuse a single side-drawer viewer. One less place for admins to hunt.
 
 ---
 
-Ready to switch to build mode and start Phase 0 on your approval.
+## 1. Mock data (`src/data/ritx/`)
+
+Deterministic seeded generator (mulberry32) — matches the project's stable-mock rule.
+
+- **36 teams** across 3 tracks, codes `RITX-2026-0001…0036`, varied schools/cities/states, 2–4 members.
+- **8 judges** (extend `staffData`) with 2 judges/team assignment matrix.
+- **Submission answers** per team keyed by field id from `defaultFields(trackId)`:
+  - Text/number/select answers generated from theme-appropriate snippets.
+  - `file` fields → `{ url, name, mime }` pointing at a public sample PDF (`https://www.orimi.com/pdf-test.pdf`) or `/placeholder.svg`.
+  - `video-url` fields → cycled YouTube IDs (a few TED-Ed shorts).
+- **Assignment records** carry `criterionScores` and `comment` when `status === "scored"` so revise/view works.
+- Stage mix: ~55% submitted/locked, ~25% in-progress, ~15% not-started, ~5% returned.
+
+Files touched:
+- `mockData.ts` — generator replaces the 3 hand-written teams (keeps `t1/t2/t3` as the first three IDs to avoid breaking existing pages).
+- `submissionData.ts` — add `answers` on `TeamSubmissionRecord`, add generator.
+- `rubricData.ts` — add `criterionScores`, `comment`, generator, helpers `assignmentsForJudge(id)`, `assignmentsForTeam(id)`, `judgeStatusForTeam(teamId)`.
+- `staffData.ts` — expand to 8 judges.
+
+## 2. Shared submission viewer
+
+`src/components/ritx/judging/SubmissionViewer.tsx`
+
+- Props: `teamId`, `mode: "judge" | "admin"`.
+- Internal `Tabs`: **Overview · Form · Evidence** (Evidence merges documents + video — one place for "the stuff to grade").
+  - Overview: team code, track, sub-theme, submission stage, submitted date, judge roster (names hidden in judge mode).
+  - Form: `<dl>` of `label → answer` from `answers`, grouped, with helper text under each answer.
+  - Evidence: renders each `file`/`video-url` field inline in order:
+    - PDF → `<iframe src="…#toolbar=0&navpanes=0" class="w-full h-[65vh]">`
+    - Image → `<img>` with `max-h-[60vh]`
+    - Video → YouTube `<iframe>` or `<video controls>` for direct URLs
+  - No download buttons anywhere.
+- Own scroll container (`overflow-y-auto`) so the outer scoring pane never moves.
+
+## 3. Judge queue — table (`AssignedList.tsx`)
+
+- Replace card grid with `Table`:
+  - Columns: `Team code · Track · Sub-theme · Submission stage · Your status · Your score · Action`.
+  - Action label switches Start / Continue / View · revise; single route `/ritx/staff/judge/:teamId`.
+- Filters: search (code), track select, status select.
+- `DataTablePagination` (new shared component) — page size 10, shows "Showing 1–10 of 36".
+- Header chips: assigned · scored · in-progress · pending.
+- Blind-mode banner stays.
+
+## 4. Judge scoresheet — resizable workspace (`ScoreSheet.tsx`)
+
+Layout:
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│ ← Back · RITX-2026-0007 · Innovator · Blind mode           │
+├──────────────────────────────────┬─────────────────────────┤
+│ Overview | Form | Evidence       │  SCORING  (sticky)      │
+│  ────────────────────────────    │  Weighted 7.4/10  4/5   │
+│                                  │  ▓▓▓▓▓▓▓▓░░              │
+│  (inline PDF, video, answers)    │                         │
+│  scrolls independently           │  Scientific rigor 30%   │
+│                                  │  0 1 2 3 4 5 6 7●8 9 10 │
+│                                  │  Originality      20%   │
+│                                  │  0 1 2 3 4 5●6 7 8 9 10 │
+│                                  │  …                      │
+│                                  │  Private note [textarea]│
+│                                  │  [ Submit score ]       │
+└──────────────────────────────────┴─────────────────────────┘
+```
+
+- `ResizablePanelGroup direction="horizontal"` with left default 62% (min 40%) and right 38% (min 320px).
+- Right panel: `sticky top-0 h-[calc(100vh-var(--header))] overflow-y-auto` so it stays fixed while the viewer scrolls.
+- **Compact chip scorer** per criterion — 11 buttons (`0`–`10`) in a single row, selected chip filled with primary. `~48px` row height total (label + chips). No sliders.
+- Pre-fills `scores` and `comment` from the assignment when revisiting.
+- Weighted total, progress, submit stay; submit disabled until every criterion scored.
+- **Mobile / narrow (`<lg`):** panels collapse; a bottom `Sheet` triggered by a floating "Score submission" button holds the scoring form.
+
+## 5. Admin — fold judging into Submissions
+
+Instead of a new page, extend `admin/Submissions.tsx`:
+
+- Add columns: `Judges (2/2 scored)`, `Avg score`, `Review`.
+- Row `Review` button opens `SubmissionViewer` in a right-side `Sheet` (`w-[min(1000px,95vw)]`), admin mode. The sheet also renders a **read-only scoring recap** on the right: per-judge column, per-criterion rows, plus each judge's private comment (visible to admin only).
+- Admin sees identities everywhere; judge names shown in the recap.
+- Add pagination (page size 10).
+- Filter chip: `Judging: awaiting | partial | complete | conflict` (derived from assignments).
+
+`JudgeAssignments.tsx` stays for the matrix setup but gains:
+- Sticky first column, sticky header (for 36×8 grid usability).
+- Same `DataTablePagination` for the judge coverage list below.
+
+## 6. Permissions
+
+- `SubmissionViewer` never renders editable score inputs.
+- Admin sheet displays "Scores are locked — only assigned judges can edit." banner.
+- Judge sheet has no admin recap tab.
+
+## 7. Pagination helper
+
+`src/components/ritx/shared/DataTablePagination.tsx` — thin wrapper over shadcn `Pagination` with page-size select (10/25/50). Reused by Registrations, Submissions, Results leaderboard, judge queue.
+
+---
+
+## Technical notes
+
+- No new deps — `react-resizable-panels` and all shadcn primitives already present.
+- Deterministic PRNG (`mulberry32`) keeps mock stable across renders (project memory rule).
+- PDF preview via `<iframe src="…#toolbar=0">`; video via YouTube `<iframe>` for URLs matching `youtube.com|youtu.be`, otherwise `<video controls>`.
+- Existing routes unchanged for `staff/judge` and `staff/judge/:teamId`; no new admin route.
+
+## Files
+
+**New**
+- `src/components/ritx/judging/SubmissionViewer.tsx`
+- `src/components/ritx/judging/ScoringPanel.tsx` (chip scorer + submit, reused by desktop pane and mobile sheet)
+- `src/components/ritx/judging/AdminScoreRecap.tsx`
+- `src/components/ritx/shared/DataTablePagination.tsx`
+
+**Edited**
+- `src/data/ritx/mockData.ts`, `submissionData.ts`, `rubricData.ts`, `staffData.ts`
+- `src/pages/ritx/staff/judge/AssignedList.tsx` — table + pagination
+- `src/pages/ritx/staff/judge/ScoreSheet.tsx` — resizable 2-pane workspace
+- `src/pages/ritx/admin/Submissions.tsx` — judging columns + review sheet + pagination
+- `src/pages/ritx/admin/JudgeAssignments.tsx` — sticky headers + pagination
+- `src/pages/ritx/admin/Registrations.tsx`, `Results.tsx` — pagination only
+
+Approve to build.

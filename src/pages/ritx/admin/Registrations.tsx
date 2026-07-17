@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
 import { Download, Upload, Search } from "lucide-react";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { toast } from "sonner";
@@ -12,12 +13,15 @@ import { toast } from "sonner";
 export default function RitxRegistrations() {
   const [q, setQ] = useState("");
   const [trackFilter, setTrackFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = mockTeams.filter((t) => {
     const match = !q || [t.teamName, t.school, t.city, t.teamCode].some((f) => f.toLowerCase().includes(q.toLowerCase()));
     const trackOk = trackFilter === "all" || t.trackId === trackFilter;
     return match && trackOk;
   });
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
   const trackName = (id: string) => mockCompetition.tracks.find((x) => x.id === id)?.name || id;
 
   return (
@@ -35,14 +39,15 @@ export default function RitxRegistrations() {
       <Card className="p-3 flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search team, school, city, ID" className="pl-9" />
+          <Input value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Search team, school, city, ID" className="pl-9" />
         </div>
-        <select value={trackFilter} onChange={(e) => setTrackFilter(e.target.value)} className="h-10 px-3 rounded-md border bg-background text-sm">
+        <select value={trackFilter} onChange={(e) => { setTrackFilter(e.target.value); setPage(1); }} className="h-10 px-3 rounded-md border bg-background text-sm">
           <option value="all">All tracks</option>
           {mockCompetition.tracks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </Card>
-      <Card className="overflow-x-auto">
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -55,7 +60,7 @@ export default function RitxRegistrations() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((t) => (
+            {pageRows.map((t) => (
               <TableRow key={t.id}>
                 <TableCell><TeamIdChip code={t.teamCode} /></TableCell>
                 <TableCell className="font-medium">{t.teamName}</TableCell>
@@ -65,11 +70,13 @@ export default function RitxRegistrations() {
                 <TableCell><AccessBadge status={t.status} /></TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {pageRows.length === 0 && (
               <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">No teams match your search.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
+        </div>
+        <DataTablePagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} />
       </Card>
     </div>
   );

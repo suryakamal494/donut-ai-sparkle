@@ -1,4 +1,6 @@
 // Phase 3 — Rubric criteria, judge assignments, blind scores
+import { mockTeams } from "./mockData";
+import { mockStaff } from "./staffData";
 
 export interface RubricCriterion {
   id: string;
@@ -49,17 +51,109 @@ export interface JudgeAssignment {
   teamId: string;
   status: "pending" | "in-progress" | "scored";
   score?: number; // normalized weighted total (0-10)
+  criterionScores?: Record<string, number>;
+  comment?: string;
+  scoredAt?: string;
 }
 
-export const mockAssignments: JudgeAssignment[] = [
-  { judgeId: "s2", teamId: "t1", status: "scored", score: 7.6 },
-  { judgeId: "s2", teamId: "t2", status: "in-progress" },
-  { judgeId: "s2", teamId: "t3", status: "pending" },
-  { judgeId: "s3", teamId: "t1", status: "scored", score: 8.1 },
-  { judgeId: "s3", teamId: "t2", status: "pending" },
-  { judgeId: "s4", teamId: "t2", status: "scored", score: 7.9 },
-  { judgeId: "s4", teamId: "t3", status: "in-progress" },
-];
+// ---- Generator ----
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateAssignments(): JudgeAssignment[] {
+  const rand = mulberry32(77);
+  const judges = mockStaff.filter((s) => s.judgeAccess);
+  const rubricByTrack: Record<string, RubricCriterion[]> = {};
+  initialRubrics.forEach((r) => (rubricByTrack[r.trackId] = r.criteria));
+
+  const result: JudgeAssignment[] = [];
+  mockTeams.forEach((team, i) => {
+    // 2 judges per team, rotating so each judge gets a fair share
+    const j1 = judges[i % judges.length];
+    const j2 = judges[(i + 3) % judges.length];
+    const pair = j1.id === j2.id ? [j1, judges[(i + 1) % judges.length]] : [j1, j2];
+    pair.forEach((j, jIdx) => {
+      const roll = rand();
+      const status: JudgeAssignment["status"] = roll < 0.55 ? "scored" : roll < 0.8 ? "in-progress" : "pending";
+      const criteria = rubricByTrack[team.trackId] || [];
+      if (status === "scored" && criteria.length) {
+        const criterionScores: Record<string, number> = {};
+        let weighted = 0;
+        criteria.forEach((c) => {
+          // bias each judge slightly to add spread
+          const bias = jIdx === 0 ? 0 : (rand() - 0.5) * 2;
+          const raw = Math.max(3, Math.min(c.maxScore, Math.round(6 + rand() * 4 + bias)));
+          criterionScores[c.id] = raw;
+          weighted += (raw / c.maxScore) * 10 * c.weight;
+        });
+        result.push({
+          judgeId: j.id,
+          teamId: team.id,
+          status,
+          score: Number(weighted.toFixed(2)),
+          criterionScores,
+          comment: rand() > 0.5 ? "Solid submission, clearly presented evidence." : "Interesting concept, could use stronger data support.",
+          scoredAt: `2026-11-${String(1 + Math.floor(rand() * 20)).padStart(2, "0")}T15:00:00`,
+        });
+      } else if (status === "in-progress" && criteria.length) {
+        // Partial criterionScores
+        const criterionScores: Record<string, number> = {};
+        const half = Math.floor(criteria.length / 2);
+        criteria.slice(0, half).forEach((c) => {
+          criterionScores[c.id] = Math.round(5 + rand() * 4);
+        });
+        result.push({ judgeId: j.id, teamId: team.id, status, criterionScores });
+      } else {
+        result.push({ judgeId: j.id, teamId: team.id, status });
+      }
+    });
+  });
+  return result;
+}
+
+export const mockAssignments: JudgeAssignment[] = generateAssignments();
+
+// ---- Helpers ----
+export const assignmentsForJudge = (judgeId: string) => mockAssignments.filter((a) => a.judgeId === judgeId);
+export const assignmentsForTeam = (teamId: string) => mockAssignments.filter((a) => a.teamId === teamId);
+export const assignmentFor = (judgeId: string, teamId: string) =>
+  mockAssignments.find((a) => a.judgeId === judgeId && a.teamId === teamId);
+
+export function updateAssignment(judgeId: string, teamId: string, patch: Partial<JudgeAssignment>) {
+  const idx = mockAssignments.findIndex((a) => a.judgeId === judgeId && a.teamId === teamId);
+  if (idx >= 0) mockAssignments[idx] = { ...mockAssignments[idx], ...patch };
+}
+
+export type TeamJudgingSummary = {
+  assigned: number;
+  scored: number;
+  inProgress: number;
+  pending: number;
+  average?: number;
+  status: "awaiting" | "partial" | "complete" | "conflict";
+};
+
+export function judgingSummaryForTeam(teamId: string): TeamJudgingSummary {
+  const list = assignmentsForTeam(teamId);
+  const scored = list.filter((a) => a.status === "scored");
+  const inProgress = list.filter((a) => a.status === "in-progress").length;
+  const pending = list.filter((a) => a.status === "pending").length;
+  const scores = scored.map((a) => a.score!).filter((v) => v != null);
+  const average = scores.length ? Number((scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(2)) : undefined;
+  const spread = scores.length ? Math.max(...scores) - Math.min(...scores) : 0;
+  let status: TeamJudgingSummary["status"];
+  if (list.length === 0) status = "awaiting";
+  else if (scored.length === list.length) status = spread >= 1.5 ? "conflict" : "complete";
+  else if (scored.length > 0) status = "partial";
+  else status = "awaiting";
+  return { assigned: list.length, scored: scored.length, inProgress, pending, average, status };
+}
 
 export const scoreTone = (s: JudgeAssignment["status"]) => ({
   pending: "bg-slate-100 text-slate-600 border-slate-200",

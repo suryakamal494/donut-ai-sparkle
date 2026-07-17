@@ -133,11 +133,119 @@ export const mockTeams: Team[] = [
   },
 ];
 
+// ---- Deterministic generator (seeded PRNG, per project memory rule) ----
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const SCHOOLS = [
+  { school: "DAV Public School", city: "Pune", state: "Maharashtra" },
+  { school: "Bishop Cotton Boys' School", city: "Bangalore", state: "Karnataka" },
+  { school: "La Martiniere College", city: "Lucknow", state: "Uttar Pradesh" },
+  { school: "The Doon School", city: "Dehradun", state: "Uttarakhand" },
+  { school: "Modern School Barakhamba", city: "New Delhi", state: "Delhi" },
+  { school: "Chinmaya Vidyalaya", city: "Kochi", state: "Kerala" },
+  { school: "Sardar Patel Vidyalaya", city: "Ahmedabad", state: "Gujarat" },
+  { school: "Bhavan's Vidya Mandir", city: "Hyderabad", state: "Telangana" },
+  { school: "Sishya School", city: "Chennai", state: "Tamil Nadu" },
+  { school: "Mayo College", city: "Ajmer", state: "Rajasthan" },
+  { school: "Kendriya Vidyalaya IIT", city: "Kanpur", state: "Uttar Pradesh" },
+  { school: "Delhi Public School R.K. Puram", city: "New Delhi", state: "Delhi" },
+  { school: "Podar International School", city: "Nashik", state: "Maharashtra" },
+  { school: "St. Michael's High School", city: "Patna", state: "Bihar" },
+  { school: "Assam Valley School", city: "Tezpur", state: "Assam" },
+  { school: "Rishi Valley School", city: "Chittoor", state: "Andhra Pradesh" },
+  { school: "Loyola School", city: "Trivandrum", state: "Kerala" },
+  { school: "St. Aloysius School", city: "Mangalore", state: "Karnataka" },
+];
+
+const TEAM_NAMES = [
+  "Curious Cosmos", "Neon Neurons", "Green Guardians", "Quantum Quokkas",
+  "Solar Sparks", "Byte Botanists", "Circuit Sirens", "Delta Divers",
+  "Echo Innovators", "Fusion Foxes", "Gravity Geckos", "Helix Hackers",
+  "Ion Igniters", "Jade Jaguars", "Kinetic Kites", "Lumen Lions",
+  "Micro Mavericks", "Nebula Ninjas", "Orbit Otters", "Pulse Pioneers",
+  "Quasar Questers", "Radiant Ravens", "Sonic Scholars", "Tesla Tigers",
+  "Umbra Uplinks", "Vertex Voyagers", "Waveform Wolves", "Xeno Xplorers",
+  "Yotta Yaks", "Zenith Zebras", "Aurora Alchemists", "Binary Bees",
+  "Cyber Cardinals",
+];
+
+const FIRST = ["Aarav","Ishika","Kabir","Riya","Vivaan","Anaya","Reyansh","Saanvi","Aditya","Diya","Arjun","Myra","Rehan","Aisha","Neel","Zara","Vihaan","Kiara","Ayaan","Pari"];
+const LAST = ["Sharma","Verma","Gupta","Iyer","Nair","Reddy","Menon","Patel","Khan","Das","Bose","Jain","Rao","Singh"];
+
+const SUBTHEMES: Record<string, string[]> = {
+  "sci-investigator": ["Health & Wellbeing", "Environment", "Energy", "Food & Agriculture", "Other"],
+  innovator: ["Assistive Tech", "Climate Tech", "EdTech", "Rural Solutions", "Other"],
+  "open-arena": ["SDG 3", "SDG 4", "SDG 7", "SDG 11", "SDG 13", "Other"],
+};
+
+function generateExtraTeams(): Team[] {
+  const rand = mulberry32(42);
+  const pick = <T>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
+  const tracks = ["sci-investigator", "innovator", "open-arena"] as const;
+  const teams: Team[] = [];
+  // 33 more teams so total is 36; 11 per track
+  const distribution: string[] = [];
+  tracks.forEach((tr) => { for (let i = 0; i < 11; i++) distribution.push(tr); });
+  // shuffle deterministic
+  for (let i = distribution.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [distribution[i], distribution[j]] = [distribution[j], distribution[i]];
+  }
+  const statuses: AccessStatus[] = ["registered", "consent-pending", "active", "submitted", "active", "active"];
+  for (let i = 0; i < distribution.length; i++) {
+    const idx = i + 4;
+    const trackId = distribution[i];
+    const school = pick(SCHOOLS);
+    const memberCount = 2 + Math.floor(rand() * 3); // 2-4
+    const members: TeamMember[] = Array.from({ length: memberCount }, (_, k) => {
+      const name = `${pick(FIRST)} ${pick(LAST)[0]}.`;
+      const consentRoll = rand();
+      const consent: ConsentStatus = consentRoll < 0.65 ? "confirmed" : consentRoll < 0.85 ? "sent" : "pending";
+      return {
+        id: `m-${idx}-${k}`,
+        name,
+        grade: String(8 + Math.floor(rand() * 3)),
+        email: `student${idx}${k}@example.com`,
+        parentEmail: `parent${idx}${k}@example.com`,
+        consent,
+      };
+    });
+    const day = 12 + Math.floor(rand() * 40);
+    const registeredOn = `2026-${day > 30 ? "07" : "06"}-${String(day > 30 ? day - 30 : day).padStart(2, "0")}`;
+    teams.push({
+      id: `t${idx}`,
+      teamCode: `RITX-2026-${String(420 + idx).padStart(4, "0")}`,
+      teamName: TEAM_NAMES[idx - 1] ?? `Team ${idx}`,
+      school: school.school,
+      city: school.city,
+      state: school.state,
+      trackId,
+      subTheme: pick(SUBTHEMES[trackId]),
+      registeredOn,
+      status: pick(statuses),
+      members,
+    });
+  }
+  return teams;
+}
+
+mockTeams.push(...generateExtraTeams());
+
 export const registrationStats = {
-  totalRegistrations: 3,
-  totalSchools: 3,
-  activeTeams: 1,
-  consentPending: 5,
-  byMode: { free: 0, paid: 0, sponsored: 3, invite: 0 },
-  byTrack: { "sci-investigator": 1, innovator: 1, "open-arena": 1 },
+  totalRegistrations: mockTeams.length,
+  totalSchools: new Set(mockTeams.map((t) => t.school)).size,
+  activeTeams: mockTeams.filter((t) => t.status === "active" || t.status === "submitted").length,
+  consentPending: mockTeams.reduce((n, t) => n + t.members.filter((m) => m.consent !== "confirmed").length, 0),
+  byMode: { free: 0, paid: 0, sponsored: mockTeams.length, invite: 0 },
+  byTrack: mockTeams.reduce<Record<string, number>>((acc, t) => {
+    acc[t.trackId] = (acc[t.trackId] || 0) + 1;
+    return acc;
+  }, {}),
 };

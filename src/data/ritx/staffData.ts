@@ -16,6 +16,10 @@ export const mockStaff: StaffAccount[] = [
   { id: "s2", name: "Prof. Sneha Iyer", email: "sneha@iitb.example", organisation: "IIT Bombay", mentorAccess: false, judgeAccess: true, invitedOn: "2026-06-07", status: "active" },
   { id: "s3", name: "Ms. Anita Kaur", email: "anita@panel.example", organisation: "Independent Panel", mentorAccess: true, judgeAccess: true, invitedOn: "2026-06-10", status: "active" },
   { id: "s4", name: "Dr. Rahul Mehta", email: "rahul@nctr.example", organisation: "NCTR Delhi", mentorAccess: false, judgeAccess: true, invitedOn: "2026-06-14", status: "invited" },
+  { id: "s5", name: "Dr. Meera Krishnan", email: "meera@iiit.example", organisation: "IIIT Hyderabad", mentorAccess: false, judgeAccess: true, invitedOn: "2026-06-15", status: "active" },
+  { id: "s6", name: "Mr. Arjun Bhat", email: "arjun@atal.example", organisation: "Atal Innovation Mission", mentorAccess: true, judgeAccess: true, invitedOn: "2026-06-16", status: "active" },
+  { id: "s7", name: "Dr. Farah Sheikh", email: "farah@iisc.example", organisation: "IISc Bangalore", mentorAccess: false, judgeAccess: true, invitedOn: "2026-06-18", status: "active" },
+  { id: "s8", name: "Prof. Ravi Kumar", email: "ravi@iitm.example", organisation: "IIT Madras", mentorAccess: false, judgeAccess: true, invitedOn: "2026-06-20", status: "active" },
 ];
 
 export interface Resource {
