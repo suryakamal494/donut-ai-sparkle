@@ -238,6 +238,25 @@ function generateExtraTeams(): Team[] {
 
 mockTeams.push(...generateExtraTeams());
 
+// UI-only mutator so the Team dashboard can update the current team's
+// track/theme selection after registration (editable until submission deadline).
+export function updateTeamTrack(teamId: string, trackId: string, subTheme: string) {
+  const t = mockTeams.find((x) => x.id === teamId);
+  if (t) {
+    t.trackId = trackId;
+    t.subTheme = subTheme;
+  }
+}
+
+export const INDIAN_STATES = [
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Delhi","Goa","Gujarat",
+  "Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra",
+  "Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu",
+  "Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
+];
+
+export const CLASS_OPTIONS = ["6","7","8","9","10","11","12"];
+
 export const registrationStats = {
   totalRegistrations: mockTeams.length,
   totalSchools: new Set(mockTeams.map((t) => t.school)).size,
