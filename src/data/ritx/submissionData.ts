@@ -1,4 +1,5 @@
 // Mock data for RiTX Phase 2 — submission form builder + team submissions
+import { mockTeams } from "./mockData";
 
 export type FieldType =
   | "short-text"
@@ -160,9 +161,6 @@ function pickAnswer(field: { id: string; type: string; options?: string[] }, r: 
 }
 
 function generateSubmissions(): TeamSubmissionRecord[] {
-  // Late-import to avoid circular hazard
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { mockTeams } = require("./mockData") as typeof import("./mockData");
   const rand = mulberry32(101);
   const stagePool: SubmissionStage[] = [
     "submitted", "submitted", "submitted", "submitted", "submitted",
