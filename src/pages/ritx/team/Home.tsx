@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
-import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { mockTeams, mockCompetition, updateTeamTrack } from "@/data/ritx/mockData";
 import { mockSessions } from "@/data/ritx/staffData";
-import { AlertTriangle, Video, Clock, ExternalLink, Target, CalendarDays, Users as UsersIcon, Sparkles } from "lucide-react";
+import { AlertTriangle, Video, Clock, ExternalLink, Target, CalendarDays, Users as UsersIcon, Sparkles, Lock, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -55,9 +56,23 @@ function SessionCard({ id, title, mentorName, trackName, date, durationMin, join
 export default function RitxTeamHome() {
   const team = mockTeams[0];
   const consentBlocked = team.members.some((m) => m.consent !== "confirmed");
-  const track = mockCompetition.tracks.find((t) => t.id === team.trackId);
+  const [trackId, setTrackId] = useState(team.trackId || "");
+  const [subTheme, setSubTheme] = useState(team.subTheme || "");
+  const track = mockCompetition.tracks.find((t) => t.id === trackId);
+  const deadlineMs = new Date(mockCompetition.submissionDeadline).getTime();
+  const locked = Date.now() > deadlineMs;
+  const dirty = trackId !== team.trackId || subTheme !== team.subTheme;
+  const subThemeOptions = track?.subThemes ?? [];
+  const hasSelection = Boolean(team.trackId);
+
   const trackName = (id: string) => mockCompetition.tracks.find((t) => t.id === id)?.name || id;
   const upcoming = [...mockSessions].sort((a, b) => +new Date(a.date) - +new Date(b.date));
+
+  const onSave = () => {
+    if (!trackId || !subTheme) { toast.error("Pick both a track and a theme"); return; }
+    updateTeamTrack(team.id, trackId, subTheme);
+    toast.success("Track & theme updated");
+  };
 
   return (
     <div className="space-y-5">
@@ -88,9 +103,71 @@ export default function RitxTeamHome() {
           </div>
         </Card>
       )}
+
+      {/* Track & Theme selection */}
+      <Card className="p-5 rounded-2xl border-orange-100/60 shadow-sm shadow-orange-100/30 bg-white">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-donut-coral to-donut-orange flex items-center justify-center shadow-md flex-shrink-0">
+            <Compass className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="font-semibold">Track &amp; challenge theme</div>
+              {locked ? (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border bg-slate-100 text-slate-600 border-slate-200 font-medium">
+                  <Lock className="w-3 h-3" /> Locked after submission deadline
+                </span>
+              ) : hasSelection ? (
+                <span className="text-[11px] px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">Editable until {new Date(mockCompetition.submissionDeadline).toLocaleDateString()}</span>
+              ) : (
+                <span className="text-[11px] px-2 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-200 font-medium">Pick your track to unlock resources</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Choose the track your team wants to compete in and the sub-theme you'll focus on. You can change this any time before the submission deadline.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-3 mt-4">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1">Track</div>
+                <Select value={trackId} onValueChange={(v) => { setTrackId(v); setSubTheme(""); }} disabled={locked}>
+                  <SelectTrigger><SelectValue placeholder="Select a track" /></SelectTrigger>
+                  <SelectContent>
+                    {mockCompetition.tracks.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {track && <p className="text-[11px] text-muted-foreground mt-1">{track.description}</p>}
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1">Challenge theme</div>
+                <Select value={subTheme} onValueChange={setSubTheme} disabled={locked || !trackId}>
+                  <SelectTrigger><SelectValue placeholder={trackId ? "Select a theme" : "Pick a track first"} /></SelectTrigger>
+                  <SelectContent>
+                    {subThemeOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end">
+              <Button
+                size="sm"
+                onClick={onSave}
+                disabled={locked || !dirty}
+                className="bg-gradient-to-r from-donut-coral to-donut-orange hover:opacity-95 border-0 shadow-md shadow-donut-coral/30"
+              >
+                Save selection
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid md:grid-cols-3 gap-4">
         {[
-          { label: "Track", value: track?.name || "—", sub: team.subTheme, icon: Target, tile: "from-teal-500 to-cyan-500" },
+          { label: "Track", value: track?.name || "Not selected", sub: subTheme || "—", icon: Target, tile: "from-teal-500 to-cyan-500" },
           { label: "Submission deadline", value: mockCompetition.submissionDeadline, icon: CalendarDays, tile: "from-donut-coral to-donut-orange" },
           { label: "Members", value: String(team.members.length), icon: UsersIcon, tile: "from-violet-500 to-fuchsia-500" },
         ].map((m) => (
