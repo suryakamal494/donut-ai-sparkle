@@ -55,9 +55,9 @@ export default function RitxAdminResults() {
         </TabsList>
 
         <TabsContent value="leaderboard" className="mt-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Select value={trackFilter} onValueChange={setTrackFilter}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All tracks</SelectItem>
                 {mockCompetition.tracks.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
