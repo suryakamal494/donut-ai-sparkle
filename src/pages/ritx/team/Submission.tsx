@@ -6,11 +6,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
 import { DeadlineTimer } from "@/components/ritx/shared/DeadlineTimer";
+import { PaywallGate } from "@/components/ritx/shared/PaywallGate";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { getCurrentWorkspace } from "@/data/ritx/workspaceState";
 import { getStageForm, stageWindowStatus, type StageId } from "@/data/ritx/submissionData";
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, FileText, Lock } from "lucide-react";
-
-const team = mockTeams[0];
+import { ArrowRight, CheckCircle2, ClipboardList, FileText, Lock } from "lucide-react";
 
 const stageMeta: { id: StageId; icon: React.ComponentType<{ className?: string }>; tint: string; desc: string }[] = [
   { id: "progress", icon: ClipboardList, tint: "from-amber-100 to-orange-100 text-amber-700", desc: "Mid-programme check-in. Share your problem, progress and early evidence." },
@@ -23,30 +23,30 @@ function pctFilled(): number {
 }
 
 export default function RitxTeamSubmission() {
-  const track = mockCompetition.tracks.find((t) => t.id === team.trackId)!;
-  const consentBlocked = team.members.some((m) => m.consent !== "confirmed");
-  const progressForm = getStageForm(team.trackId, "progress");
-  const finalForm = getStageForm(team.trackId, "final");
+  const workspace = getCurrentWorkspace();
+  const trackId = workspace?.trackId || mockTeams[0].trackId;
+  const track = mockCompetition.tracks.find((t) => t.id === trackId);
+  const progressForm = getStageForm(trackId, "progress");
+  const finalForm = getStageForm(trackId, "final");
   const progressStatus = progressForm ? stageWindowStatus(progressForm) : "upcoming";
 
   return (
+    <PaywallGate feature="submission">
     <div className="space-y-4">
       {/* Compact header — no PageHeader vertical padding */}
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold">Submissions</h1>
         <span className="text-muted-foreground text-sm">·</span>
-        <TeamIdChip code={team.teamCode} />
-        <AccessBadge status={team.status} />
-        <Badge variant="outline" className="ml-auto">{track.name}</Badge>
+        {workspace && <TeamIdChip code={workspace.code} />}
+        <AccessBadge status="active" />
+        {track && <Badge variant="outline" className="ml-auto">{track.name}</Badge>}
       </div>
 
-      {consentBlocked && (
+      {!trackId && (
         <Alert className="border-amber-200 bg-amber-50 py-2">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-900 text-sm">Consent incomplete</AlertTitle>
+          <AlertTitle className="text-amber-900 text-sm">Pick a track first</AlertTitle>
           <AlertDescription className="text-amber-800 text-xs">
-            All parent consents must be confirmed before you can submit. Currently{" "}
-            {team.members.filter((m) => m.consent === "confirmed").length}/{team.members.length} confirmed.
+            Go to your Team home and choose a track &amp; theme before starting a submission.
           </AlertDescription>
         </Alert>
       )}
@@ -104,5 +104,6 @@ export default function RitxTeamSubmission() {
         })}
       </div>
     </div>
+    </PaywallGate>
   );
 }
