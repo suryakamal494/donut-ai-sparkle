@@ -1,5 +1,5 @@
 import { RitxShell } from "@/components/ritx/shared/RitxShell";
-import { Home, Users, FileText } from "lucide-react";
+import { Home, Users, FileText, FolderOpen } from "lucide-react";
 
 export default function RitxTeamLayout() {
   return (
@@ -9,6 +9,7 @@ export default function RitxTeamLayout() {
       nav={[
         { to: "/ritx/team", label: "Home", icon: Home },
         { to: "/ritx/team/members", label: "Members & consent", icon: Users },
+        { to: "/ritx/team/resources", label: "Resources", icon: FolderOpen },
         { to: "/ritx/team/submissions", label: "Submissions", icon: FileText },
       ]}
     />
