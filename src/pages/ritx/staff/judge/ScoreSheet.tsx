@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ArrowLeft, ClipboardCheck } from "lucide-react";
-import { mockTeams } from "@/data/mockData";
-import { initialRubrics } from "@/data/rubricData";
-import { SubmissionViewer } from "@/components/judging/SubmissionViewer";
-import { ScoringPanel } from "@/components/judging/ScoringPanel";
+import { mockTeams } from "@/data/ritx/mockData";
+import { initialRubrics } from "@/data/ritx/rubricData";
+import { SubmissionViewer } from "@/components/ritx/judging/SubmissionViewer";
+import { ScoringPanel } from "@/components/ritx/judging/ScoringPanel";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 // Mock: current judge is s3 (matches AssignedList)

@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, FileText, Video, FileType, Wrench, Trash2 } from "lucide-react";
-import { mockResources, type Resource } from "@/data/staffData";
-import { mockCompetition } from "@/data/mockData";
+import { mockResources, type Resource } from "@/data/ritx/staffData";
+import { mockCompetition } from "@/data/ritx/mockData";
 import { toast } from "sonner";
 
 const icons: Record<Resource["type"], React.ComponentType<{ className?: string }>> = {

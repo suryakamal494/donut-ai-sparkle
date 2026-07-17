@@ -1,4 +1,4 @@
-import { RitxShell } from "@/components/shared/RitxShell";
+import { RitxShell } from "@/components/ritx/shared/RitxShell";
 import { LayoutDashboard, Settings, Users, UserCog, MessageCircle, CreditCard, FileEdit, FileText, Scale, Gavel, Trophy, Megaphone } from "lucide-react";
 
 export default function RitxAdminLayout() {

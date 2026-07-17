@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AccessBadge, TeamIdChip } from "@/components/shared/AccessBadge";
-import { mockTeams, mockCompetition } from "@/data/mockData";
-import { mockSessions } from "@/data/staffData";
+import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { mockSessions } from "@/data/ritx/staffData";
 import { AlertTriangle, Video, Clock, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 

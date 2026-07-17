@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock, AlertTriangle } from "lucide-react";
-import { assignmentsForTeam, initialRubrics } from "@/data/rubricData";
-import { mockTeams } from "@/data/mockData";
-import { mockStaff } from "@/data/staffData";
+import { assignmentsForTeam, initialRubrics } from "@/data/ritx/rubricData";
+import { mockTeams } from "@/data/ritx/mockData";
+import { mockStaff } from "@/data/ritx/staffData";
 
 export function AdminScoreRecap({ teamId }: { teamId: string }) {
   const team = mockTeams.find((t) => t.id === teamId);

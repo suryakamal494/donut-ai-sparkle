@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { subjects } from "@/data/mockData";
+import { subjects } from "@/data/ritx/mockData";
 import { allCBSEChapters } from "@/data/cbseMasterData";
 import { courseChapterMappings, courseOwnedChapters } from "@/data/masterData";
 import { Folder } from "lucide-react";

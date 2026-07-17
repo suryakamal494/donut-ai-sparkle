@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { AccessStatus } from "@/data/mockData";
+import type { AccessStatus } from "@/data/ritx/mockData";
 
 const map: Record<AccessStatus, { label: string; className: string }> = {
   registered: { label: "Registered", className: "bg-blue-100 text-blue-700 border-blue-200" },

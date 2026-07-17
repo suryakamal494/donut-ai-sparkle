@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Video, Users, Clock } from "lucide-react";
-import { mockSessions, type Session } from "@/data/staffData";
-import { mockCompetition } from "@/data/mockData";
+import { mockSessions, type Session } from "@/data/ritx/staffData";
+import { mockCompetition } from "@/data/ritx/mockData";
 import { toast } from "sonner";
 
 function formatWhen(iso: string) {

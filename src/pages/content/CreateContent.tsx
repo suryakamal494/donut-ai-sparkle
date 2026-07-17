@@ -12,7 +12,7 @@ import { useState } from "react";
 import { SourceTypeSelector, VisibilitySelector } from "@/components/parameters";
 import { ContentSourceType } from "@/components/parameters/SourceTypeSelector";
 import { getActiveCurriculums, getPublishedCourses, getCourseOwnedChapters } from "@/data/masterData";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
 
 const contentTypes = [

@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ConsentBadge } from "@/components/shared/AccessBadge";
-import { mockTeams } from "@/data/mockData";
-import type { TeamMember, ConsentStatus } from "@/data/mockData";
+import { ConsentBadge } from "@/components/ritx/shared/AccessBadge";
+import { mockTeams } from "@/data/ritx/mockData";
+import type { TeamMember, ConsentStatus } from "@/data/ritx/mockData";
 import { Plus, Send, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 

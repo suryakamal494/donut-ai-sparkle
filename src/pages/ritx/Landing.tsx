@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Sparkles, Trophy, Users, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { mockCompetition } from "@/data/mockData";
+import { mockCompetition } from "@/data/ritx/mockData";
 
 export default function RitxLanding() {
   const navigate = useNavigate();

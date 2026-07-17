@@ -13,7 +13,7 @@ import {
   TierFeature, 
   FeatureCategory,
   FeatureType 
-} from "@/data/mockData";
+} from "@/data/ritx/mockData";
 import { cn } from "@/lib/utils";
 import {
   Select,

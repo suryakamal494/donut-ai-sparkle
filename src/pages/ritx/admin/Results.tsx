@@ -7,10 +7,10 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Award, Download, Send, Trophy } from "lucide-react";
-import { mockTeams, mockCompetition } from "@/data/mockData";
-import { initialResults, awardLabel, awardTone, type TeamResult } from "@/data/resultsData";
-import { TeamIdChip } from "@/components/shared/AccessBadge";
-import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { initialResults, awardLabel, awardTone, type TeamResult } from "@/data/ritx/resultsData";
+import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
 import { toast } from "sonner";
 
 export default function RitxAdminResults() {

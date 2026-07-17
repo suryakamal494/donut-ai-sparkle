@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Gavel, BookOpen } from "lucide-react";
-import { mockStaff, type StaffAccount } from "@/data/staffData";
+import { mockStaff, type StaffAccount } from "@/data/ritx/staffData";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

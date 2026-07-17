@@ -4,8 +4,8 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Send } from "lucide-react";
-import { initialRubrics, assignmentFor, updateAssignment } from "@/data/rubricData";
-import { mockTeams } from "@/data/mockData";
+import { initialRubrics, assignmentFor, updateAssignment } from "@/data/ritx/rubricData";
+import { mockTeams } from "@/data/ritx/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 

@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TeamIdChip } from "@/components/shared/AccessBadge";
-import { DataTablePagination } from "@/components/shared/DataTablePagination";
-import { mockTeams, mockCompetition } from "@/data/mockData";
-import { assignmentsForJudge, scoreTone, statusLabel } from "@/data/rubricData";
+import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { DataTablePagination } from "@/components/ritx/shared/DataTablePagination";
+import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { assignmentsForJudge, scoreTone, statusLabel } from "@/data/ritx/rubricData";
 import { EyeOff, ArrowRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

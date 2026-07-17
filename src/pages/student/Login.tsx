@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Eye, EyeOff, ArrowRight } from "lucide-react";
-import DonutLogo from "@/components/shared/DonutLogo";
+import DonutLogo from "@/components/ritx/shared/DonutLogo";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import aiCompanionIllustration from "@/assets/student/ai-companion-illustration.png";

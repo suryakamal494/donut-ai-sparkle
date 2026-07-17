@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { assignedTracks } from "@/data/instituteData";
 import { getChaptersByClassAndSubject, getTopicsByChapter } from "@/data/cbseMasterData";
 import { getSubjectsForCourse, getChaptersForCourseBySubject, subjects as masterSubjects } from "@/data/masterData";
-import { classes } from "@/data/mockData";
+import { classes } from "@/data/ritx/mockData";
 import { mockQuestions } from "@/data/questionsData";
 
 const questionTypes = [

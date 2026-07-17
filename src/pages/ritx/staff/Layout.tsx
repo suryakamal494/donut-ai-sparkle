@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, LogOut, Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { mockStaff } from "@/data/staffData";
+import { mockStaff } from "@/data/ritx/staffData";
 
 // Mock current staff — Anita has BOTH access flags to demo tab switcher
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;

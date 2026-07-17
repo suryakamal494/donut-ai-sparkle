@@ -9,9 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AccessBadge, TeamIdChip } from "@/components/shared/AccessBadge";
-import { mockTeams, mockCompetition } from "@/data/mockData";
-import { initialForms, mockTeamSubmissions, stageLabel, stageTone, type SubmissionField } from "@/data/submissionData";
+import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { initialForms, mockTeamSubmissions, stageLabel, stageTone, type SubmissionField } from "@/data/ritx/submissionData";
 import { AlertTriangle, Lock, Save, Send, Upload, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 

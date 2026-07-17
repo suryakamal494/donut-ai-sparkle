@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PlanBadge } from "@/components/ui/plan-badge";
 import { StatsCard } from "@/components/ui/stats-card";
-import { mockInstitutes } from "@/data/mockData";
+import { mockInstitutes } from "@/data/ritx/mockData";
 import { curriculums, courses } from "@/data/masterData";
 import { InstituteEditDialog } from "@/components/institutes/InstituteEditDialog";
 import { AssignCurriculumCourseDialog } from "@/components/institutes/AssignCurriculumCourseDialog";

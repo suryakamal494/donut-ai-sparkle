@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import DonutLogo from "@/components/shared/DonutLogo";
+import DonutLogo from "@/components/ritx/shared/DonutLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 

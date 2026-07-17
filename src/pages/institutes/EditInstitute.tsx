@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { curriculums, courses } from "@/data/masterData";
-import { mockInstitutes } from "@/data/mockData";
+import { mockInstitutes } from "@/data/ritx/mockData";
 
 const steps = [
   { id: 1, title: "Institute Details", icon: Building2 },

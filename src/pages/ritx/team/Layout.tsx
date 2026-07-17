@@ -1,4 +1,4 @@
-import { RitxShell } from "@/components/shared/RitxShell";
+import { RitxShell } from "@/components/ritx/shared/RitxShell";
 import { Home, Users, FileText, FolderOpen, Trophy } from "lucide-react";
 
 export default function RitxTeamLayout() {

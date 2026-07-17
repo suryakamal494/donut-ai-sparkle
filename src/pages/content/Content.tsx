@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { mockContent } from "@/data/mockData";
+import { mockContent } from "@/data/ritx/mockData";
 import {
   ContentCard,
   ContentListItem,

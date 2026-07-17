@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Gavel, BookOpen, Video, FolderOpen, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { mockStaff, mockSessions, mockResources } from "@/data/staffData";
+import { mockStaff, mockSessions, mockResources } from "@/data/ritx/staffData";
 
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
 

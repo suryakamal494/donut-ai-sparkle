@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TeamIdChip } from "@/components/shared/AccessBadge";
-import { mockTeams, mockCompetition } from "@/data/mockData";
-import { defaultFields, submissionForTeam, type AnswerValue, type SubmissionField } from "@/data/submissionData";
-import { assignmentsForTeam } from "@/data/rubricData";
-import { mockStaff } from "@/data/staffData";
+import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
+import { defaultFields, submissionForTeam, type AnswerValue, type SubmissionField } from "@/data/ritx/submissionData";
+import { assignmentsForTeam } from "@/data/ritx/rubricData";
+import { mockStaff } from "@/data/ritx/staffData";
 import { FileText, Film, Image as ImageIcon, EyeOff } from "lucide-react";
 
 function isYouTube(url: string) {

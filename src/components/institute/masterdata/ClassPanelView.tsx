@@ -1,4 +1,4 @@
-import { classes } from "@/data/mockData";
+import { classes } from "@/data/ritx/mockData";
 import { allCBSEChapters } from "@/data/cbseMasterData";
 import { GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";

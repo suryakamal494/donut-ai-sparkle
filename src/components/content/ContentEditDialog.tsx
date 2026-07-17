@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContentItem } from "./ContentCard";
 import { ContentTypeIcon, getContentTypeLabel } from "./ContentTypeIcon";
-import { classes, subjects, chapters } from "@/data/mockData";
+import { classes, subjects, chapters } from "@/data/ritx/mockData";
 import { getActiveCurriculums, getPublishedCourses } from "@/data/masterData";
 import { useToast } from "@/hooks/use-toast";
 

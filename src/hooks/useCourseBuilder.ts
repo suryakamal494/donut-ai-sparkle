@@ -24,7 +24,7 @@ import {
   allCBSEChapters, 
   getChaptersByClassAndSubject 
 } from "@/data/cbseMasterData";
-import { classes, subjects } from "@/data/mockData";
+import { classes, subjects } from "@/data/ritx/mockData";
 import { Course } from "@/types/masterData";
 
 export interface CourseChapterEntry {
