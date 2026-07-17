@@ -74,7 +74,7 @@ export default function RitxAdminSubmissions() {
           <Button variant="outline" size="sm" onClick={() => toast.success("Export queued")}><Download className="w-4 h-4 mr-1" /> Export</Button>
         </div>
       </Card>
-      <Card>
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
