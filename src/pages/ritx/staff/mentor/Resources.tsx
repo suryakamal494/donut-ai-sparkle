@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Video, FileType, Wrench, Trash2 } from "lucide-react";
+import { Upload, FileText, Video, FileType, Wrench, Trash2, Eye } from "lucide-react";
 import { mockResources, type Resource } from "@/data/ritx/staffData";
 import { mockCompetition } from "@/data/ritx/mockData";
 import { toast } from "sonner";
+import { ResourcePreviewDialog } from "@/components/ritx/shared/ResourcePreviewDialog";
 
 const icons: Record<Resource["type"], React.ComponentType<{ className?: string }>> = {
   guide: FileText, video: Video, template: FileType, worksheet: Wrench,
@@ -19,6 +20,7 @@ export default function RitxMentorResources() {
   const [items, setItems] = useState<Resource[]>(mockResources);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Resource, "id" | "uploadedOn" | "sizeKb">>({ title: "", trackId: "sci-investigator", type: "guide", uploadedBy: "Ms. Anita Kaur" });
+  const [preview, setPreview] = useState<Resource | null>(null);
 
   const add = () => {
     if (!draft.title) { toast.error("Title required"); return; }
@@ -41,7 +43,14 @@ export default function RitxMentorResources() {
             <Card key={r.id} className="p-4">
               <div className="flex items-start justify-between">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Icon className="w-5 h-5 text-primary" /></div>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setItems(items.filter((x) => x.id !== r.id))}><Trash2 className="w-3 h-3" /></Button>
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" title="Preview" onClick={() => setPreview(r)}>
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" title="Delete" onClick={() => setItems(items.filter((x) => x.id !== r.id))}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
               <div className="font-medium mt-2 line-clamp-2">{r.title}</div>
               <div className="text-xs text-muted-foreground mt-1">{trackName(r.trackId)}</div>
@@ -53,6 +62,14 @@ export default function RitxMentorResources() {
           );
         })}
       </div>
+
+      <ResourcePreviewDialog
+        open={!!preview}
+        onOpenChange={(v) => !v && setPreview(null)}
+        title={preview?.title ?? ""}
+        url={preview?.url}
+        mime={preview?.mime}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
