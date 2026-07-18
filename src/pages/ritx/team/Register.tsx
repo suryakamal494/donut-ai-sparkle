@@ -33,7 +33,7 @@ export default function RitxTeamRegister() {
     d.teamName.trim() && d.leadName.trim() && d.school.trim() && d.grade && d.state && d.city.trim() && /.+@.+\..+/.test(d.email);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/40 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/40 to-white pb-20">
       <OrganiserHeaderStrip variant="hero" />
       <div className="flex-1 p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-4">
