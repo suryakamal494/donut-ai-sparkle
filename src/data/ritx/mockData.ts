@@ -255,7 +255,7 @@ export const INDIAN_STATES = [
   "Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
 ];
 
-export const CLASS_OPTIONS = ["6","7","8","9","10","11","12"];
+export const CLASS_OPTIONS = ["8","9","10","11","12"];
 
 export const registrationStats = {
   totalRegistrations: mockTeams.length,
