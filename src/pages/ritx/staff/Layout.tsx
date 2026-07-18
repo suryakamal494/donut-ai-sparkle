@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import DonutLogo from "@/components/shared/DonutLogo";
 import { mockStaff } from "@/data/ritx/staffData";
 import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
 import { AppFooter } from "@/components/ritx/shared/AppFooter";
+import ritxAsset from "@/assets/logo-ritx.png.asset.json";
 
 // Mock current staff — Anita has BOTH access flags to demo tab switcher
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
@@ -29,10 +29,9 @@ export default function RitxStaffLayout() {
     <div className="min-h-screen w-full bg-gradient-to-b from-amber-50 via-orange-50/40 to-white flex">
       <aside className="hidden lg:flex w-64 flex-col sticky top-0 h-screen bg-gradient-to-b from-amber-50 via-orange-50/80 to-white border-r border-orange-100/60 shadow-lg shadow-orange-100/20">
         <div className="px-4 h-16 border-b border-orange-100/60 flex items-center gap-3">
-          <DonutLogo size={40} />
+          <img src={ritxAsset.url} alt="RiTX" className="h-9 w-auto object-contain" />
           <div className="flex flex-col">
-            <span className="font-bold text-lg gradient-text leading-tight">RiTX</span>
-            <span className="text-[10px] text-muted-foreground -mt-0.5">{currentStaff.name}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground -mt-0.5">{currentStaff.name}</span>
           </div>
         </div>
         {showRoleTabs && (
@@ -57,8 +56,8 @@ export default function RitxStaffLayout() {
 
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-amber-50 to-orange-50/80 backdrop-blur border-b border-orange-100/60 flex items-center justify-between px-3 h-14">
         <div className="flex items-center gap-2">
-          <DonutLogo size={32} />
-          <div className="font-bold text-sm gradient-text">RiTX · Staff</div>
+          <img src={ritxAsset.url} alt="RiTX" className="h-7 w-auto object-contain" />
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Staff</div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
