@@ -4,6 +4,7 @@ import { CreditCard, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   getCurrentUser,
+  grantPrepaidCredit,
   isLead,
   payForWorkspace,
   pricing,
@@ -13,19 +14,27 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  workspace: Workspace;
+  workspace?: Workspace;
+  mode?: "workspace-unlock" | "pre-create";
   onPaid?: () => void;
 }
 
-export function PayDialog({ open, onOpenChange, workspace, onPaid }: Props) {
+export function PayDialog({ open, onOpenChange, workspace, mode = "workspace-unlock", onPaid }: Props) {
   const user = getCurrentUser();
-  const lead = user ? isLead(workspace, user.id) : false;
+  const preCreate = mode === "pre-create";
+  const lead = preCreate ? true : (!!user && !!workspace && isLead(workspace, user.id));
 
   const pay = () => {
     if (!user) return;
-    if (!lead) { toast.error("Only the team lead can complete payment."); return; }
-    payForWorkspace(workspace, user.id);
-    toast.success(`Payment received. ${workspace.name} is unlocked.`);
+    if (preCreate) {
+      grantPrepaidCredit(user.id);
+      toast.success("Payment received. You can now create your workspace.");
+    } else {
+      if (!workspace) return;
+      if (!lead) { toast.error("Only the team lead can complete payment."); return; }
+      payForWorkspace(workspace, user.id);
+      toast.success(`Payment received. ${workspace.name} is unlocked.`);
+    }
     onOpenChange(false);
     onPaid?.();
   };
@@ -36,7 +45,7 @@ export function PayDialog({ open, onOpenChange, workspace, onPaid }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-donut-coral" />
-            Unlock submissions & results
+            {preCreate ? "Pay to create your workspace" : "Unlock submissions & results"}
           </DialogTitle>
         </DialogHeader>
 
@@ -46,16 +55,20 @@ export function PayDialog({ open, onOpenChange, workspace, onPaid }: Props) {
             ₹{pricing.amount.toLocaleString("en-IN")}
             <span className="text-sm text-muted-foreground font-normal"> · one-time, whole team</span>
           </div>
-          <div className="text-xs text-muted-foreground mt-1">Workspace: <span className="font-medium text-foreground">{workspace.name}</span></div>
+          {workspace ? (
+            <div className="text-xs text-muted-foreground mt-1">Workspace: <span className="font-medium text-foreground">{workspace.name}</span></div>
+          ) : (
+            <div className="text-xs text-muted-foreground mt-1">Paid by the team lead. Teammates join free with the invite code.</div>
+          )}
         </div>
 
         <ul className="text-xs text-muted-foreground space-y-1.5 mt-1">
-          <li className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-donut-coral" /> Unlocks both submission stages for every member</li>
+          <li className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-donut-coral" /> {preCreate ? "Creates your team workspace with an invite code" : "Unlocks both submission stages for every member"}</li>
           <li className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5 text-donut-coral" /> Unlocks results and per-member certificates</li>
           <li className="flex items-center gap-2"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Payment is by the team lead only, once per workspace</li>
         </ul>
 
-        {!lead && (
+        {!preCreate && !lead && (
           <div className="text-xs rounded-md border border-amber-200 bg-amber-50 text-amber-800 p-2">
             Only the team lead can complete this payment. Ask them to pay from their login.
           </div>

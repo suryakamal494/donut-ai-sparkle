@@ -11,8 +11,11 @@ import {
   createWorkspace,
   ensureCurrentUser,
   getCurrentUser,
+  hasPrepaidCredit,
   joinByCode,
+  pricing,
 } from "@/data/ritx/workspaceState";
+import { PayDialog } from "@/components/ritx/shared/PayDialog";
 
 interface Props {
   onDone?: () => void;
@@ -21,9 +24,18 @@ interface Props {
 export function WorkspaceOnboardingHero({ onDone }: Props) {
   const navigate = useNavigate();
   const [openCreate, setOpenCreate] = useState(false);
+  const [openPay, setOpenPay] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [code, setCode] = useState("");
   const user = getCurrentUser() ?? ensureCurrentUser();
+
+  const startCreate = () => {
+    if (pricing.mode === "paid" && !hasPrepaidCredit(user.id)) {
+      setOpenPay(true);
+    } else {
+      setOpenCreate(true);
+    }
+  };
 
   const finish = () => {
     if (onDone) onDone();
@@ -64,10 +76,15 @@ export function WorkspaceOnboardingHero({ onDone }: Props) {
           </p>
           <Button
             className="mt-4 bg-gradient-to-r from-donut-coral to-donut-orange hover:opacity-95 border-0 shadow-md shadow-donut-coral/30"
-            onClick={() => setOpenCreate(true)}
+            onClick={startCreate}
           >
             Create workspace <ArrowRight className="w-4 h-4 ml-1" />
           </Button>
+          {pricing.mode === "paid" && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              One-time ₹{pricing.amount.toLocaleString("en-IN")} team fee is charged before the workspace is created.
+            </p>
+          )}
         </Card>
 
         <Card className="p-6 rounded-2xl border-orange-100/60 shadow-sm shadow-orange-100/30 bg-white flex flex-col">
@@ -98,6 +115,7 @@ export function WorkspaceOnboardingHero({ onDone }: Props) {
             >
               <Users className="w-4 h-4 mr-1" /> Join workspace
             </Button>
+            <p className="text-[11px] text-muted-foreground text-center">Free for invited teammates — the lead pays once.</p>
           </div>
         </Card>
       </div>
@@ -128,6 +146,13 @@ export function WorkspaceOnboardingHero({ onDone }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PayDialog
+        open={openPay}
+        onOpenChange={setOpenPay}
+        mode="pre-create"
+        onPaid={() => setOpenCreate(true)}
+      />
     </>
   );
 }

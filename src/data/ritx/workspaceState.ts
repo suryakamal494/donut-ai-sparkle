@@ -172,6 +172,15 @@ export function createWorkspace(name: string, leadUserId: string): Workspace {
   // Enforce single-workspace-per-user
   const existing = getWorkspaceForUser(leadUserId);
   if (existing) throw new Error(`You are already in workspace "${existing.name}".`);
+  // Payment must happen BEFORE workspace creation when the competition is paid.
+  let usedPrepaid = false;
+  if (pricing.mode === "paid") {
+    if (!hasPrepaidCredit(leadUserId)) {
+      throw new Error("Payment required before creating a workspace.");
+    }
+    consumePrepaidCredit(leadUserId);
+    usedPrepaid = true;
+  }
   const ws: Workspace = {
     id: `ws-${Date.now().toString(36)}`,
     name: name.trim() || "New Team",
@@ -179,8 +188,8 @@ export function createWorkspace(name: string, leadUserId: string): Workspace {
     leadUserId,
     memberIds: [leadUserId],
     maxMembers: mockCompetition.maxTeamSize,
-    paidAt: null,
-    paidBy: null,
+    paidAt: usedPrepaid ? new Date().toISOString() : null,
+    paidBy: usedPrepaid ? leadUserId : null,
     trackId: "",
     subTheme: "",
     createdAt: new Date().toISOString(),
@@ -228,6 +237,23 @@ export function isUnlocked(ws: Workspace | null): boolean {
 export function payForWorkspace(ws: Workspace, userId: string) {
   ws.paidAt = new Date().toISOString();
   ws.paidBy = userId;
+}
+
+// --- Prepaid credit (pay-before-create) ---------------------------------
+// Users pay the team fee BEFORE the workspace exists. Successful payment
+// grants a one-shot credit that `createWorkspace` consumes to mark the new
+// workspace as paid. UI-only mock: in-memory Set.
+
+const prepaidUserIds = new Set<string>();
+
+export function hasPrepaidCredit(userId: string): boolean {
+  return prepaidUserIds.has(userId);
+}
+export function grantPrepaidCredit(userId: string) {
+  prepaidUserIds.add(userId);
+}
+export function consumePrepaidCredit(userId: string): boolean {
+  return prepaidUserIds.delete(userId);
 }
 
 // --- Edit history --------------------------------------------------------
