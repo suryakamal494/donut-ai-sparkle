@@ -1,9 +1,0 @@
-export { PeriodStructureTab } from './PeriodStructureTab';
-export { PeriodTypesTab } from './PeriodTypesTab';
-export { HolidaysTab } from './HolidaysTab';
-export { TeacherLoadTab } from './TeacherLoadTab';
-export { TeacherConstraintsTab } from './TeacherConstraintsTab';
-export { FacilitiesTab } from './FacilitiesTab';
-export { ExamScheduleTab } from './ExamScheduleTab';
-export { SetupProgressBar } from './SetupProgressBar';
-export { AdvancedModeToggle } from './AdvancedModeToggle';
