@@ -1,76 +1,37 @@
+## Goal
+Stop blocking students at the Join/Create screen. After login, land them directly on the Team Home. If they aren't in a workspace yet, show the Create/Join panel as the hero section of that home — inside the normal shell, with nav visible — so they feel "inside the platform".
 
-## 1. Drop the "Blind" wording in the staff/judge panel
+Frontend only. No backend, no schema, no auth changes. All state stays in the existing `workspaceState.ts` mock (localStorage + in-memory).
 
-Any judge-facing surface that currently says "Blind evaluation", "Blind queue", "Blind scoring" etc. becomes plain "Judging" / "Scoring". The judge continues to see the full submission — no data is hidden.
+## Changes
 
-Files touched:
-- `src/pages/ritx/staff/judge/AssignedList.tsx` — page title/description → "Judging queue".
-- `src/pages/ritx/staff/judge/ScoreSheet.tsx` — top bar chip "Blind evaluation" → "Judging".
-- `src/pages/ritx/staff/Layout.tsx` and `src/pages/ritx/staff/Home.tsx` — nav label / card copy.
-- `src/components/ritx/judging/SubmissionViewer.tsx` — remove any "blind" banners/tooltips.
-- `src/pages/ritx/admin/JudgeAssignments.tsx` — copy update (matrix still exists, just no "blind" adjective).
+1. **`src/routes/RitxRoutes.tsx`**
+   - Remove the standalone `/team/join` route (or keep it as a redirect to `/team`) so login always lands on `/team`.
+   - Ensure post-login redirect in `Login.tsx` goes to `/team` (not `/team/join`).
 
-No route or component renames — only user-visible strings.
+2. **`src/pages/ritx/team/Layout.tsx`**
+   - Remove the current "redirect to /team/join if no workspace" guard. Always render the shell (sidebar + header) even without a workspace, so students see they're inside the platform.
+   - Nav items that need a workspace (Submissions, Results, Members, Resources) stay visible but route to Home when clicked without a workspace — or show a subtle "join a team first" hint. Simplest: keep them clickable; each of those pages already reads `getCurrentWorkspace()` and can show an inline empty state.
 
-## 2. Fix "can't get into student panel from login"
+3. **New: `src/components/ritx/team/WorkspaceOnboardingHero.tsx`**
+   - Extract the Create/Join UI currently in `JoinOrCreate.tsx` into a reusable hero component (same two coral/teal cards, same dialog, same invite-code input, same `createWorkspace` / `joinByCode` calls).
+   - No standalone page chrome — just the two cards + helper text, styled to sit inside the Team Home.
 
-Root cause (unconfirmed until reproduced but consistent with the code): `RitxLogin` requires **Name + Email + Class** for the Student role and silently no-ops on submit when any field is empty — so clicking Sign in appears to do nothing.
+4. **`src/pages/ritx/team/Home.tsx`**
+   - At the top, branch on `getCurrentWorkspace()`:
+     - **No workspace:** render a warm welcome banner (`Hi {firstName} — let's get your team set up`) followed by `<WorkspaceOnboardingHero />`. Hide track/members/deadline cards that assume a workspace.
+     - **Has workspace:** render today's existing Team Home (track picker, members, deadlines, edit history, etc.) unchanged.
 
-Fixes in `src/pages/ritx/Login.tsx`:
-- Show inline validation + a toast when a required field is missing (so the failure is visible).
-- Prefill sensible demo values when the form is empty and the user hits Continue (Name = "Demo Student", Email = `demo.student@ritx.test`, Class = 9) so the flow always reaches `/team/join` or `/team`.
-- Add a small "Continue as demo student" quick-link under the Student form for one-click access.
+5. **`src/pages/ritx/team/JoinOrCreate.tsx`**
+   - Delete (or reduce to a thin re-export of the hero for backwards compat). Route removed in step 1.
 
-After sign-in, keep the existing `getWorkspaceForUser` → `/team` vs `/team/join` routing untouched.
-
-## 3. Fractional judging scores (6.25, 6.5, 7.25, …)
-
-The current 0–10 chip strip in `src/components/ritx/judging/ScoringPanel.tsx` only allows integers. Replace it with a **0.25-step slider + numeric input** per criterion:
-
-- Slider: min 0, max `criterion.maxScore` (10), step **0.25**, with tick marks at every whole number.
-- A compact numeric input next to the slider accepts direct typing (0.00–10.00, snapped to 0.25).
-- Selected value badge shows two-decimals when needed ("7.25", else "7").
-- Weighted total keeps the existing formula — it already tolerates floats.
-
-Storage stays a number in `criterionScores`; no data-model change.
-
-Also update `AdminScoreRecap` and any read-only display to render `toFixed(2)` when the value isn't a whole number.
-
-## 4. Redesign Admin "Submissions & judging" like the Evalato reference
-
-Goal: turn the current dense table into a clean, filter-forward "Entries"-style list that stays scalable to hundreds of teams.
-
-Changes to `src/pages/ritx/admin/Submissions.tsx`:
-
-- **Top bar of chip filters** (like Set Status / Set Rounds / Set Tags):
-  - Status chip (Submitted / In progress / Not started / Returned / Locked)
-  - Track chip
-  - Judging chip (Awaiting / Partial / Complete / Conflict)
-  - Search box on the right
-  - Bulk-select checkbox column with "Set status ▾ · Assign judges ▾" bulk actions
-- **Table columns** (Evalato-style, comfortable row height, avatar-style team icon):
-  - ☐ · Team (avatar chip + team name + `RITX-2026-xxxx` code muted)
-  - Track / Sub-theme
-  - Stage badge
-  - Judges (compact "3/3 scored" with tiny avatars + status dot)
-  - Avg score (large, tabular)
-  - Score spread (min–max, flags outliers ≥ 1.5)
-  - Actions (Review • ⋮)
-- **Per-judge drill-down**: expanding a row (or the Review side-sheet) shows a small table of every judge who scored this team with their individual weighted score, spread from mean, submitted-on, and comment preview. Admin cannot edit — read-only as today.
-- **Column visibility toggle** so admins can hide Team Name if they want a more anonymous view (addresses "name may not be necessary").
-- Keep pagination + empty state; drop the four summary Cards into a single slim strip above the filter bar so the table gets more vertical space.
-
-No changes to underlying data models (`mockTeamSubmissions`, `judgingSummaryForTeam`) — this is purely a presentation refactor.
+6. **Empty-state polish on gated inner pages** (Submissions, Results, Members, Resources)
+   - If `getCurrentWorkspace()` is null, render a small inline card: "Join or create a workspace to unlock this" with a button that scrolls/links back to `/team`. No new logic, just replaces the current implicit redirect.
 
 ## Out of scope
+- No backend, no Supabase tables, no auth provider changes.
+- Paywall behavior (`PaywallGate`) unchanged — still gates Submissions/Results once a workspace exists.
+- Visual language (coral/teal, rounded-2xl, amber gradient) unchanged.
 
-- No backend / persistence changes.
-- No new routes.
-- Judge scoring math and rubric weights unchanged.
-
-## Technical notes
-
-- Slider uses the existing `@/components/ui/slider` (Radix). Step `0.25`, with a paired `Input type="number" step="0.25" min="0" max="10"` that writes back into the same state.
-- Snap helper: `Math.round(v * 4) / 4`.
-- Avatars: derive initials + a stable colour from `team.teamCode` (deterministic hash) to match the Evalato look without needing images.
-- Column visibility: local `useState<Record<col, boolean>>` + a small dropdown; no persistence needed for the UI pass.
+## Verification
+Per your standing preference: ship without a verification pass.

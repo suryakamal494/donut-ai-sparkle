@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccessBadge, TeamIdChip } from "@/components/ritx/shared/AccessBadge";
 import { PayDialog } from "@/components/ritx/shared/PayDialog";
+import { WorkspaceOnboardingHero } from "@/components/ritx/team/WorkspaceOnboardingHero";
 import { mockCompetition } from "@/data/ritx/mockData";
 import { mockSessions } from "@/data/ritx/staffData";
 import {
@@ -67,22 +67,36 @@ function SessionCard({ id, title, mentorName, trackName, date, durationMin, join
 }
 
 export default function RitxTeamHome() {
-  const navigate = useNavigate();
   const user = getCurrentUser() ?? ensureCurrentUser();
   const workspace = getCurrentWorkspace();
   const [, bump] = useState(0);
   const rerender = () => bump((n) => n + 1);
   const [payOpen, setPayOpen] = useState(false);
 
-  // Redirect if user has no workspace yet
-  useEffect(() => {
-    if (!workspace) navigate("/team/join", { replace: true });
-  }, [workspace, navigate]);
-
   const [trackId, setTrackId] = useState(workspace?.trackId || "");
   const [subTheme, setSubTheme] = useState(workspace?.subTheme || "");
 
-  if (!workspace) return null;
+  if (!workspace) {
+    const firstName = user.name.split(" ")[0];
+    return (
+      <div className="space-y-5">
+        <div className="relative overflow-hidden rounded-2xl border border-orange-100/60 shadow-sm shadow-orange-100/30 bg-gradient-to-br from-amber-50 via-orange-50/50 to-white p-6 md:p-8">
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-gradient-to-br from-donut-coral/20 to-donut-orange/10 blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-56 h-56 rounded-full bg-gradient-to-br from-violet-200/40 to-transparent blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center gap-2 text-xs text-donut-coral font-semibold uppercase tracking-wide mb-2">
+              <Sparkles className="w-3.5 h-3.5" /> Team Console
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Hi {firstName} — let's set up your team</h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+              Create a workspace to lead your team, or join an existing one with an invite code. You'll pick your track and challenge theme right after.
+            </p>
+          </div>
+        </div>
+        <WorkspaceOnboardingHero onDone={rerender} />
+      </div>
+    );
+  }
 
   const members = getMembers(workspace);
   const lead = isLead(workspace, user.id);
