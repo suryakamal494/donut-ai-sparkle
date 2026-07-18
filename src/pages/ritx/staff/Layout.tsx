@@ -54,11 +54,6 @@ export default function RitxStaffLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-orange-100/60">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 hover:bg-white/80" onClick={() => navigate("/login")}>
-            <LogOut className="w-4 h-4" /> Sign out
-          </Button>
-        </div>
       </aside>
 
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-amber-50 to-orange-50/80 backdrop-blur border-b border-orange-100/60 flex items-center justify-between px-3 h-14">

@@ -55,11 +55,6 @@ export function RitxShell({ role, nav }: RitxShellProps) {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-orange-100/60">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 hover:bg-white/80" onClick={() => navigate("/login")}>
-            <LogOut className="w-4 h-4" /> Sign out
-          </Button>
-        </div>
       </aside>
 
       {/* Mobile top bar */}
@@ -92,9 +87,6 @@ export function RitxShell({ role, nav }: RitxShellProps) {
                 {item.label}
               </NavLink>
             ))}
-            <Button variant="ghost" className="w-full justify-start gap-2 mt-4" onClick={() => navigate("/login")}>
-              <LogOut className="w-4 h-4" /> Sign out
-            </Button>
           </nav>
         </div>
       )}
