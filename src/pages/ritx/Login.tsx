@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Users, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DonutLogo from "@/components/shared/DonutLogo";
+import ritxAsset from "@/assets/logo-ritx.png.asset.json";
 import { CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { loginOrRegister } from "@/data/ritx/workspaceState";
 import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
@@ -65,11 +65,8 @@ export default function RitxLogin() {
        <div className="w-full max-w-md">
        <Card className="w-full p-6 md:p-8 rounded-2xl border-orange-100/60 shadow-xl shadow-orange-100/40 bg-white/90 backdrop-blur relative">
         <div className="flex items-center gap-3 mb-6">
-          <DonutLogo size={40} />
-          <div>
-            <div className="font-bold text-lg gradient-text leading-tight">RiTX</div>
-            <div className="text-xs text-muted-foreground">Sign in to continue</div>
-          </div>
+          <img src={ritxAsset.url} alt="RiTX" className="h-10 w-auto object-contain" />
+          <div className="text-xs text-muted-foreground">Sign in to continue</div>
         </div>
 
         {/* Role picker */}
