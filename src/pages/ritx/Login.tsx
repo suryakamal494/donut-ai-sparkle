@@ -9,7 +9,7 @@ import { Shield, Users, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
 import { CLASS_OPTIONS } from "@/data/ritx/mockData";
-import { getWorkspaceForUser, loginOrRegister } from "@/data/ritx/workspaceState";
+import { loginOrRegister } from "@/data/ritx/workspaceState";
 import { toast } from "sonner";
 
 type Role = "admin" | "team" | "staff";
