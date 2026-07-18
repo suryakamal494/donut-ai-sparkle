@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
+import { Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
@@ -80,7 +80,7 @@ export default function RitxStaffLayout() {
       )}
 
       <main className="flex-1 min-w-0 pt-14 lg:pt-0 pb-20">
-        <OrganiserHeaderStrip />
+        <OrganiserHeaderStrip showSignout />
         <div className="max-w-7xl mx-auto p-4 md:p-6 animate-fade-in" key={location.pathname}>
           <Outlet />
         </div>
