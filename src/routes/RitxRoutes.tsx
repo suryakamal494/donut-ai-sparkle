@@ -8,7 +8,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PageSkeleton } from "@/components/ui/page-skeleton";
 import LazyErrorBoundary from "@/components/ui/lazy-error-boundary";
 
-const Landing = lazy(() => import("@/pages/ritx/Landing"));
 const Login = lazy(() => import("@/pages/ritx/Login"));
 
 const AdminLayout = lazy(() => import("@/pages/ritx/admin/Layout"));
@@ -52,8 +51,8 @@ function Lazy({ children }: { children: React.ReactNode }) {
 export default function RitxRoutes() {
   return (
     <Routes>
-      <Route index element={<Lazy><Landing /></Lazy>} />
-      <Route path="login" element={<Lazy><Login /></Lazy>} />
+      <Route index element={<Lazy><Login /></Lazy>} />
+      <Route path="login" element={<Navigate to="/" replace />} />
       <Route path="team/register" element={<Lazy><TeamRegister /></Lazy>} />
       <Route path="team/join" element={<Navigate to="/team" replace />} />
 
