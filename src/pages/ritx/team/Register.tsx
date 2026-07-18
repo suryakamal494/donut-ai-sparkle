@@ -128,6 +128,8 @@ export default function RitxTeamRegister() {
           </Card>
         )}
       </div>
+      </div>
+      <AppFooter />
     </div>
   );
 }
