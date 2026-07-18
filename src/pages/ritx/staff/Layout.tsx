@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +12,6 @@ import { AppFooter } from "@/components/ritx/shared/AppFooter";
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
 
 export default function RitxStaffLayout() {
-  const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
