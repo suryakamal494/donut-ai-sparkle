@@ -28,7 +28,6 @@ const AdminAnnouncements = lazy(() => import("@/pages/ritx/admin/Announcements")
 const TeamLayout = lazy(() => import("@/pages/ritx/team/Layout"));
 const TeamHome = lazy(() => import("@/pages/ritx/team/Home"));
 const TeamRegister = lazy(() => import("@/pages/ritx/team/Register"));
-const TeamJoinOrCreate = lazy(() => import("@/pages/ritx/team/JoinOrCreate"));
 const TeamMembers = lazy(() => import("@/pages/ritx/team/Members"));
 const TeamResources = lazy(() => import("@/pages/ritx/team/Resources"));
 const TeamSubmission = lazy(() => import("@/pages/ritx/team/Submission"));
@@ -56,7 +55,7 @@ export default function RitxRoutes() {
       <Route index element={<Lazy><Landing /></Lazy>} />
       <Route path="login" element={<Lazy><Login /></Lazy>} />
       <Route path="team/register" element={<Lazy><TeamRegister /></Lazy>} />
-      <Route path="team/join" element={<Lazy><TeamJoinOrCreate /></Lazy>} />
+      <Route path="team/join" element={<Navigate to="/team" replace />} />
 
       <Route path="admin" element={<Lazy><AdminLayout /></Lazy>}>
         <Route index element={<AdminDashboard />} />
