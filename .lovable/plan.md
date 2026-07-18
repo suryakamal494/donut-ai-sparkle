@@ -1,48 +1,52 @@
-## What you're asking for
+# Plan — RiTX Handoff Map (single document for Claude)
 
-Right now the student can freely create a workspace on the Team Home, and payment (₹499) is only demanded later when they open Submissions — that's the lock screen in your screenshot. You want to flip that:
+Produce **one** Markdown file at the repo root:
 
-- On the Team Home, the hero with **Create workspace** and **Join with invite code** stays fully visible — nothing hidden or greyed out.
-- **Join with invite code** stays free (joiners don't pay; the lead already did).
-- **Create workspace** button is visible, but clicking it opens the **Pay ₹499** dialog first. Only after the mock payment succeeds does the "Name your team workspace" dialog appear and the workspace actually gets created.
-- The existing submissions paywall stays in place too, as a safety net (and for teams seeded as unpaid in the demo data).
+```
+RITX_UI_MAP.md
+```
 
-Payment stays a one-time, whole-team fee, paid by the lead — same amount, same PayDialog UI, just moved earlier in the flow.
+No code changes. No refactors. Read-only exploration of the RiTX tree, then write the doc.
 
-## Implementation plan (UI only, no backend)
+## Document structure
 
-### 1. `src/components/ritx/team/WorkspaceOnboardingHero.tsx`
-- Add a `PayDialog`-based gate around the create flow:
-  - Clicking **Create workspace** no longer opens the "Name your team" dialog directly.
-  - If `pricing.mode === "paid"` and the current user has no paid workspace yet, open a **payment-first** dialog explaining "Team registration fee ₹499 — required before creating a workspace."
-  - On successful mock pay, immediately open the existing "Name your team workspace" dialog.
-  - If `pricing.mode === "free"`, skip payment and open the name dialog as today.
-- Add a small helper line under the Create card: "One-time ₹499 team fee is charged before the workspace is created." Keep the Join card unchanged with a subtle "Free for invited teammates" hint.
+1. **Overview** — What RiTX is (frontend-only UI over mock data), the 3 login roles, tech stack in one line, and how to read this document.
+2. **Route tree (top-level map)** — ASCII tree of every route mounted in `src/routes/RitxRoutes.tsx`, grouped by role, showing URL → page file.
+   ```text
+   /
+   ├── /                         Login.tsx
+   ├── /team/register            team/Register.tsx
+   ├── /admin/*                  admin/Layout.tsx (shell)
+   │   ├── /admin                Dashboard.tsx
+   │   ├── /admin/setup          CompetitionSetup.tsx
+   │   └── …
+   ├── /team/*                   team/Layout.tsx (shell)
+   │   └── …
+   └── /staff/*                  staff/Layout.tsx (shell)
+       └── …
+   ```
+3. **Shared component catalog** — one row per component in `src/components/ritx/**` with: purpose, props summary, and which pages consume it. Covers `RitxShell`, `PayDialog`, `PaywallGate`, `DeadlineTimer`, `AccessBadge`, `ResourcePreviewDialog`, `DataTablePagination`, `WorkspaceOnboardingHero`, `JudgingProgressCard`, `ScoringPanel`, `SubmissionViewer`, `AdminScoreRecap`.
+4. **Mock data stores** — one row per file in `src/data/ritx/**` (`mockData`, `submissionData`, `rubricData`, `resultsData`, `staffData`, `workspaceState`) with: what it holds, which pages read it, which pages write it (e.g. scores flow, workspace flow, payment flow).
+5. **Per-page detail** — for every page file, a short block:
+   - **Route** and **file path**
+   - **Purpose** (plain English)
+   - **Key UI blocks / components used**
+   - **Data read from** / **data written to**
+   - **Outgoing links** (which buttons/links go where — e.g. "Start → `/team/submissions/:stageId`")
+   - **Gating rules** (paywall, stage window, role access, judge scope)
+6. **End-to-end user flows** — click-by-click walkthroughs, one per role:
+   - **Student/Team flow**: Login → Team Home → Create Workspace (PayDialog → name dialog) → Members & consent → Resources → Submissions list → Progress stage form → Final stage form → Results.
+   - **Admin flow**: Login → Dashboard → Setup → Registrations → Staff → Submission forms → Rubrics → Judge assignments (theme + sub-theme scope) → Submissions (read-only recap) → Results → Announcements / Payment / WhatsApp.
+   - **Staff flow**: Login → Overview → (Mentor: Resources / Sessions) and/or (Judge: Assigned list → ScoreSheet with SubmissionViewer + ScoringPanel).
+7. **Cross-cutting rules** — one section listing the invariants: frontend-only (no backend), payment gates before workspace creation and before submissions, judge assignments are theme- or sub-theme-scoped (not team-wise), scoring uses 0.25-step sliders, admin cannot edit scores, "Blind" terminology removed.
+8. **Where flows start and end** — quick index: entry point (`/` Login) and terminal screens (Results, Certificate preview, closed submission draft view).
 
-### 2. `src/data/ritx/workspaceState.ts`
-- Add a lightweight **prepaid credit** concept so payment can happen before the workspace exists:
-  - `hasPrepaidCredit(userId)` / `consumePrepaidCredit(userId)` / `grantPrepaidCredit(userId)` backed by an in-memory `Set<string>`.
-  - Update `createWorkspace(name, leadUserId)`:
-    - If `pricing.mode === "paid"` and no prepaid credit, throw a clear error ("Payment required before creating a workspace").
-    - If prepaid credit exists, consume it and mark the new workspace `paidAt = now`, `paidBy = leadUserId`.
-- No changes to `payForWorkspace` (still used by the existing submissions paywall for teams that were seeded unpaid).
+## Method
 
-### 3. `src/components/ritx/shared/PayDialog.tsx`
-- Add an optional `mode: "workspace-unlock" | "pre-create"` prop (default keeps current behavior).
-  - `pre-create` variant: title "Pay to create your workspace", removes the `workspace` prop requirement, calls `grantPrepaidCredit(user.id)` on success, and fires `onPaid()`.
-  - `workspace-unlock` variant: unchanged (used by `PaywallGate` on Submissions/Results).
+- Read every file under `src/pages/ritx/**`, `src/components/ritx/**`, `src/data/ritx/**`, and `src/routes/RitxRoutes.tsx` to extract accurate routes, imports, `<Link>`/`navigate()` targets, and data reads/writes.
+- Use only what the code actually shows — no invented functionality.
+- Batch reads in parallel.
 
-### 4. Team Home / other entry points
-- No layout changes — the hero already renders when the user has no workspace. It will now show the same two cards, and the Create path routes through payment first.
+## Deliverable
 
-### 5. Leave existing paywall intact
-- `PaywallGate` on `/team/submissions` and `/team/results` stays as-is for the seeded unpaid demo workspace (`Curious Cosmos`) so you can still demo the "pay to unlock submissions" flow.
-
-## Out of scope
-- Admin `Payment` settings page, judge/admin portals, and rubric/scoring code are untouched.
-- No real gateway integration — still mock-only, matching the "frontend only" constraint.
-
-## Files touched
-- `src/components/ritx/team/WorkspaceOnboardingHero.tsx` (flow change)
-- `src/components/ritx/shared/PayDialog.tsx` (add `pre-create` mode)
-- `src/data/ritx/workspaceState.ts` (prepaid credit helpers + guard in `createWorkspace`)
+A single `RITX_UI_MAP.md` (target ~800–1200 lines) at the repo root. No other files changed.
