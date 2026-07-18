@@ -1,49 +1,80 @@
-# Multi-attachment evidence uploads
+## Goals
 
-## Goal
-Let teams attach as many evidence files as they want per submission stage, and tag each one against a rubric criterion (Problem relevance, Investigation & evidence, Scientific reasoning, Originality & creativity, Feasibility & impact, Policy/SDG/ethics & communication) so judges know why the file was uploaded.
+1. Replace the wall of orange progress bars on the Admin Dashboard "Judging progress" card with a calmer, information-dense UI.
+2. Rework Judge Assignments so judges are assigned to **themes (tracks / sub-themes)**, not to individual teams. Team-level judge lists are then derived from the theme mapping.
 
-## What changes
+Everything stays UI-only (mock data). No backend.
 
-### 1. Attachment shape (`SubmissionStage.tsx`)
-Replace the current `Attachment { id, title, name, sizeKb }` with:
+---
 
-```
-Attachment {
-  id, category, title, description, name, sizeKb
-}
-```
+## 1. Judging progress card — visual redesign
 
-- `category`: dropdown of the 6 rubric criteria (source of truth added to `submissionData.ts` as `EVIDENCE_CATEGORIES`, tagged with weight so we can show "25%" next to the label).
-- `title`: short label (existing).
-- `description`: 1–2 line textarea explaining what the file shows.
-- File picker unchanged.
+File: `src/pages/ritx/admin/Dashboard.tsx` (extract into `src/components/ritx/admin/JudgingProgressCard.tsx`).
 
-### 2. Redesigned `AttachmentsBlock`
-- Header row: "Evidence & attachments" + helper "Add one row per artefact. You can attach as many as you like and tag each one to a judging criterion."
-- "Add attachment" primary button opens an inline row (not a modal) with: Category select · Title · File picker · Description textarea · Save / Cancel.
-- List rendered as cards (not table) so descriptions wrap cleanly on mobile:
-  - Left: category chip (color-coded by criterion) + title (bold) + filename + size.
-  - Below: description in muted text.
-  - Right: edit + delete icon buttons.
-- Empty state: dashed card "No evidence added yet — start with your strongest artefact."
-- Optional grouping toggle: "Group by criterion" (default on) so judges see coverage per category; shows a small "0 files" hint for criteria with nothing attached yet.
+New layout inside the same card:
 
-### 3. Validation
-- Category + title + file are required to save a row; description optional but recommended (soft hint under textarea).
-- Same per-field 15 MB file cap already enforced elsewhere.
+- **Header row** — title + "41/72 scored across 7 judges" (kept).
+- **Summary strip** (replaces the big orange bar): 4 compact stat pills
+  - Fully scored teams · Partially scored · Not started · Avg. turnaround
+  - Neutral surface, single small colored dot per pill (emerald / amber / slate / primary) — no long bars.
+- **Progress by theme** (new primary view, since assignments become theme-wise):
+  - One row per track / sub-theme with: theme name, `scored / total` count, and a **segmented mini-meter** (e.g. 10 small squares) filled emerald for scored, amber for in-progress, muted for pending. Much lower visual weight than a full-width orange bar.
+- **Team drill-down** (collapsed by default, "Show teams" toggle):
+  - Compact table: Team code · Theme · Judges done (e.g. `2/2` chip, colored only when complete/late) · Status dot.
+  - No per-row progress bars. Rows use zebra striping + one status dot; orange is used only as an accent for "at risk / late", not as the default fill.
+- Palette shift: default state uses neutral slate/stone; primary orange reserved for the single hero metric and CTA. Emerald = done, amber = in progress, rose = overdue.
 
-### 4. Where it applies
-Both Progress and Final stages already render `AttachmentsBlock` via `section.builtInAttachments`, so no changes needed in `submissionData.ts` sections — only the new `EVIDENCE_CATEGORIES` constant.
+Result: same information, ~1/3 the orange, scannable at a glance.
 
-### 5. Judge / Admin side
-`SubmissionViewer` currently lists attachments flat. Update it to:
-- Group attachments by category (matching the team's grouping).
-- Show category chip + title + description above the preview button, so judges reading the rubric criterion can jump straight to matching evidence.
+## 2. Judge assignments — theme-wise instead of team-wise
 
-No scoring logic changes — this is purely how evidence is captured and displayed.
+### Data model (`src/data/ritx/rubricData.ts`)
+
+- Add `ThemeAssignment { id, trackId, subTheme?, judgeIds: string[] }`.
+- Keep existing `JudgeAssignment` type but stop seeding it directly. Derive per-team assignments from theme assignments:
+  ```
+  assignmentsForTeam(teamId) =
+    themeAssignments matching team.trackId (+ subTheme if set)
+      .flatMap(judgeIds)
+      .map(judgeId => existing scored record if any, else { status: "pending" })
+  ```
+- Seed `mockThemeAssignments` for the 3 tracks × their sub-themes with 2–3 judges each.
+- Persist mock score/comment state in a keyed map `{teamId+judgeId → {score, criterionScores, comment, status}}` so existing scoring mock data still surfaces through the derived lookup.
+
+### Admin page (`src/pages/ritx/admin/JudgeAssignments.tsx`) — full rewrite
+
+Replace the team × judge matrix with a **theme-centric** view:
+
+- Left column: list of themes (Track → Sub-theme tree, collapsible).
+- Right column: for the selected theme
+  - Assigned judges as chips with remove (×).
+  - "Add judge" combobox listing staff with `judgeAccess`.
+  - Small stats: `# teams in this theme`, `# scored / total judge-team pairs`.
+- Bulk action: "Copy judges from…" another theme.
+- Remove all team-row UI, remove per-team judge pickers.
+
+### Downstream consumers (no behavior change, just consume derived data)
+
+- `AdminScoreRecap.tsx`, `SubmissionViewer.tsx`, staff `AssignedList.tsx`, `ScoreSheet.tsx`, dashboard stats, `resultsData.ts` — all already call `assignmentsForTeam(teamId)` / iterate `mockAssignments`. Update them to use the new derived helpers:
+  - `assignmentsForTeam(teamId)` — keep signature, new implementation.
+  - `allAssignments()` — replaces direct `mockAssignments` imports (used by dashboard + results).
+- Staff "Assigned to me" list becomes: teams whose theme includes the current judge.
+
+### Copy changes
+
+- "Judge assignments" page subtitle → "Assign judges to themes. Every team in a theme is automatically reviewed by its assigned judges."
+- Dashboard card: "Judging progress" stays; add small caption "Judges are assigned by theme."
+
+---
 
 ## Out of scope
-- No backend, no persistence beyond the existing mock state.
-- No changes to rubric weights or scoring UI.
-- Progress vs Final stage definitions stay as they are.
+
+- No changes to rubric weights, scoring UI, or results math.
+- No backend / persistence work.
+- No changes to team registration or submission flows.
+
+## Technical notes (for devs)
+
+- Derivation must stay pure and memoized where used in tables to avoid re-computing per row.
+- Keep `JudgeAssignment` type exported so existing components compile unchanged.
+- New card component keeps the same outer `<Card>` padding so dashboard grid spacing is unaffected.
