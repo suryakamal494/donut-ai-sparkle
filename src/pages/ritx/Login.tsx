@@ -142,6 +142,18 @@ export default function RitxLogin() {
             </>
           )}
         </form>
+
+        <div className="mt-6 pt-5 border-t border-orange-100/70 text-center">
+          <p className="text-xs text-muted-foreground mb-2">New to RiTX?</p>
+          <button
+            type="button"
+            onClick={() => navigate("/team/register")}
+            className="inline-flex items-center gap-2 text-sm font-medium text-donut-coral hover:text-donut-orange transition-colors"
+          >
+            <Users className="w-4 h-4" />
+            Register a team
+          </button>
+        </div>
       </Card>
     </div>
   );
