@@ -37,6 +37,14 @@ export default function RitxTeamRegister() {
       <OrganiserHeaderStrip variant="hero" />
       <div className="flex-1 p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-4">
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-muted-foreground hover:text-donut-coral transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          Back to sign in
+        </Link>
+
         <PageHeader title="Register your team" description={`Step ${step} of 2 · You can pick your track & theme after login`} />
 
         {step === 1 && (
