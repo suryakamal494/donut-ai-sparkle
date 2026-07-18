@@ -122,44 +122,150 @@ function FieldRenderer({
 function AttachmentsBlock({
   items, onChange, disabled,
 }: { items: Attachment[]; onChange: (next: Attachment[]) => void; disabled: boolean }) {
-  const [title, setTitle] = useState("");
-  const [pendingName, setPendingName] = useState<string | null>(null);
-  const [pendingSize, setPendingSize] = useState(0);
+  const [adding, setAdding] = useState(false);
+  const [groupByCategory, setGroupByCategory] = useState(true);
+  const [draft, setDraft] = useState<{ categoryId: string; title: string; description: string; name: string | null; sizeKb: number }>({
+    categoryId: "", title: "", description: "", name: null, sizeKb: 0,
+  });
 
-  const add = () => {
-    if (!title || !pendingName) { toast.error("Enter title and file"); return; }
-    onChange([...items, { id: `att-${Date.now()}`, title, name: pendingName, sizeKb: Math.round(pendingSize / 1024) }]);
-    setTitle(""); setPendingName(null); setPendingSize(0);
+  const resetDraft = () => setDraft({ categoryId: "", title: "", description: "", name: null, sizeKb: 0 });
+
+  const save = () => {
+    if (!draft.categoryId) { toast.error("Pick a category"); return; }
+    if (!draft.title.trim()) { toast.error("Enter a title"); return; }
+    if (!draft.name) { toast.error("Choose a file"); return; }
+    onChange([
+      ...items,
+      {
+        id: `att-${Date.now()}`,
+        categoryId: draft.categoryId,
+        title: draft.title.trim(),
+        description: draft.description.trim(),
+        name: draft.name,
+        sizeKb: draft.sizeKb,
+      },
+    ]);
+    resetDraft();
+    setAdding(false);
+  };
+
+  const grouped = EVIDENCE_CATEGORIES.map((c) => ({
+    category: c,
+    entries: items.filter((i) => i.categoryId === c.id),
+  }));
+
+  const renderRow = (a: Attachment) => {
+    const cat = evidenceCategory(a.categoryId);
+    return (
+      <div key={a.id} className="flex items-start gap-3 py-2.5 border-b last:border-0">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {cat && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${cat.tone}`}>
+                {cat.label} · {cat.weight}%
+              </span>
+            )}
+            <span className="text-sm font-medium truncate">{a.title}</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+            <FileText className="w-3 h-3" />
+            <span className="truncate">{a.name}</span>
+            <span>· {a.sizeKb} KB</span>
+          </div>
+          {a.description && (
+            <div className="text-[11px] text-muted-foreground/90 leading-relaxed">{a.description}</div>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={disabled} onClick={() => onChange(items.filter((x) => x.id !== a.id))}>
+          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+        </Button>
+      </div>
+    );
   };
 
   return (
-    <Card className="p-3 space-y-2 border-dashed">
-      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Attachments</div>
-      <div className="grid md:grid-cols-[1fr_auto_auto] gap-2 items-start">
-        <Input disabled={disabled} placeholder="Attachment title (e.g. Survey with 42 responses)" value={title} onChange={(e) => setTitle(e.target.value)} className="h-9" />
-        <label className={`border rounded-md h-9 px-3 flex items-center gap-1.5 text-xs cursor-pointer ${disabled ? "opacity-60 pointer-events-none" : "hover:bg-accent/40"}`}>
-          <Upload className="w-3.5 h-3.5" />
-          {pendingName ?? "Choose file"}
-          <input type="file" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; setPendingName(f.name); setPendingSize(f.size); }} />
-        </label>
-        <Button size="sm" onClick={add} disabled={disabled}><Plus className="w-3.5 h-3.5 mr-1" />Add</Button>
+    <Card className="p-3 space-y-3 border-dashed">
+      <div className="flex flex-wrap items-center gap-2">
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Evidence & attachments</div>
+          <div className="text-[11px] text-muted-foreground">Add one entry per artefact. Tag each to a judging criterion so judges know what it supports.</div>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setGroupByCategory((v) => !v)}
+            className="text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+          >
+            {groupByCategory ? "Show as list" : "Group by criterion"}
+          </button>
+          <Button size="sm" variant="outline" className="h-8" disabled={disabled} onClick={() => setAdding(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add attachment
+          </Button>
+        </div>
       </div>
-      {items.length === 0 ? (
-        <div className="text-[11px] text-muted-foreground py-1">No attachments yet.</div>
-      ) : (
-        <ul className="divide-y">
-          {items.map((a) => (
-            <li key={a.id} className="flex items-center gap-2 py-1.5 text-xs">
-              <span className="font-medium truncate flex-1">{a.title}</span>
-              <span className="text-muted-foreground truncate">{a.name}</span>
-              <span className="text-muted-foreground">{a.sizeKb} KB</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={disabled} onClick={() => onChange(items.filter((x) => x.id !== a.id))}>
-                <Trash2 className="w-3 h-3 text-rose-600" />
-              </Button>
-            </li>
+
+      {adding && (
+        <Card className="p-3 space-y-2 bg-muted/30">
+          <div className="grid md:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium">Category <span className="text-rose-600">*</span></Label>
+              <Select value={draft.categoryId} onValueChange={(v) => setDraft((d) => ({ ...d, categoryId: v }))}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Which criterion does this support?" /></SelectTrigger>
+                <SelectContent>
+                  {EVIDENCE_CATEGORIES.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.label} · {c.weight}%</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] font-medium">Title <span className="text-rose-600">*</span></Label>
+              <Input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="e.g. Household survey — 42 responses" className="h-9" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] font-medium">Description</Label>
+            <Textarea rows={2} value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} placeholder="One or two lines about what this file shows (recommended)." />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="border rounded-md h-9 px-3 flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/40">
+              <Upload className="w-3.5 h-3.5" />
+              {draft.name ?? "Choose file"}
+              <input type="file" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; setDraft((d) => ({ ...d, name: f.name, sizeKb: Math.round(f.size / 1024) })); }} />
+            </label>
+            <div className="ml-auto flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={() => { resetDraft(); setAdding(false); }}>Cancel</Button>
+              <Button size="sm" onClick={save}>Save attachment</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {items.length === 0 && !adding ? (
+        <div className="border-2 border-dashed rounded-md p-6 text-center text-xs text-muted-foreground">
+          No evidence added yet — start with your strongest artefact.
+        </div>
+      ) : groupByCategory ? (
+        <div className="space-y-3">
+          {grouped.map(({ category, entries }) => (
+            <div key={category.id}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${category.tone}`}>
+                  {category.label} · {category.weight}%
+                </span>
+                <span className="text-[10px] text-muted-foreground">{entries.length} file{entries.length === 1 ? "" : "s"}</span>
+              </div>
+              {entries.length === 0 ? (
+                <div className="text-[11px] text-muted-foreground/80 italic pl-1">No file tagged to this criterion yet.</div>
+              ) : (
+                <div className="rounded-md border bg-background px-3">{entries.map(renderRow)}</div>
+              )}
+            </div>
           ))}
-        </ul>
+        </div>
+      ) : (
+        <div className="rounded-md border bg-background px-3">{items.map(renderRow)}</div>
       )}
     </Card>
   );
