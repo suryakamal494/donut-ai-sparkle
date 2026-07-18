@@ -56,6 +56,32 @@ export interface JudgeAssignment {
   scoredAt?: string;
 }
 
+// ============ Theme-wise judge assignments ============
+// Judges are assigned to themes (tracks). Every team in a theme is
+// automatically reviewed by the judges assigned to that theme.
+export interface ThemeAssignment {
+  trackId: string;
+  judgeIds: string[];
+}
+
+const judgePool = mockStaff.filter((s) => s.judgeAccess).map((s) => s.id);
+// Seed 3 judges per track (rotating through the pool) so every team has coverage.
+export const mockThemeAssignments: ThemeAssignment[] = [
+  { trackId: "sci-investigator", judgeIds: [judgePool[0], judgePool[1], judgePool[2]].filter(Boolean) },
+  { trackId: "innovator", judgeIds: [judgePool[3], judgePool[4], judgePool[5]].filter(Boolean) },
+  { trackId: "open-arena", judgeIds: [judgePool[6], judgePool[0], judgePool[3]].filter(Boolean) },
+];
+
+export const judgeIdsForTrack = (trackId: string): string[] =>
+  mockThemeAssignments.find((t) => t.trackId === trackId)?.judgeIds ?? [];
+
+export function setThemeJudges(trackId: string, judgeIds: string[]) {
+  const idx = mockThemeAssignments.findIndex((t) => t.trackId === trackId);
+  if (idx >= 0) mockThemeAssignments[idx].judgeIds = judgeIds;
+  else mockThemeAssignments.push({ trackId, judgeIds });
+  rebuildAssignments();
+}
+
 // ---- Generator ----
 function mulberry32(seed: number) {
   return () => {
@@ -66,59 +92,80 @@ function mulberry32(seed: number) {
   };
 }
 
-function generateAssignments(): JudgeAssignment[] {
+// Persistent per-(judge,team) score state — survives theme-assignment edits
+// so a judge who's already scored a team keeps that score if reassigned.
+type ScoreState = Omit<JudgeAssignment, "judgeId" | "teamId">;
+const scoreState: Record<string, ScoreState> = {};
+const stateKey = (judgeId: string, teamId: string) => `${judgeId}::${teamId}`;
+
+function seedScoreState() {
   const rand = mulberry32(77);
-  const judges = mockStaff.filter((s) => s.judgeAccess);
   const rubricByTrack: Record<string, RubricCriterion[]> = {};
   initialRubrics.forEach((r) => (rubricByTrack[r.trackId] = r.criteria));
 
-  const result: JudgeAssignment[] = [];
   mockTeams.forEach((team, i) => {
-    // 2 judges per team, rotating so each judge gets a fair share
-    const j1 = judges[i % judges.length];
-    const j2 = judges[(i + 3) % judges.length];
-    const pair = j1.id === j2.id ? [j1, judges[(i + 1) % judges.length]] : [j1, j2];
-    pair.forEach((j, jIdx) => {
+    const judges = judgeIdsForTrack(team.trackId);
+    judges.forEach((jid, jIdx) => {
       const roll = rand();
+      // Weight statuses: 55% scored, 25% in-progress, 20% pending
       const status: JudgeAssignment["status"] = roll < 0.55 ? "scored" : roll < 0.8 ? "in-progress" : "pending";
       const criteria = rubricByTrack[team.trackId] || [];
+      const key = stateKey(jid, team.id);
       if (status === "scored" && criteria.length) {
         const criterionScores: Record<string, number> = {};
         let weighted = 0;
         criteria.forEach((c) => {
-          // bias each judge slightly to add spread; snap to 0.25 steps
           const bias = jIdx === 0 ? 0 : (rand() - 0.5) * 2;
           const rawFloat = 6 + rand() * 4 + bias;
           const snapped = Math.max(3, Math.min(c.maxScore, Math.round(rawFloat * 4) / 4));
           criterionScores[c.id] = snapped;
           weighted += (snapped / c.maxScore) * 10 * c.weight;
         });
-        result.push({
-          judgeId: j.id,
-          teamId: team.id,
+        scoreState[key] = {
           status,
           score: Number(weighted.toFixed(2)),
           criterionScores,
           comment: rand() > 0.5 ? "Solid submission, clearly presented evidence." : "Interesting concept, could use stronger data support.",
           scoredAt: `2026-11-${String(1 + Math.floor(rand() * 20)).padStart(2, "0")}T15:00:00`,
-        });
+        };
       } else if (status === "in-progress" && criteria.length) {
-        // Partial criterionScores
         const criterionScores: Record<string, number> = {};
         const half = Math.floor(criteria.length / 2);
         criteria.slice(0, half).forEach((c) => {
           criterionScores[c.id] = Math.round((5 + rand() * 4) * 4) / 4;
         });
-        result.push({ judgeId: j.id, teamId: team.id, status, criterionScores });
+        scoreState[key] = { status, criterionScores };
       } else {
-        result.push({ judgeId: j.id, teamId: team.id, status });
+        scoreState[key] = { status };
       }
+      // Use the initial index to keep team-idx variance from prior seed
+      void i;
     });
   });
-  return result;
 }
 
-export const mockAssignments: JudgeAssignment[] = generateAssignments();
+function deriveAssignments(): JudgeAssignment[] {
+  const out: JudgeAssignment[] = [];
+  mockTeams.forEach((team) => {
+    judgeIdsForTrack(team.trackId).forEach((jid) => {
+      const key = stateKey(jid, team.id);
+      const state = scoreState[key] ?? { status: "pending" as const };
+      out.push({ judgeId: jid, teamId: team.id, ...state });
+    });
+  });
+  return out;
+}
+
+// mockAssignments stays a mutable array so existing imports (Dashboard,
+// resultsData, Submissions, etc.) keep receiving up-to-date data after edits.
+seedScoreState();
+export const mockAssignments: JudgeAssignment[] = deriveAssignments();
+
+function rebuildAssignments() {
+  const next = deriveAssignments();
+  mockAssignments.length = 0;
+  mockAssignments.push(...next);
+}
 
 // ---- Helpers ----
 export const assignmentsForJudge = (judgeId: string) => mockAssignments.filter((a) => a.judgeId === judgeId);
@@ -127,8 +174,11 @@ export const assignmentFor = (judgeId: string, teamId: string) =>
   mockAssignments.find((a) => a.judgeId === judgeId && a.teamId === teamId);
 
 export function updateAssignment(judgeId: string, teamId: string, patch: Partial<JudgeAssignment>) {
+  const key = stateKey(judgeId, teamId);
+  const { judgeId: _j, teamId: _t, ...rest } = patch;
+  scoreState[key] = { ...(scoreState[key] ?? { status: "pending" }), ...rest };
   const idx = mockAssignments.findIndex((a) => a.judgeId === judgeId && a.teamId === teamId);
-  if (idx >= 0) mockAssignments[idx] = { ...mockAssignments[idx], ...patch };
+  if (idx >= 0) mockAssignments[idx] = { ...mockAssignments[idx], ...rest };
 }
 
 export type TeamJudgingSummary = {
