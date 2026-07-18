@@ -59,27 +59,61 @@ export interface JudgeAssignment {
 // ============ Theme-wise judge assignments ============
 // Judges are assigned to themes (tracks). Every team in a theme is
 // automatically reviewed by the judges assigned to that theme.
+// A scope is either the whole theme (subTheme undefined) or a specific sub-theme.
+// A team's effective judges = union of every scope that matches the team.
 export interface ThemeAssignment {
   trackId: string;
+  subTheme?: string; // undefined = applies to every sub-theme in the track
   judgeIds: string[];
 }
 
 const judgePool = mockStaff.filter((s) => s.judgeAccess).map((s) => s.id);
 // Seed 3 judges per track (rotating through the pool) so every team has coverage.
 export const mockThemeAssignments: ThemeAssignment[] = [
-  { trackId: "sci-investigator", judgeIds: [judgePool[0], judgePool[1], judgePool[2]].filter(Boolean) },
-  { trackId: "innovator", judgeIds: [judgePool[3], judgePool[4], judgePool[5]].filter(Boolean) },
-  { trackId: "open-arena", judgeIds: [judgePool[6], judgePool[0], judgePool[3]].filter(Boolean) },
+  // Whole-theme defaults
+  { trackId: "sci-investigator", judgeIds: [judgePool[0], judgePool[1]].filter(Boolean) },
+  { trackId: "innovator", judgeIds: [judgePool[3], judgePool[4]].filter(Boolean) },
+  { trackId: "open-arena", judgeIds: [judgePool[6], judgePool[0]].filter(Boolean) },
+  // Sample sub-theme overrides (adds an extra specialist judge for that sub-theme)
+  { trackId: "sci-investigator", subTheme: "Environment", judgeIds: [judgePool[2]].filter(Boolean) },
+  { trackId: "innovator", subTheme: "Assistive Tech", judgeIds: [judgePool[5]].filter(Boolean) },
 ];
 
-export const judgeIdsForTrack = (trackId: string): string[] =>
-  mockThemeAssignments.find((t) => t.trackId === trackId)?.judgeIds ?? [];
+// Effective (union of whole-theme + matching sub-theme scopes), deduped.
+export const judgeIdsForTeamTheme = (trackId: string, subTheme?: string): string[] => {
+  const ids = new Set<string>();
+  mockThemeAssignments.forEach((s) => {
+    if (s.trackId !== trackId) return;
+    if (s.subTheme && s.subTheme !== subTheme) return;
+    s.judgeIds.forEach((id) => ids.add(id));
+  });
+  return Array.from(ids);
+};
 
-export function setThemeJudges(trackId: string, judgeIds: string[]) {
-  const idx = mockThemeAssignments.findIndex((t) => t.trackId === trackId);
-  if (idx >= 0) mockThemeAssignments[idx].judgeIds = judgeIds;
-  else mockThemeAssignments.push({ trackId, judgeIds });
+// All distinct judges that touch any team in a track (for dashboard summaries).
+export const judgeIdsForTrack = (trackId: string): string[] => {
+  const ids = new Set<string>();
+  mockThemeAssignments.forEach((s) => {
+    if (s.trackId === trackId) s.judgeIds.forEach((id) => ids.add(id));
+  });
+  return Array.from(ids);
+};
+
+export function setScopeJudges(trackId: string, subTheme: string | undefined, judgeIds: string[]) {
+  const idx = mockThemeAssignments.findIndex((s) => s.trackId === trackId && s.subTheme === subTheme);
+  if (judgeIds.length === 0) {
+    if (idx >= 0) mockThemeAssignments.splice(idx, 1);
+  } else if (idx >= 0) {
+    mockThemeAssignments[idx].judgeIds = judgeIds;
+  } else {
+    mockThemeAssignments.push({ trackId, subTheme, judgeIds });
+  }
   rebuildAssignments();
+}
+
+// Back-compat: whole-theme setter kept for any older caller.
+export function setThemeJudges(trackId: string, judgeIds: string[]) {
+  setScopeJudges(trackId, undefined, judgeIds);
 }
 
 // ---- Generator ----
@@ -104,7 +138,7 @@ function seedScoreState() {
   initialRubrics.forEach((r) => (rubricByTrack[r.trackId] = r.criteria));
 
   mockTeams.forEach((team, i) => {
-    const judges = judgeIdsForTrack(team.trackId);
+    const judges = judgeIdsForTeamTheme(team.trackId, team.subTheme);
     judges.forEach((jid, jIdx) => {
       const roll = rand();
       // Weight statuses: 55% scored, 25% in-progress, 20% pending
@@ -147,7 +181,7 @@ function seedScoreState() {
 function deriveAssignments(): JudgeAssignment[] {
   const out: JudgeAssignment[] = [];
   mockTeams.forEach((team) => {
-    judgeIdsForTrack(team.trackId).forEach((jid) => {
+    judgeIdsForTeamTheme(team.trackId, team.subTheme).forEach((jid) => {
       const key = stateKey(jid, team.id);
       const state = scoreState[key] ?? { status: "pending" as const };
       out.push({ judgeId: jid, teamId: team.id, ...state });
