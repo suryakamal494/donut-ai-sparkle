@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import DonutLogo from "@/components/shared/DonutLogo";
 import { OrganiserHeaderStrip } from "./OrganiserHeaderStrip";
 import { AppFooter } from "./AppFooter";
+import ritxAsset from "@/assets/logo-ritx.png.asset.json";
 
 export interface RitxNavItem {
   to: string;
@@ -28,10 +28,9 @@ export function RitxShell({ role, nav }: RitxShellProps) {
       {/* Sidebar - desktop */}
       <aside className="hidden lg:flex w-64 flex-col sticky top-0 h-screen bg-gradient-to-b from-amber-50 via-orange-50/80 to-white border-r border-orange-100/60 shadow-lg shadow-orange-100/20">
         <div className="px-4 h-16 border-b border-orange-100/60 flex items-center gap-3">
-          <DonutLogo size={40} />
+          <img src={ritxAsset.url} alt="RiTX" className="h-9 w-auto object-contain" />
           <div className="flex flex-col">
-            <span className="font-bold text-lg gradient-text leading-tight">RiTX</span>
-            <span className="text-[10px] text-muted-foreground -mt-0.5">{role} Console</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground -mt-0.5">{role} Console</span>
           </div>
         </div>
         <nav className="flex-1 px-3 pt-4 space-y-1.5 overflow-y-auto">
@@ -59,8 +58,8 @@ export function RitxShell({ role, nav }: RitxShellProps) {
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-amber-50 to-orange-50/80 backdrop-blur border-b border-orange-100/60 flex items-center justify-between px-3 h-14">
         <div className="flex items-center gap-2">
-          <DonutLogo size={32} />
-          <div className="font-bold text-sm gradient-text">RiTX · {role}</div>
+          <img src={ritxAsset.url} alt="RiTX" className="h-7 w-auto object-contain" />
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground">{role}</div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
