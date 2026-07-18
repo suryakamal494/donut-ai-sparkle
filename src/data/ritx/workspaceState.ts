@@ -172,6 +172,15 @@ export function createWorkspace(name: string, leadUserId: string): Workspace {
   // Enforce single-workspace-per-user
   const existing = getWorkspaceForUser(leadUserId);
   if (existing) throw new Error(`You are already in workspace "${existing.name}".`);
+  // Payment must happen BEFORE workspace creation when the competition is paid.
+  let usedPrepaid = false;
+  if (pricing.mode === "paid") {
+    if (!hasPrepaidCredit(leadUserId)) {
+      throw new Error("Payment required before creating a workspace.");
+    }
+    consumePrepaidCredit(leadUserId);
+    usedPrepaid = true;
+  }
   const ws: Workspace = {
     id: `ws-${Date.now().toString(36)}`,
     name: name.trim() || "New Team",
@@ -179,8 +188,8 @@ export function createWorkspace(name: string, leadUserId: string): Workspace {
     leadUserId,
     memberIds: [leadUserId],
     maxMembers: mockCompetition.maxTeamSize,
-    paidAt: null,
-    paidBy: null,
+    paidAt: usedPrepaid ? new Date().toISOString() : null,
+    paidBy: usedPrepaid ? leadUserId : null,
     trackId: "",
     subTheme: "",
     createdAt: new Date().toISOString(),
