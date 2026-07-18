@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INDIAN_STATES, CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { toast } from "sonner";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
 import { AppFooter } from "@/components/ritx/shared/AppFooter";
 
@@ -37,6 +37,14 @@ export default function RitxTeamRegister() {
       <OrganiserHeaderStrip variant="hero" />
       <div className="flex-1 p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-muted-foreground hover:text-donut-coral transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          Back to sign in
+        </Link>
+
         <PageHeader title="Register your team" description={`Step ${step} of 2 · You can pick your track & theme after login`} />
 
         {step === 1 && (
