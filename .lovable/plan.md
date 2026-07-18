@@ -1,52 +1,43 @@
-# Plan — RiTX Handoff Map (single document for Claude)
+## Goal
 
-Produce **one** Markdown file at the repo root:
+Add proper organiser branding to every RiTX page and a Sponsors block to Login only.
 
-```
-RITX_UI_MAP.md
-```
+## Assets to create
 
-No code changes. No refactors. Read-only exploration of the RiTX tree, then write the doc.
+1. **RiTX** — source from public site (ritx.in / PanIIT press pages), upload via `lovable-assets` → `src/assets/logo-ritx.png.asset.json`.
+2. **PanIIT Alumni India** — source from panIIT.org, upload → `src/assets/logo-paniit.png.asset.json`.
+3. **IIT Hyderabad** — source from iith.ac.in, upload → `src/assets/logo-iith.png.asset.json`.
+4. **ICORG** — use the uploaded `Screenshot_2026-02-26_120259.png`; run `lovable-assets create --file /mnt/user-uploads/Screenshot_2026-02-26_120259.png --filename logo-icorg.png` → `src/assets/logo-icorg.png.asset.json`.
+5. **theDonutAI** — generate a clean wordmark via `imagegen` (transparent PNG, monochrome "theDonutAI" with a small donut glyph) → `src/assets/logo-donutai.png.asset.json`.
 
-## Document structure
+If any public source fails (403, wrong file), fall back to a styled text wordmark for that specific logo and note it in the final reply so the user can drop in the real file.
 
-1. **Overview** — What RiTX is (frontend-only UI over mock data), the 3 login roles, tech stack in one line, and how to read this document.
-2. **Route tree (top-level map)** — ASCII tree of every route mounted in `src/routes/RitxRoutes.tsx`, grouped by role, showing URL → page file.
-   ```text
-   /
-   ├── /                         Login.tsx
-   ├── /team/register            team/Register.tsx
-   ├── /admin/*                  admin/Layout.tsx (shell)
-   │   ├── /admin                Dashboard.tsx
-   │   ├── /admin/setup          CompetitionSetup.tsx
-   │   └── …
-   ├── /team/*                   team/Layout.tsx (shell)
-   │   └── …
-   └── /staff/*                  staff/Layout.tsx (shell)
-       └── …
-   ```
-3. **Shared component catalog** — one row per component in `src/components/ritx/**` with: purpose, props summary, and which pages consume it. Covers `RitxShell`, `PayDialog`, `PaywallGate`, `DeadlineTimer`, `AccessBadge`, `ResourcePreviewDialog`, `DataTablePagination`, `WorkspaceOnboardingHero`, `JudgingProgressCard`, `ScoringPanel`, `SubmissionViewer`, `AdminScoreRecap`.
-4. **Mock data stores** — one row per file in `src/data/ritx/**` (`mockData`, `submissionData`, `rubricData`, `resultsData`, `staffData`, `workspaceState`) with: what it holds, which pages read it, which pages write it (e.g. scores flow, workspace flow, payment flow).
-5. **Per-page detail** — for every page file, a short block:
-   - **Route** and **file path**
-   - **Purpose** (plain English)
-   - **Key UI blocks / components used**
-   - **Data read from** / **data written to**
-   - **Outgoing links** (which buttons/links go where — e.g. "Start → `/team/submissions/:stageId`")
-   - **Gating rules** (paywall, stage window, role access, judge scope)
-6. **End-to-end user flows** — click-by-click walkthroughs, one per role:
-   - **Student/Team flow**: Login → Team Home → Create Workspace (PayDialog → name dialog) → Members & consent → Resources → Submissions list → Progress stage form → Final stage form → Results.
-   - **Admin flow**: Login → Dashboard → Setup → Registrations → Staff → Submission forms → Rubrics → Judge assignments (theme + sub-theme scope) → Submissions (read-only recap) → Results → Announcements / Payment / WhatsApp.
-   - **Staff flow**: Login → Overview → (Mentor: Resources / Sessions) and/or (Judge: Assigned list → ScoreSheet with SubmissionViewer + ScoringPanel).
-7. **Cross-cutting rules** — one section listing the invariants: frontend-only (no backend), payment gates before workspace creation and before submissions, judge assignments are theme- or sub-theme-scoped (not team-wise), scoring uses 0.25-step sliders, admin cannot edit scores, "Blind" terminology removed.
-8. **Where flows start and end** — quick index: entry point (`/` Login) and terminal screens (Results, Certificate preview, closed submission draft view).
+## Components to add
 
-## Method
+1. **`src/components/ritx/shared/OrganiserHeaderStrip.tsx`** — slim horizontal strip (~44 px tall). Renders RiTX · PanIIT · IIT Hyderabad logos left-aligned, faint bottom border, cream background matching the warm theme. Responsive: on mobile shows only RiTX + a "+2" chip that reveals the others on tap.
+2. **`src/components/ritx/shared/AppFooter.tsx`** — single-line footer: left "Organised by ICORG" (with small ICORG mark), right "Powered by theDonutAI" (with small mark). Muted colour, ~40 px tall, safe-area padding on mobile.
+3. **`src/components/ritx/shared/SponsorStrip.tsx`** — Login-only. Small "Sponsored by" caption above three placeholder tiles (dashed border, "Sponsor logo" label). Each tile is an `<a href="#" target="_blank" rel="noreferrer">` wrapper so the click target already works; real URLs slot in later. Three-up on desktop, stacked on mobile.
 
-- Read every file under `src/pages/ritx/**`, `src/components/ritx/**`, `src/data/ritx/**`, and `src/routes/RitxRoutes.tsx` to extract accurate routes, imports, `<Link>`/`navigate()` targets, and data reads/writes.
-- Use only what the code actually shows — no invented functionality.
-- Batch reads in parallel.
+## Wiring
 
-## Deliverable
+- **`src/components/ritx/shared/RitxShell.tsx`** — inject `<OrganiserHeaderStrip />` above the existing top bar and `<AppFooter />` at the bottom of the main content column. Applies automatically to every Admin and Team page (they both wrap in `RitxShell`).
+- **`src/pages/ritx/staff/Layout.tsx`** — Staff uses a custom shell; add the same strip + footer to keep coverage uniform.
+- **`src/pages/ritx/Login.tsx`** — add `<OrganiserHeaderStrip />` at top, `<SponsorStrip />` below the login card, `<AppFooter />` at the bottom. Larger RiTX lockup already in the card stays as-is.
+- **`src/pages/ritx/team/Register.tsx`** — same treatment as Login (header strip + footer, no sponsors).
 
-A single `RITX_UI_MAP.md` (target ~800–1200 lines) at the repo root. No other files changed.
+## Layout & density notes
+
+- Header strip and footer are intentionally thin (44 + 40 px) so the workspace UI doesn't lose vertical room.
+- Sidebar `RitxShell` keeps its small RiTX mark unchanged — the strip lives in the main content column, so the sidebar isn't double-branded.
+- All logos use the `.asset.json` `url` field via `import xAsset from "@/assets/x.png.asset.json"` — no binaries land in the repo.
+- No new colours; uses existing warm tokens (`amber-50`, `donut-coral`, `muted-foreground`).
+
+## Documentation
+
+Append a short "Branding" section to `RITX_UI_MAP.md` §2 listing the three new shared components and where they mount, so the handoff doc stays accurate.
+
+## Out of scope
+
+- Real sponsor URLs (placeholder `#` links now, admin-editable list is a future request).
+- Favicon changes.
+- Any competition/business logic — this is purely branding.
