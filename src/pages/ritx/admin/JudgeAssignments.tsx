@@ -2,132 +2,192 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Shuffle, Save, Users, Gavel } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users, Gavel, X, Plus, Copy, Layers } from "lucide-react";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { mockStaff } from "@/data/ritx/staffData";
-import { mockAssignments, statusLabel, scoreTone } from "@/data/ritx/rubricData";
-import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
+import { mockThemeAssignments, judgeIdsForTrack, setThemeJudges, mockAssignments } from "@/data/ritx/rubricData";
 import { toast } from "sonner";
 
 export default function RitxAdminJudgeAssignments() {
-  const judges = mockStaff.filter((s) => s.judgeAccess);
-  const [matrix, setMatrix] = useState<Record<string, Set<string>>>(() => {
-    const init: Record<string, Set<string>> = {};
-    judges.forEach((j) => (init[j.id] = new Set(mockAssignments.filter((a) => a.judgeId === j.id).map((a) => a.teamId))));
-    return init;
-  });
+  const allJudges = mockStaff.filter((s) => s.judgeAccess);
+  const [selectedTrack, setSelectedTrack] = useState<string>(mockCompetition.tracks[0].id);
+  const [judgesByTrack, setJudgesByTrack] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(mockCompetition.tracks.map((t) => [t.id, [...judgeIdsForTrack(t.id)]])),
+  );
+  const [addJudgeValue, setAddJudgeValue] = useState<string>("");
+  const [copyFrom, setCopyFrom] = useState<string>("");
 
-  const toggle = (judgeId: string, teamId: string) => {
-    setMatrix((m) => {
-      const next = { ...m };
-      const set = new Set(next[judgeId]);
-      set.has(teamId) ? set.delete(teamId) : set.add(teamId);
-      next[judgeId] = set;
-      return next;
-    });
+  const currentJudges = judgesByTrack[selectedTrack] ?? [];
+  const track = mockCompetition.tracks.find((t) => t.id === selectedTrack)!;
+  const teamsInTrack = useMemo(() => mockTeams.filter((t) => t.trackId === selectedTrack), [selectedTrack]);
+
+  const themeStats = (trackId: string) => {
+    const teams = mockTeams.filter((t) => t.trackId === trackId);
+    const rows = mockAssignments.filter((a) => teams.some((t) => t.id === a.teamId));
+    const scored = rows.filter((r) => r.status === "scored").length;
+    return { teams: teams.length, judges: (judgesByTrack[trackId] ?? []).length, scored, total: rows.length };
   };
 
-  const autoAssign = (perTeam = 2) => {
-    const next: Record<string, Set<string>> = {};
-    judges.forEach((j) => (next[j.id] = new Set()));
-    mockTeams.forEach((t, idx) => {
-      for (let k = 0; k < perTeam; k++) {
-        const j = judges[(idx + k) % judges.length];
-        next[j.id].add(t.id);
-      }
-    });
-    setMatrix(next);
-    toast.success(`Auto-assigned ${perTeam} judges per team`);
+  const commit = (trackId: string, judgeIds: string[]) => {
+    setJudgesByTrack((prev) => ({ ...prev, [trackId]: judgeIds }));
+    setThemeJudges(trackId, judgeIds);
   };
 
-  const statusOf = (judgeId: string, teamId: string) =>
-    mockAssignments.find((a) => a.judgeId === judgeId && a.teamId === teamId)?.status;
+  const addJudge = () => {
+    if (!addJudgeValue || currentJudges.includes(addJudgeValue)) return;
+    commit(selectedTrack, [...currentJudges, addJudgeValue]);
+    setAddJudgeValue("");
+    toast.success("Judge added to theme");
+  };
 
-  const totals = useMemo(() => {
-    const perTeam = mockTeams.map((t) => Object.values(matrix).filter((s) => s.has(t.id)).length);
-    const scored = mockAssignments.filter((a) => a.status === "scored").length;
-    const total = Object.values(matrix).reduce((s, v) => s + v.size, 0);
-    return { perTeam, scored, total, pct: total ? Math.round((scored / total) * 100) : 0 };
-  }, [matrix]);
+  const removeJudge = (jid: string) => {
+    commit(selectedTrack, currentJudges.filter((x) => x !== jid));
+  };
 
-  const trackName = (id: string) => mockCompetition.tracks.find((t) => t.id === id)?.name || id;
+  const copyJudges = () => {
+    if (!copyFrom) return;
+    const src = judgesByTrack[copyFrom] ?? [];
+    commit(selectedTrack, Array.from(new Set([...currentJudges, ...src])));
+    setCopyFrom("");
+    toast.success("Judges copied from theme");
+  };
+
+  const availableToAdd = allJudges.filter((j) => !currentJudges.includes(j.id));
+  const totalPairs = Object.entries(judgesByTrack).reduce((sum, [tid, ids]) => sum + ids.length * mockTeams.filter((t) => t.trackId === tid).length, 0);
+  const totalScored = mockAssignments.filter((a) => a.status === "scored").length;
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Judge assignments"
-        description="Assign judges to teams. Each cell locks a submission into that judge's queue."
+        description="Assign judges to themes. Every team in a theme is automatically reviewed by its assigned judges."
       />
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <Card className="p-4 flex items-center gap-3"><Users className="w-4 h-4 text-primary" /><div><div className="text-xs text-muted-foreground">Judges</div><div className="text-xl font-bold">{judges.length}</div></div></Card>
-        <Card className="p-4 flex items-center gap-3"><Gavel className="w-4 h-4 text-primary" /><div className="flex-1"><div className="text-xs text-muted-foreground">Scoring progress</div><div className="text-xl font-bold">{totals.scored}/{totals.total}</div><Progress value={totals.pct} className="mt-1 h-1.5" /></div></Card>
-        <Card className="p-4 flex items-center gap-3"><div className="flex-1"><div className="text-xs text-muted-foreground">Coverage</div><div className="text-sm">{totals.perTeam.filter((n) => n >= 2).length}/{mockTeams.length} teams have ≥2 judges</div></div></Card>
+        <Card className="p-4 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Layers className="w-4 h-4" /></span>
+          <div><div className="text-xs text-muted-foreground">Themes</div><div className="text-xl font-bold">{mockCompetition.tracks.length}</div></div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Users className="w-4 h-4" /></span>
+          <div><div className="text-xs text-muted-foreground">Judges available</div><div className="text-xl font-bold">{allJudges.length}</div></div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-md bg-primary/10 text-primary flex items-center justify-center"><Gavel className="w-4 h-4" /></span>
+          <div><div className="text-xs text-muted-foreground">Reviews scored</div><div className="text-xl font-bold tabular-nums">{totalScored}/{totalPairs}</div></div>
+        </Card>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => autoAssign(2)}><Shuffle className="w-4 h-4 mr-1" />Auto-assign (2 judges/team)</Button>
-        <Button size="sm" variant="outline" onClick={() => autoAssign(3)}><Shuffle className="w-4 h-4 mr-1" />Auto-assign (3 judges/team)</Button>
-        <Button size="sm" onClick={() => toast.success("Assignments saved")}><Save className="w-4 h-4 mr-1" />Save</Button>
-      </div>
+      <div className="grid md:grid-cols-[280px_1fr] gap-4">
+        <Card className="p-2 h-fit">
+          <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Themes</div>
+          <div className="space-y-1">
+            {mockCompetition.tracks.map((t) => {
+              const s = themeStats(t.id);
+              const active = t.id === selectedTrack;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTrack(t.id)}
+                  className={`w-full text-left rounded-md px-3 py-2 transition ${active ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/50 border border-transparent"}`}
+                >
+                  <div className="text-sm font-medium truncate">{t.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
+                    <span>{s.judges} judge{s.judges === 1 ? "" : "s"}</span>
+                    <span>·</span>
+                    <span>{s.teams} team{s.teams === 1 ? "" : "s"}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
 
-      <Card className="p-0 overflow-x-auto max-h-[520px]">
-        <table className="w-full text-sm border-collapse">
-          <thead className="bg-muted/40 sticky top-0 z-10">
-            <tr>
-              <th className="text-left p-3 min-w-[200px] sticky left-0 bg-muted/60 z-20 border-r">Judge</th>
-              {mockTeams.map((t) => (
-                <th key={t.id} className="p-2 min-w-[130px] text-left">
-                  <TeamIdChip code={t.teamCode} />
-                  <div className="text-[10px] text-muted-foreground mt-1">{trackName(t.trackId)}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {judges.map((j) => (
-              <tr key={j.id} className="border-t">
-                <td className="p-3 sticky left-0 bg-background z-10 border-r">
-                  <div className="font-medium">{j.name}</div>
-                  <div className="text-xs text-muted-foreground">{j.organisation}</div>
-                </td>
-                {mockTeams.map((t) => {
-                  const on = matrix[j.id]?.has(t.id);
-                  const st = statusOf(j.id, t.id);
+        <Card className="p-5 space-y-5">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">Theme</div>
+            <div className="text-lg font-semibold">{track.name}</div>
+            <div className="text-xs text-muted-foreground mt-1">{track.description}</div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Assigned judges ({currentJudges.length})</div>
+            {currentJudges.length === 0 ? (
+              <div className="text-sm text-muted-foreground italic border border-dashed rounded-md px-3 py-4 text-center">
+                No judges assigned yet. Add one below.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {currentJudges.map((jid) => {
+                  const j = allJudges.find((x) => x.id === jid);
+                  if (!j) return null;
                   return (
-                    <td key={t.id} className="p-2">
-                      <label className="flex flex-col gap-1 cursor-pointer">
-                        <Checkbox checked={on} onCheckedChange={() => toggle(j.id, t.id)} />
-                        {on && st && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded border w-fit ${scoreTone(st)}`}>{statusLabel(st)}</span>
-                        )}
-                      </label>
-                    </td>
+                    <div key={jid} className="inline-flex items-center gap-2 rounded-full border bg-muted/40 pl-3 pr-1 py-1 text-sm">
+                      <span className="font-medium">{j.name}</span>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">· {j.organisation}</span>
+                      <button
+                        onClick={() => removeJudge(jid)}
+                        className="w-5 h-5 rounded-full hover:bg-rose-100 text-muted-foreground hover:text-rose-600 flex items-center justify-center"
+                        aria-label={`Remove ${j.name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   );
                 })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-
-      <Card className="p-4">
-        <div className="text-sm font-semibold mb-2">Coverage per team</div>
-        <div className="space-y-2">
-          {mockTeams.map((t, i) => (
-            <div key={t.id} className="flex items-center gap-3 text-sm">
-              <TeamIdChip code={t.teamCode} />
-              <div className="flex-1">
-                <Progress value={Math.min(100, (totals.perTeam[i] / 3) * 100)} className="h-2" />
               </div>
-              <Badge variant={totals.perTeam[i] >= 2 ? "default" : "secondary"}>{totals.perTeam[i]} judges</Badge>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex-1 min-w-[220px]">
+              <div className="text-[11px] text-muted-foreground mb-1">Add judge</div>
+              <Select value={addJudgeValue} onValueChange={setAddJudgeValue}>
+                <SelectTrigger><SelectValue placeholder={availableToAdd.length ? "Select a judge…" : "All judges added"} /></SelectTrigger>
+                <SelectContent>
+                  {availableToAdd.map((j) => (
+                    <SelectItem key={j.id} value={j.id}>{j.name} — {j.organisation}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ))}
-        </div>
-      </Card>
+            <Button size="sm" onClick={addJudge} disabled={!addJudgeValue}><Plus className="w-4 h-4 mr-1" />Add</Button>
+
+            <div className="flex-1 min-w-[220px]">
+              <div className="text-[11px] text-muted-foreground mb-1">Copy judges from…</div>
+              <Select value={copyFrom} onValueChange={setCopyFrom}>
+                <SelectTrigger><SelectValue placeholder="Another theme" /></SelectTrigger>
+                <SelectContent>
+                  {mockCompetition.tracks.filter((t) => t.id !== selectedTrack).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" variant="outline" onClick={copyJudges} disabled={!copyFrom}><Copy className="w-4 h-4 mr-1" />Copy</Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Teams in this theme</div>
+              <Badge variant="secondary">{teamsInTrack.length}</Badge>
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto">
+              {teamsInTrack.map((t) => (
+                <span key={t.id} className="text-[11px] font-mono px-2 py-0.5 rounded border bg-background text-muted-foreground">
+                  {t.teamCode}
+                </span>
+              ))}
+              {teamsInTrack.length === 0 && <span className="text-xs text-muted-foreground italic">No teams registered in this theme yet.</span>}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-3">
+              These {teamsInTrack.length} team{teamsInTrack.length === 1 ? "" : "s"} will appear in each assigned judge's queue automatically.
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
