@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
 import { CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { loginOrRegister } from "@/data/ritx/workspaceState";
+import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
+import { AppFooter } from "@/components/ritx/shared/AppFooter";
+import { SponsorStrip } from "@/components/ritx/shared/SponsorStrip";
 import { toast } from "sonner";
 
 type Role = "admin" | "team" | "staff";
@@ -54,10 +57,13 @@ export default function RitxLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50/60 to-white p-4 relative overflow-hidden">
-      <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-donut-coral/20 to-donut-orange/10 blur-3xl" />
-      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-violet-200/40 to-transparent blur-3xl" />
-      <Card className="w-full max-w-md p-6 md:p-8 rounded-2xl border-orange-100/60 shadow-xl shadow-orange-100/40 bg-white/90 backdrop-blur relative">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/60 to-white relative overflow-hidden">
+      <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-donut-coral/20 to-donut-orange/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-violet-200/40 to-transparent blur-3xl pointer-events-none" />
+      <OrganiserHeaderStrip variant="hero" />
+      <div className="flex-1 flex items-center justify-center p-4 relative">
+       <div className="w-full max-w-md">
+       <Card className="w-full p-6 md:p-8 rounded-2xl border-orange-100/60 shadow-xl shadow-orange-100/40 bg-white/90 backdrop-blur relative">
         <div className="flex items-center gap-3 mb-6">
           <DonutLogo size={40} />
           <div>
@@ -154,7 +160,11 @@ export default function RitxLogin() {
             Register a team
           </button>
         </div>
-      </Card>
+       </Card>
+       <SponsorStrip />
+       </div>
+      </div>
+      <AppFooter />
     </div>
   );
 }
