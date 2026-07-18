@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { INDIAN_STATES, CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { toast } from "sonner";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
+import { AppFooter } from "@/components/ritx/shared/AppFooter";
 
 interface Draft {
   teamName: string;
@@ -31,7 +33,9 @@ export default function RitxTeamRegister() {
     d.teamName.trim() && d.leadName.trim() && d.school.trim() && d.grade && d.state && d.city.trim() && /.+@.+\..+/.test(d.email);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50/40 to-white p-4 md:p-8">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/40 to-white">
+      <OrganiserHeaderStrip variant="hero" />
+      <div className="flex-1 p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-4">
         <PageHeader title="Register your team" description={`Step ${step} of 2 · You can pick your track & theme after login`} />
 
