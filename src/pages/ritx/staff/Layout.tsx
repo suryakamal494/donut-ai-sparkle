@@ -5,6 +5,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
 import { mockStaff } from "@/data/ritx/staffData";
+import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
+import { AppFooter } from "@/components/ritx/shared/AppFooter";
 
 // Mock current staff — Anita has BOTH access flags to demo tab switcher
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
@@ -83,9 +85,11 @@ export default function RitxStaffLayout() {
       )}
 
       <main className="flex-1 min-w-0 pt-14 lg:pt-0">
+        <OrganiserHeaderStrip />
         <div className="max-w-7xl mx-auto p-4 md:p-6 animate-fade-in" key={location.pathname}>
           <Outlet />
         </div>
+        <AppFooter />
       </main>
     </div>
   );
