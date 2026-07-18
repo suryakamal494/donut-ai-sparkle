@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Send, Upload, AlertTriangle, Trash2, Plus, CheckCircle2, Lock, Film } from "lucide-react";
+import { ArrowLeft, Save, Send, Upload, AlertTriangle, Trash2, Plus, CheckCircle2, Lock, Film, FileText } from "lucide-react";
 import { DeadlineTimer } from "@/components/ritx/shared/DeadlineTimer";
 import { PaywallGate } from "@/components/ritx/shared/PaywallGate";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
