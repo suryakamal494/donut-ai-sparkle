@@ -4,6 +4,8 @@ import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
+import { OrganiserHeaderStrip } from "./OrganiserHeaderStrip";
+import { AppFooter } from "./AppFooter";
 
 export interface RitxNavItem {
   to: string;
@@ -98,9 +100,11 @@ export function RitxShell({ role, nav }: RitxShellProps) {
       )}
 
       <main className="flex-1 min-w-0 pt-14 lg:pt-0">
+        <OrganiserHeaderStrip />
         <div className="max-w-7xl mx-auto p-4 md:p-6 animate-fade-in" key={location.pathname}>
           <Outlet />
         </div>
+        <AppFooter />
       </main>
     </div>
   );
