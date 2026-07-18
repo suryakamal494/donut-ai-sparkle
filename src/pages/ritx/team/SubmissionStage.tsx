@@ -21,11 +21,19 @@ import {
   type SubmissionField,
   type FormSection,
 } from "@/data/ritx/submissionData";
+import { EVIDENCE_CATEGORIES, evidenceCategory } from "@/data/ritx/submissionData";
 import { toast } from "sonner";
 
 const team = mockTeams[0];
 
-interface Attachment { id: string; title: string; name: string; sizeKb: number; }
+interface Attachment {
+  id: string;
+  categoryId: string;
+  title: string;
+  description: string;
+  name: string;
+  sizeKb: number;
+}
 
 function validateField(f: SubmissionField, value: unknown): string | null {
   const empty = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
