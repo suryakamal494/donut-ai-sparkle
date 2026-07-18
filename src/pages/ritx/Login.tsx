@@ -4,11 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Users, Gavel } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ritxAsset from "@/assets/logo-ritx.png.asset.json";
-import { CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { loginOrRegister } from "@/data/ritx/workspaceState";
 import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
 import { AppFooter } from "@/components/ritx/shared/AppFooter";
@@ -30,17 +28,16 @@ export default function RitxLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [klass, setKlass] = useState("");
   const navigate = useNavigate();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (role === "team") {
-      if (!name.trim() || !email.trim() || !klass) {
-        toast.error("Fill in name, email and class to continue");
+      if (!name.trim() || !email.trim()) {
+        toast.error("Enter your name and email to continue");
         return;
       }
-      loginOrRegister({ name, email, class: klass });
+      loginOrRegister({ name, email, class: "" });
       navigate("/team");
       return;
     }
@@ -104,15 +101,6 @@ export default function RitxLogin() {
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              </div>
-              <div>
-                <Label>Class</Label>
-                <Select value={klass} onValueChange={setKlass}>
-                  <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                  <SelectContent>
-                    {CLASS_OPTIONS.map((c) => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
               </div>
             </>
           ) : (
