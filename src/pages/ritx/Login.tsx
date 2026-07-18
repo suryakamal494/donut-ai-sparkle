@@ -37,22 +37,20 @@ export default function RitxLogin() {
         toast.error("Fill in name, email and class to continue");
         return;
       }
-      const user = loginOrRegister({ name, email, class: klass });
-      const ws = getWorkspaceForUser(user.id);
-      navigate(ws ? "/team" : "/team/join");
+      loginOrRegister({ name, email, class: klass });
+      navigate("/team");
       return;
     }
     navigate(roleConfig[role].redirect);
   };
 
   const continueAsDemo = () => {
-    const user = loginOrRegister({
+    loginOrRegister({
       name: "Demo Student",
       email: "demo.student@ritx.test",
       class: "9",
     });
-    const ws = getWorkspaceForUser(user.id);
-    navigate(ws ? "/team" : "/team/join");
+    navigate("/team");
   };
 
   return (
