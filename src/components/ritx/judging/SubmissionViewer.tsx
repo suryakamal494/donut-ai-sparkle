@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { TeamIdChip } from "@/components/ritx/shared/AccessBadge";
 import { mockTeams, mockCompetition } from "@/data/ritx/mockData";
 import { defaultFields, submissionForTeam, type AnswerValue, type SubmissionField } from "@/data/ritx/submissionData";
+import { evidenceForTeam, EVIDENCE_CATEGORIES, evidenceCategory } from "@/data/ritx/submissionData";
 import { assignmentsForTeam } from "@/data/ritx/rubricData";
 import { mockStaff } from "@/data/ritx/staffData";
 import { FileText, Film, Image as ImageIcon } from "lucide-react";
@@ -59,6 +60,13 @@ export function SubmissionViewer({ teamId, mode }: Props) {
       .filter((x) => x.value != null);
   }, [fields, submission]);
 
+  const attachments = useMemo(() => (team ? evidenceForTeam(team.id) : []), [team]);
+  const attachmentsByCategory = useMemo(
+    () => EVIDENCE_CATEGORIES.map((c) => ({ category: c, items: attachments.filter((a) => a.categoryId === c.id) })),
+    [attachments],
+  );
+  const evidenceCount = evidence.length + attachments.length;
+
   if (!team || !submission) {
     return <Card className="p-6 text-sm text-muted-foreground">Submission not available.</Card>;
   }
@@ -77,7 +85,9 @@ export function SubmissionViewer({ teamId, mode }: Props) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="form">Form</TabsTrigger>
-          <TabsTrigger value="evidence">Evidence {evidence.length > 0 && <span className="ml-1 text-[10px] opacity-60">({evidence.length})</span>}</TabsTrigger>
+          <TabsTrigger value="evidence">
+            Evidence {evidenceCount > 0 && <span className="ml-1 text-[10px] opacity-60">({evidenceCount})</span>}
+          </TabsTrigger>
         </TabsList>
       </div>
 
@@ -121,9 +131,48 @@ export function SubmissionViewer({ teamId, mode }: Props) {
         </TabsContent>
 
         <TabsContent value="evidence" className="p-4 mt-0 space-y-4">
-          {evidence.length === 0 && (
+          {evidenceCount === 0 && (
             <Card className="p-6 text-center text-sm text-muted-foreground">No evidence uploaded yet.</Card>
           )}
+
+          {attachments.length > 0 && (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Team attachments by criterion</div>
+              {attachmentsByCategory.map(({ category, items }) => items.length > 0 && (
+                <Card key={category.id} className="p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${category.tone}`}>
+                      {category.label} · {category.weight}%
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{items.length} file{items.length === 1 ? "" : "s"}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((a) => {
+                      const cat = evidenceCategory(a.categoryId);
+                      return (
+                        <div key={a.id} className="border rounded-md p-2 bg-muted/20">
+                          <div className="flex items-start gap-2">
+                            <FileText className="w-3.5 h-3.5 mt-0.5 text-primary" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium truncate">{a.title}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">{a.name} · {a.sizeKb} KB{cat && ` · ${cat.label}`}</div>
+                              {a.description && (
+                                <div className="text-[11px] text-muted-foreground/90 mt-1 leading-relaxed">{a.description}</div>
+                              )}
+                            </div>
+                          </div>
+                          {a.url && a.mime === "application/pdf" && (
+                            <iframe src={`${a.url}#toolbar=0&navpanes=0`} title={a.title} className="w-full h-[45vh] rounded border bg-white mt-2" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {evidence.map(({ field, value }) => (
             <Card key={field.id} className="p-3">
               <div className="flex items-center gap-2 mb-2 text-sm font-medium">

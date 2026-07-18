@@ -442,6 +442,67 @@ export function extendDeadline(trackId: string, stageId: StageId, days: number):
 
 export type StageWindowStatus = "upcoming" | "open" | "closed";
 
+// =========================================================================
+// Evidence categories — mirror the RiTX rubric so teams tag every attachment
+// against the criterion it supports. Weights come from the concept note §7.
+// =========================================================================
+
+export interface EvidenceCategory {
+  id: string;
+  label: string;
+  weight: number; // percent
+  tone: string;   // tailwind classes for chip
+}
+
+export const EVIDENCE_CATEGORIES: EvidenceCategory[] = [
+  { id: "problem-relevance",    label: "Problem relevance",              weight: 15, tone: "bg-rose-100 text-rose-700 border-rose-200" },
+  { id: "investigation",        label: "Investigation & evidence",       weight: 25, tone: "bg-amber-100 text-amber-700 border-amber-200" },
+  { id: "scientific-reasoning", label: "Scientific reasoning",           weight: 20, tone: "bg-sky-100 text-sky-700 border-sky-200" },
+  { id: "originality",          label: "Originality & creativity",       weight: 15, tone: "bg-violet-100 text-violet-700 border-violet-200" },
+  { id: "feasibility",          label: "Feasibility & impact",           weight: 15, tone: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  { id: "policy-sdg",           label: "Policy, SDG, ethics & communication", weight: 10, tone: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+];
+
+export const evidenceCategory = (id: string) =>
+  EVIDENCE_CATEGORIES.find((c) => c.id === id);
+
+export interface EvidenceAttachment {
+  id: string;
+  categoryId: string;
+  title: string;
+  description?: string;
+  name: string;
+  sizeKb: number;
+  url?: string;
+  mime?: string;
+}
+
+// Deterministic mock evidence per team so judges see multi-category uploads.
+const SAMPLE_EVIDENCE: Array<Omit<EvidenceAttachment, "id"> & { id?: string }> = [
+  { categoryId: "investigation",        title: "Household survey — 42 responses", description: "Door-to-door survey across 3 wards; raw responses + summary sheet.", name: "survey-responses.pdf", sizeKb: 1240, url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "investigation",        title: "Field observation photos",         description: "Photos of the problem site captured across two weeks.",             name: "field-photos.pdf",     sizeKb: 2180, url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "problem-relevance",    title: "Stakeholder interview notes",      description: "Notes from 6 interviews with teachers, parents and a doctor.",     name: "interviews.pdf",       sizeKb: 640,  url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "scientific-reasoning", title: "Analysis worksheet",                description: "Assumptions, comparisons and cost-benefit breakdown.",              name: "analysis.pdf",         sizeKb: 880,  url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "originality",          title: "Concept sketches",                 description: "Early ideation sketches showing three alternative approaches.",    name: "sketches.pdf",         sizeKb: 1520, url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "feasibility",          title: "Prototype cost sheet",             description: "Bill of materials + affordability check for a school setting.",    name: "cost-sheet.pdf",       sizeKb: 410,  url: SAMPLE_PDF, mime: "application/pdf" },
+  { categoryId: "policy-sdg",           title: "SDG mapping note",                 description: "Short note mapping our work to SDG targets and GoI mission.",      name: "sdg-mapping.pdf",      sizeKb: 320,  url: SAMPLE_PDF, mime: "application/pdf" },
+];
+
+export function evidenceForTeam(teamId: string): EvidenceAttachment[] {
+  // Seed from team id length + char sum → stable per team.
+  const seed = Array.from(teamId).reduce((a, c) => a + c.charCodeAt(0), 7);
+  const r = mulberry32(seed);
+  const count = 3 + Math.floor(r() * 4); // 3–6 attachments
+  const picks: EvidenceAttachment[] = [];
+  const pool = [...SAMPLE_EVIDENCE];
+  for (let i = 0; i < count && pool.length; i++) {
+    const idx = Math.floor(r() * pool.length);
+    const item = pool.splice(idx, 1)[0];
+    picks.push({ ...item, id: `${teamId}-att-${i}` });
+  }
+  return picks;
+}
+
 export function stageWindowStatus(stage: StageForm, now: Date = new Date()): StageWindowStatus {
   const open = new Date(stage.openAt).getTime();
   const close = new Date(stage.deadlineAt).getTime();
