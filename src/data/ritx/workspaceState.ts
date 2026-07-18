@@ -230,6 +230,23 @@ export function payForWorkspace(ws: Workspace, userId: string) {
   ws.paidBy = userId;
 }
 
+// --- Prepaid credit (pay-before-create) ---------------------------------
+// Users pay the team fee BEFORE the workspace exists. Successful payment
+// grants a one-shot credit that `createWorkspace` consumes to mark the new
+// workspace as paid. UI-only mock: in-memory Set.
+
+const prepaidUserIds = new Set<string>();
+
+export function hasPrepaidCredit(userId: string): boolean {
+  return prepaidUserIds.has(userId);
+}
+export function grantPrepaidCredit(userId: string) {
+  prepaidUserIds.add(userId);
+}
+export function consumePrepaidCredit(userId: string): boolean {
+  return prepaidUserIds.delete(userId);
+}
+
 // --- Edit history --------------------------------------------------------
 
 export function logEdit(ws: Workspace, user: RitxUser, section: string, field: string) {
