@@ -57,7 +57,7 @@ export default function RitxLogin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/60 to-white relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50 via-orange-50/60 to-white relative overflow-hidden pb-20">
       <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-donut-coral/20 to-donut-orange/10 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-br from-violet-200/40 to-transparent blur-3xl pointer-events-none" />
       <OrganiserHeaderStrip variant="hero" />
