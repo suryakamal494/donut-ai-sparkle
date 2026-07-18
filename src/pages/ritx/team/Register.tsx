@@ -9,7 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INDIAN_STATES, CLASS_OPTIONS } from "@/data/ritx/mockData";
 import { toast } from "sonner";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Sparkles } from "lucide-react";
 import { OrganiserHeaderStrip } from "@/components/ritx/shared/OrganiserHeaderStrip";
 import { AppFooter } from "@/components/ritx/shared/AppFooter";
 
