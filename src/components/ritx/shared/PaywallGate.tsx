@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, CreditCard } from "lucide-react";
@@ -6,8 +7,8 @@ import { PayDialog } from "./PayDialog";
 import {
   getCurrentUser,
   getCurrentWorkspace,
+  hasUserPaid,
   isLead,
-  isUnlocked,
   pricing,
 } from "@/data/ritx/workspaceState";
 
@@ -19,13 +20,15 @@ interface Props {
 export function PaywallGate({ feature, children }: Props) {
   const [open, setOpen] = useState(false);
   const [, bump] = useState(0);
+  const navigate = useNavigate();
   const ws = getCurrentWorkspace();
   const user = getCurrentUser();
 
-  if (isUnlocked(ws)) return <>{children}</>;
-  if (!ws || !user) return <>{children}</>; // don't gate if data isn't loaded yet
+  if (hasUserPaid(user, ws)) return <>{children}</>;
+  if (!user) return <>{children}</>; // not logged in — let auth flow handle it
 
-  const lead = isLead(ws, user.id);
+  const preCreate = !ws;
+  const lead = preCreate ? true : isLead(ws, user.id);
   const label = feature === "submission" ? "Submissions" : "Results & certificates";
 
   return (
@@ -39,8 +42,9 @@ export function PaywallGate({ feature, children }: Props) {
         <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
           This is a paid competition. Complete the one-time team fee of{" "}
           <span className="font-semibold text-foreground">₹{pricing.amount.toLocaleString("en-IN")}</span>{" "}
-          to unlock {feature === "submission" ? "both submission stages" : "your team result and certificates"} for every member of{" "}
-          <span className="font-semibold text-foreground">{ws.name}</span>.
+          {preCreate
+            ? "to create your team workspace and unlock every stage of the competition."
+            : <>to unlock {feature === "submission" ? "both submission stages" : "your team result and certificates"} for every member of <span className="font-semibold text-foreground">{ws!.name}</span>.</>}
         </p>
 
         <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-2">
@@ -58,7 +62,16 @@ export function PaywallGate({ feature, children }: Props) {
         </div>
       </Card>
 
-      <PayDialog open={open} onOpenChange={setOpen} workspace={ws} onPaid={() => bump((n) => n + 1)} />
+      <PayDialog
+        open={open}
+        onOpenChange={setOpen}
+        workspace={ws ?? undefined}
+        mode={preCreate ? "pre-create" : "workspace-unlock"}
+        onPaid={() => {
+          bump((n) => n + 1);
+          if (preCreate) navigate("/team");
+        }}
+      />
     </>
   );
 }

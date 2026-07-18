@@ -256,6 +256,14 @@ export function consumePrepaidCredit(userId: string): boolean {
   return prepaidUserIds.delete(userId);
 }
 
+// Unified "has this user paid" check across pre-create and post-create flows.
+export function hasUserPaid(user: RitxUser | null, ws: Workspace | null): boolean {
+  if (pricing.mode === "free") return true;
+  if (!user) return false;
+  if (ws?.paidAt) return true;
+  return hasPrepaidCredit(user.id);
+}
+
 // --- Edit history --------------------------------------------------------
 
 export function logEdit(ws: Workspace, user: RitxUser, section: string, field: string) {
