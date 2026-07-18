@@ -1,6 +1,6 @@
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
+import { Gavel, BookOpen, LayoutDashboard, Video, FolderOpen, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import DonutLogo from "@/components/shared/DonutLogo";
@@ -12,7 +12,6 @@ import { AppFooter } from "@/components/ritx/shared/AppFooter";
 const currentStaff = mockStaff.find((s) => s.id === "s3")!;
 
 export default function RitxStaffLayout() {
-  const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -54,11 +53,6 @@ export default function RitxStaffLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-orange-100/60">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 hover:bg-white/80" onClick={() => navigate("/login")}>
-            <LogOut className="w-4 h-4" /> Sign out
-          </Button>
-        </div>
       </aside>
 
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-amber-50 to-orange-50/80 backdrop-blur border-b border-orange-100/60 flex items-center justify-between px-3 h-14">
@@ -85,7 +79,7 @@ export default function RitxStaffLayout() {
       )}
 
       <main className="flex-1 min-w-0 pt-14 lg:pt-0 pb-20">
-        <OrganiserHeaderStrip />
+        <OrganiserHeaderStrip showSignout />
         <div className="max-w-7xl mx-auto p-4 md:p-6 animate-fade-in" key={location.pathname}>
           <Outlet />
         </div>
